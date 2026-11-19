@@ -1870,3 +1870,23 @@ model MdbAlgorithmSupplemental {
   @@id([algorithmId, supplementalId])
   @@map("Mdb_AlgorithmSupplemental")
 }
+
+// M-021: administrator exports need a second administrator's approval.
+model ExportApproval {
+  id            String    @id @default(cuid())
+  exportKind    String    @map("export_kind")
+  resourceId    String    @map("resource_id")
+  requesterId   String    @map("requester_id")
+  reason        String
+  status        String    @default("pending")
+  approverId    String?   @map("approver_id")
+  comments      String?
+  requestedAt   DateTime  @default(now()) @map("requested_at")
+  expiresAt     DateTime  @map("expires_at")
+  decidedAt     DateTime? @map("decided_at")
+  consumedAt    DateTime? @map("consumed_at")
+
+  @@index([status, expiresAt])
+  @@index([requesterId])
+  @@map("export_approvals")
+}

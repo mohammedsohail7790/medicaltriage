@@ -1,6 +1,16 @@
 import { Router } from "express";
 import { requireAnyPermission } from "../middleware/rbac.js";
 import { getFeedbackSummary, getFeedbackTrend } from "../services/feedbackSummary.js";
+import {
+  consumeExportApproval,
+  decideExportApproval,
+  describeExport,
+  ExportGovernanceError,
+  inspectExportWithDlp,
+  assertExportEnabled,
+  recordExportEvent,
+  requestExportApproval
+} from "../services/exportGovernance.js";
 import { exportOrganizationQueueData } from "../services/queueOrchestration.js";
 import {
   getRequestSession,
@@ -233,18 +243,96 @@ export function createAdminRouter(): Router {
   // to one specific tenant, independent of the requesting admin's own
   // tenant scope. PAM-elevation-gated since this is a privileged,
   // cross-tenant bulk-data action.
+  // M-021: an administrator export needs a second administrator's approval, is
+  // inspected by the DLP tool when one is configured, can be disabled by
+  // configuration, and every step is audited.
+  router.post(
+    "/organizations/:orgId/export-requests",
+    requireElevatedPermission("admin.users.manage"),
+    async (req: AuthorizedRequest, res, next) => {
+      try {
+        const session = req.securitySession!;
+        const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+        if (reason.length < 10) {
+          return res.status(400).json({ error: "A reason of at least 10 characters is required." });
+        }
+        assertExportEnabled("organization");
+        const approval = await requestExportApproval({ exportKind: "organization", resourceId: req.params.orgId, requesterId: session.user.id, reason });
+        await recordExportEvent({ action: "EXPORT_REQUESTED", kind: "organization", session, resourceId: req.params.orgId, success: true, metadata: { approvalId: approval.id, reason } });
+        return res.status(201).json({ approval });
+      } catch (error) {
+        if (error instanceof ExportGovernanceError) return res.status(error.status).json({ error: error.message, code: error.code });
+        return next(error);
+      }
+    }
+  );
+
+  router.post(
+    "/export-requests/:id/decision",
+    requireElevatedPermission("admin.users.manage"),
+    async (req: AuthorizedRequest, res, next) => {
+      try {
+        const session = req.securitySession!;
+        const decision = req.body?.decision;
+        if (decision !== "approve" && decision !== "reject") {
+          return res.status(400).json({ error: "decision must be approve or reject." });
+        }
+        const comments = typeof req.body?.comments === "string" ? req.body.comments.trim().slice(0, 500) : undefined;
+        try {
+          const approval = await decideExportApproval({ id: req.params.id, approverId: session.user.id, decision, comments });
+          await recordExportEvent({
+            action: "EXPORT_APPROVAL_DECIDED",
+            kind: "organization",
+            session,
+            resourceId: approval.resourceId,
+            success: true,
+            metadata: { approvalId: approval.id, decision, requesterId: approval.requesterId, comments }
+          });
+          return res.json({ approval });
+        } catch (error) {
+          if (error instanceof ExportGovernanceError) {
+            await recordExportEvent({ action: "EXPORT_DENIED", kind: "organization", session, resourceId: req.params.id, success: false, metadata: { code: error.code, stage: "decision" } });
+          }
+          throw error;
+        }
+      } catch (error) {
+        if (error instanceof ExportGovernanceError) return res.status(error.status).json({ error: error.message, code: error.code });
+        return next(error);
+      }
+    }
+  );
+
   router.get(
     "/organizations/:orgId/export",
     requireElevatedPermission("admin.users.manage"),
-    async (req, res, next) => {
+    async (req: AuthorizedRequest, res, next) => {
+      const session = req.securitySession!;
+      const approvalId = typeof req.query.approvalId === "string" ? req.query.approvalId : undefined;
       try {
+        assertExportEnabled("organization");
+        const approvalMatch = { id: approvalId, exportKind: "organization" as const, resourceId: req.params.orgId, requesterId: session.user.id };
+        await consumeExportApproval({ ...approvalMatch, consume: false });
         const items = await exportOrganizationQueueData(req.params.orgId);
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="ist-health-org-export-${req.params.orgId}.json"`
-        );
-        return res.json({ exportedAtIso: new Date().toISOString(), organizationId: req.params.orgId, queueItems: items });
+        const body = { exportedAtIso: new Date().toISOString(), organizationId: req.params.orgId, queueItems: items };
+        const descriptor = describeExport("organization", session, req.params.orgId, body, items.length);
+        await inspectExportWithDlp(descriptor);
+        // The approval is used only once the export is cleared for release.
+        const approval = await consumeExportApproval(approvalMatch);
+        await recordExportEvent({
+          action: "EXPORT_COMPLETED",
+          kind: "organization",
+          session,
+          resourceId: req.params.orgId,
+          success: true,
+          metadata: { approvalId: approval.id, approverId: approval.approverId, recordCount: descriptor.recordCount, bytes: descriptor.bytes, sha256: descriptor.sha256 }
+        });
+        res.setHeader("Content-Disposition", `attachment; filename="ist-health-org-export-${req.params.orgId}.json"`);
+        return res.json(body);
       } catch (error) {
+        if (error instanceof ExportGovernanceError) {
+          await recordExportEvent({ action: "EXPORT_DENIED", kind: "organization", session, resourceId: req.params.orgId, success: false, metadata: { code: error.code, approvalId } });
+          return res.status(error.status).json({ error: error.message, code: error.code });
+        }
         return next(error);
       }
     }
