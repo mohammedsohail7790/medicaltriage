@@ -1,3 +1,4 @@
+import { runInTransaction } from "./dbTransaction.js";
 import { buildAuditChange, type AuditChange } from "./auditChange.js";
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
@@ -1645,12 +1646,12 @@ async function resolveAlgorithmDbId(externalProtocolId: string | undefined): Pro
   return resolveMdbAlgorithmId(externalProtocolId);
 }
 
-async function saveDbRecord(record: QueueRecord): Promise<QueueRecord> {
+async function saveDbRecord(record: QueueRecord, client: QueuePrismaClient = queueClient()): Promise<QueueRecord> {
   // Prisma treats `undefined` in an update's data object as "field not
   // provided" (leaves the column untouched), not "set to null" - so clearing
   // a nullable field (e.g. releaseQueueItem setting lockedBy = undefined)
   // silently no-ops unless undefined is coalesced to null explicitly here.
-  const updated = await queueClient().triageQueueItem.update({
+  const updated = await client.triageQueueItem.update({
     where: { id: record.id },
     data: {
       status: record.status,
@@ -1680,8 +1681,8 @@ async function saveDbRecord(record: QueueRecord): Promise<QueueRecord> {
   return dbRowToRecord(updated);
 }
 
-async function addDbTransition(record: QueueRecord, transition: QueueTransitionLogDto): Promise<void> {
-  await queueClient().queueTransitionLog.create({
+async function addDbTransition(record: QueueRecord, transition: QueueTransitionLogDto, client: QueuePrismaClient = queueClient()): Promise<void> {
+  await client.queueTransitionLog.create({
     data: {
       id: transition.id,
       queueItemId: record.id,
@@ -1730,6 +1731,18 @@ async function getRecord(id: string, session: AuthenticatedSession): Promise<Que
     throw new QueueOrchestrationError(404, `Queue item ${id} was not found.`, "QUEUE_NOT_FOUND");
   }
   return record;
+}
+
+// NFR-060: a state change and its transition log are one atomic write. The transition log is the
+// signed record of who moved a case and why; previously it was a second statement, so a failure
+// between the two left a changed case with no log entry.
+async function saveRecordWithTransition(record: QueueRecord, transition: QueueTransitionLogDto): Promise<QueueRecord> {
+  if (!shouldPersistQueueInDatabase()) return saveMockRecord(record);
+  return runInTransaction(async (tx) => {
+    const saved = await saveDbRecord(record, tx as unknown as QueuePrismaClient);
+    await addDbTransition(saved, transition, tx as unknown as QueuePrismaClient);
+    return saved;
+  });
 }
 
 async function saveRecord(record: QueueRecord): Promise<QueueRecord> {
@@ -2136,10 +2149,7 @@ export async function claimQueueItem(session: AuthenticatedSession, id: string):
   record.updatedAtIso = claimedAtIso;
   const transition = appendTransition(record, session, previous, "Queue item claimed and locked for active triage.");
   record.priorityScore = computePriority(record);
-  const saved = await saveRecord(record);
-  if (shouldPersistQueueInDatabase()) {
-    await addDbTransition(saved, transition);
-  }
+  const saved = await saveRecordWithTransition(record, transition);
   await recordQueueAuditEvent({
     session,
     action: "QUEUE_ITEM_CLAIM",
@@ -2187,10 +2197,7 @@ export async function releaseQueueItem(session: AuthenticatedSession, id: string
   record.lockExpiresAtIso = undefined;
   record.updatedAtIso = nowIso();
   const transition = appendTransition(record, session, previous, "Queue item released.");
-  const saved = await saveRecord(record);
-  if (shouldPersistQueueInDatabase()) {
-    await addDbTransition(saved, transition);
-  }
+  const saved = await saveRecordWithTransition(record, transition);
   return toDto(saved);
 }
 
@@ -2434,10 +2441,7 @@ export async function moveQueueItem(
   record.updatedAtIso = nowIso();
   const transition = appendTransition(record, session, previous, request.reason);
   record.priorityScore = computePriority(record);
-  const saved = await saveRecord(record);
-  if (shouldPersistQueueInDatabase()) {
-    await addDbTransition(saved, transition);
-  }
+  const saved = await saveRecordWithTransition(record, transition);
   await recordQueueAuditEvent({
     session,
     action: record.status === "COMPLETED" && previous.status !== "COMPLETED" ? "QUEUE_ITEM_COMPLETE" : "QUEUE_ITEM_MOVE",
@@ -2483,10 +2487,7 @@ export async function escalateQueueItemToOrganization(
     targetOrganizationId: request.targetOrganizationId
   });
   record.priorityScore = computePriority(record);
-  const saved = await saveRecord(record);
-  if (shouldPersistQueueInDatabase()) {
-    await addDbTransition(saved, transition);
-  }
+  const saved = await saveRecordWithTransition(record, transition);
   return toDto(saved);
 }
 

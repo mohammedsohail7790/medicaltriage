@@ -1,3 +1,4 @@
+import { runInTransaction } from "../services/dbTransaction.js";
 import { Router } from "express";
 import type { OverrideStatusFlag, Prisma, TriageSeverity } from "@prisma/client";
 import { z } from "zod";
@@ -358,45 +359,50 @@ async function recordApprovalReview(
     throw Object.assign(new Error(`Encounter ${encounterId} was not found for clinical approval.`), { status: 404 });
   }
 
-  const existing = await prisma.safetyAuditDeviationLog.findUnique({ where: { encounterId } });
-  const nextTrace = existing
-    ? [
-        ...(Array.isArray(existing.explainabilityTrace) ? existing.explainabilityTrace : [existing.explainabilityTrace]),
-        signedTraceEvent
-      ]
-    : [signedTraceEvent];
-
-  if (existing) {
-    const updateData: Prisma.SafetyAuditDeviationLogUpdateInput = {
-      originalAiRecommendation: request.originalAiRecommendation ?? existing.originalAiRecommendation,
-      nurseOverrideRationale:
-        request.nurseOverrideRationale ?? existing.nurseOverrideRationale ?? "Rules-engine final disposition reviewed.",
-      rulesEngineSeverity: severityToPrisma(request.rulesEngineSeverity),
-      overrideStatusFlag: overrideFlagFor(request),
-      isCriticalFloorBreach: criticalFloorBreachValue(existing) || isCriticalFloorBreach,
-      explainabilityTrace: jsonValue(nextTrace)
-    };
-    await prisma.safetyAuditDeviationLog.update({
-      where: { encounterId },
-      data: updateData
-    });
-  } else {
-    const createData: Prisma.SafetyAuditDeviationLogCreateInput = {
-      encounter: {
-        connect: { id: encounterId }
-      },
-      originalAiRecommendation: request.originalAiRecommendation ?? "NONE",
-      nurseOverrideRationale:
-        request.nurseOverrideRationale ?? "Rules-engine final disposition reviewed and approved.",
-      rulesEngineSeverity: severityToPrisma(request.rulesEngineSeverity),
-      overrideStatusFlag: overrideFlagFor(request),
-      isCriticalFloorBreach,
-      explainabilityTrace: jsonValue(nextTrace)
-    };
-    await prisma.safetyAuditDeviationLog.create({
-      data: createData
-    });
-  }
+  // NFR-060: the deviation log is read, extended and written back as one serializable unit, so two
+  // reviews of the same encounter at once cannot overwrite each other's trace entry.
+  const { existing, nextTrace } = await runInTransaction(async (tx) => {
+  const existing = await tx.safetyAuditDeviationLog.findUnique({ where: { encounterId } });
+    const nextTrace = existing
+      ? [
+          ...(Array.isArray(existing.explainabilityTrace) ? existing.explainabilityTrace : [existing.explainabilityTrace]),
+          signedTraceEvent
+        ]
+      : [signedTraceEvent];
+  
+    if (existing) {
+      const updateData: Prisma.SafetyAuditDeviationLogUpdateInput = {
+        originalAiRecommendation: request.originalAiRecommendation ?? existing.originalAiRecommendation,
+        nurseOverrideRationale:
+          request.nurseOverrideRationale ?? existing.nurseOverrideRationale ?? "Rules-engine final disposition reviewed.",
+        rulesEngineSeverity: severityToPrisma(request.rulesEngineSeverity),
+        overrideStatusFlag: overrideFlagFor(request),
+        isCriticalFloorBreach: criticalFloorBreachValue(existing) || isCriticalFloorBreach,
+        explainabilityTrace: jsonValue(nextTrace)
+      };
+      await tx.safetyAuditDeviationLog.update({
+        where: { encounterId },
+        data: updateData
+      });
+    } else {
+      const createData: Prisma.SafetyAuditDeviationLogCreateInput = {
+        encounter: {
+          connect: { id: encounterId }
+        },
+        originalAiRecommendation: request.originalAiRecommendation ?? "NONE",
+        nurseOverrideRationale:
+          request.nurseOverrideRationale ?? "Rules-engine final disposition reviewed and approved.",
+        rulesEngineSeverity: severityToPrisma(request.rulesEngineSeverity),
+        overrideStatusFlag: overrideFlagFor(request),
+        isCriticalFloorBreach,
+        explainabilityTrace: jsonValue(nextTrace)
+      };
+      await tx.safetyAuditDeviationLog.create({
+        data: createData
+      });
+    }
+    return { existing, nextTrace };
+  }, { serializable: true });
 
   const approvalBefore = existing
     ? {

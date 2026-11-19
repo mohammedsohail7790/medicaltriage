@@ -1,3 +1,4 @@
+import { runInTransaction } from "../services/dbTransaction.js";
 import type {
   AcuityDispositionCode,
   OverrideStatusFlag,
@@ -550,29 +551,33 @@ async function recordSafetyFailure(args: {
     fallback: "clipboard",
     createdAtIso: new Date().toISOString()
   };
-  const existing = await prisma.safetyAuditDeviationLog.findUnique({
-    where: { encounterId: args.encounter.id }
-  });
-  if (existing) {
-    const current = existing.explainabilityTrace as unknown;
-    const nextTrace = Array.isArray(current) ? [...current, event] : [current, event].filter(Boolean);
-    await prisma.safetyAuditDeviationLog.update({
-      where: { encounterId: args.encounter.id },
-      data: { explainabilityTrace: jsonValue(nextTrace) }
+  // NFR-060: appending to the trace reads then writes the same row, so it runs serializable and
+  // two failures recorded at once cannot overwrite each other.
+  await runInTransaction(async (tx) => {
+  const existing = await tx.safetyAuditDeviationLog.findUnique({
+      where: { encounterId: args.encounter.id }
     });
-    return;
-  }
-
-  await prisma.safetyAuditDeviationLog.create({
-    data: {
-      encounterId: args.encounter.id,
-      originalAiRecommendation: "FHIR_WRITEBACK",
-      nurseOverrideRationale: "FHIR writeback failed; fallback to clipboard handoff required.",
-      rulesEngineSeverity: dispositionSeverity(args.encounter.finalDispositionCode),
-      overrideStatusFlag: "REVIEW_REQUIRED" as OverrideStatusFlag,
-      explainabilityTrace: jsonValue([event])
+    if (existing) {
+      const current = existing.explainabilityTrace as unknown;
+      const nextTrace = Array.isArray(current) ? [...current, event] : [current, event].filter(Boolean);
+      await tx.safetyAuditDeviationLog.update({
+        where: { encounterId: args.encounter.id },
+        data: { explainabilityTrace: jsonValue(nextTrace) }
+      });
+      return;
     }
-  });
+  
+    await tx.safetyAuditDeviationLog.create({
+      data: {
+        encounterId: args.encounter.id,
+        originalAiRecommendation: "FHIR_WRITEBACK",
+        nurseOverrideRationale: "FHIR writeback failed; fallback to clipboard handoff required.",
+        rulesEngineSeverity: dispositionSeverity(args.encounter.finalDispositionCode),
+        overrideStatusFlag: "REVIEW_REQUIRED" as OverrideStatusFlag,
+        explainabilityTrace: jsonValue([event])
+      }
+    });
+  }, { serializable: true });
 }
 
 function writebackMode(options: ExecuteWritebackOptions): "dry-run" | "live" {

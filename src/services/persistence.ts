@@ -922,6 +922,18 @@ export async function persistEvaluatedEncounter(args: {
     return { persisted: false, reason: "mock-mode" };
   }
 
+  // NFR-060: the encounter and its safety audit log are written together. Previously the log was a
+  // second statement, so a failure between them left a completed encounter with no audit log.
+  const safetyLogData: Prisma.SafetyAuditDeviationLogCreateWithoutEncounterInput | undefined = args.safetyAudit.required
+    ? {
+        originalAiRecommendation: args.safetyAudit.originalAiRecommendation ?? "NONE",
+        nurseOverrideRationale: args.safetyAudit.nurseOverrideRationale,
+        rulesEngineSeverity: severityToPrisma(args.decision.severity),
+        overrideStatusFlag: args.safetyAudit.overrideStatusFlag,
+        isCriticalFloorBreach: args.safetyAudit.isCriticalFloorBreach,
+        explainabilityTrace: jsonValue(args.safetyAudit.explainabilityTrace)
+      }
+    : undefined;
   const created = await prisma.aviationTriageEncounter.create({
     data: {
       organizationId: args.organizationId,
@@ -937,26 +949,10 @@ export async function persistEvaluatedEncounter(args: {
       customAviationTags: jsonValue(args.aviation.tags),
       clipboardPayload: jsonValue(args.clipboardPayload.structured),
       nurseId: args.request.nurseId,
-      completedAt: new Date()
+      completedAt: new Date(),
+      ...(safetyLogData ? { safetyLog: { create: safetyLogData } } : {})
     }
   });
-
-  if (args.safetyAudit.required) {
-    const safetyLogData: Prisma.SafetyAuditDeviationLogCreateInput = {
-      encounter: {
-        connect: { id: created.id }
-      },
-      originalAiRecommendation: args.safetyAudit.originalAiRecommendation ?? "NONE",
-      nurseOverrideRationale: args.safetyAudit.nurseOverrideRationale,
-      rulesEngineSeverity: severityToPrisma(args.decision.severity),
-      overrideStatusFlag: args.safetyAudit.overrideStatusFlag,
-      isCriticalFloorBreach: args.safetyAudit.isCriticalFloorBreach,
-      explainabilityTrace: jsonValue(args.safetyAudit.explainabilityTrace)
-    };
-    await prisma.safetyAuditDeviationLog.create({
-      data: safetyLogData
-    });
-  }
 
   return { persisted: true, recordId: created.id };
 }
