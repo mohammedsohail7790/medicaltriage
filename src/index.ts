@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { contentPackageReady } from "./services/clinicalContent.js";
 import { startIncomingCallSimulator } from "./services/callSimulator.js";
+import { recordAuditConfigurationState } from "./services/auditPolicy.js";
 import { hydrateRolePermissionOverridesFromDatabase, startRoleCatalogRefresh } from "./services/securityAdmin.js";
 
 const port = Number(process.env.PORT ?? 8080);
@@ -17,6 +18,8 @@ await contentPackageReady;
 await hydrateRolePermissionOverridesFromDatabase();
 startRoleCatalogRefresh();
 const app = createApp();
+// NFR-011: the audit configuration in force is written to the ledger at every start.
+await recordAuditConfigurationState().catch((error) => console.error("Could not record the audit configuration:", error instanceof Error ? error.name : "error"));
 
 app.listen(port, () => {
   console.log(`IST Tech tele-triage MVP API listening on port ${port}`);

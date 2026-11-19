@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { auditPolicyStatement } from "../services/auditPolicy.js";
 import { buildDataCatalogue, dataCatalogueCsv } from "../services/dataCatalogue.js";
 import { buildAuditChange } from "../services/auditChange.js";
 import { PasswordPolicySchema, refreshPasswordPolicy, savePasswordPolicy } from "../services/passwordPolicy.js";
@@ -628,6 +629,16 @@ export function createAdminRouter(): Router {
 
   router.get("/encryption-policies", requirePermission("crypto.policy.manage"), (_req, res) => {
     return res.json({ policies: listEncryptionPolicies() });
+  });
+
+  // NFR-011: the audit policy as it applies right now: auditing cannot be disabled, what is
+  // configurable, and how a change is governed.
+  router.get("/audit-policy", requirePermission("audit.events.view"), async (_req, res, next) => {
+    try {
+      return res.json(await auditPolicyStatement());
+    } catch (error) {
+      return next(error);
+    }
   });
 
   // AI-016: the data catalogue (every table and field with its classification label) for a
