@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { buildDataCatalogue, dataCatalogueCsv } from "../services/dataCatalogue.js";
 import { buildAuditChange } from "../services/auditChange.js";
 import { PasswordPolicySchema, refreshPasswordPolicy, savePasswordPolicy } from "../services/passwordPolicy.js";
 import { requireAnyPermission } from "../middleware/rbac.js";
@@ -627,6 +628,22 @@ export function createAdminRouter(): Router {
 
   router.get("/encryption-policies", requirePermission("crypto.policy.manage"), (_req, res) => {
     return res.json({ policies: listEncryptionPolicies() });
+  });
+
+  // AI-016: the data catalogue (every table and field with its classification label) for a
+  // governance platform such as Microsoft Purview. JSON by default, ?format=csv for a flat file.
+  router.get("/data-catalogue", requirePermission("audit.events.view"), (req, res, next) => {
+    try {
+      const catalogue = buildDataCatalogue();
+      if (req.query.format === "csv") {
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", 'attachment; filename="aimltriage-data-catalogue.csv"');
+        return res.send(dataCatalogueCsv(catalogue));
+      }
+      return res.json(catalogue);
+    } catch (error) {
+      return next(error);
+    }
   });
 
   router.get("/audit-events", requirePermission("audit.events.view"), async (req, res, next) => {
