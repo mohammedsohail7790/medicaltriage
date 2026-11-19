@@ -1,3 +1,4 @@
+import { parseOAuthApiConfig } from "./services/oauthBearer.js";
 import compression from "compression";
 import cors, { type CorsOptions, type CorsOptionsDelegate } from "cors";
 import express, { type Request } from "express";
@@ -93,6 +94,8 @@ function corsForbiddenError() {
 
 export function createApp() {
   assertRuntimeConfiguration();
+  // AI-001 / NFR-028: fail at startup on a malformed OAuth client list rather than on the first call.
+  parseOAuthApiConfig();
   const app = express();
   // Behind Firebase Hosting and Cloud Run the socket address is a Google front end, not the user.
 // TRUST_PROXY_HOPS is the number of trusted proxies in front of the service; with it set,

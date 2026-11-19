@@ -54,7 +54,7 @@ export function parseAllowlist(raw: string | undefined): Array<Ipv4Range | strin
     .filter((entry): entry is Ipv4Range | string => entry !== undefined);
 }
 
-function matches(ip: string, entries: Array<Ipv4Range | string>): boolean {
+export function matchesAllowlist(ip: string, entries: Array<Ipv4Range | string>): boolean {
   const normalizedIp = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
   const ipInt = ipv4ToInt(normalizedIp);
   return entries.some((entry) => {
@@ -72,7 +72,7 @@ export function ipAllowlist(rawAllowlist: string | undefined) {
       return next();
     }
     const clientIp = req.ip ?? "";
-    if (matches(clientIp, entries)) {
+    if (matchesAllowlist(clientIp, entries)) {
       return next();
     }
     return res.status(403).json({ error: "Access from this network is not permitted." });

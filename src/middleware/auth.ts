@@ -2,12 +2,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedSession } from "../types/security.js";
 import { requireSecret, secretVersions } from "../config/secrets.js";
+import { authenticateOAuthBearer, looksLikeOAuthToken, OAuthBearerError } from "../services/oauthBearer.js";
 import { getSessionEndReason, getSessionFromStore, parseSessionCookie, recordSessionActivity, validateSessionContext } from "../services/securityAdmin.js";
 
 const JWT_TTL_SECONDS = 30 * 60;
 
 export type AuthenticatedRequest = Request & {
   securitySession?: AuthenticatedSession;
+  /** Set when an OAuth bearer token was presented and rejected, so the response can say why. */
+  oauthError?: OAuthBearerError;
 };
 
 function jwtSecret(): string {
@@ -91,7 +94,19 @@ async function sessionFromBearerToken(req: Request): Promise<AuthenticatedSessio
   if (!authorization?.startsWith("Bearer ")) {
     return undefined;
   }
-  return sessionFromTokenString(authorization.slice("Bearer ".length).trim());
+  const token = authorization.slice("Bearer ".length).trim();
+  // AI-001 / NFR-028: a token signed by the identity provider (asymmetric algorithm) is an OAuth
+  // access token for an approved API client; the application's own session tokens are HS256.
+  if (looksLikeOAuthToken(token)) {
+    try {
+      return await authenticateOAuthBearer(token, req.ip ?? "unknown");
+    } catch (error) {
+      if (error instanceof OAuthBearerError) (req as AuthenticatedRequest).oauthError = error;
+      else throw error;
+      return undefined;
+    }
+  }
+  return sessionFromTokenString(token);
 }
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -131,6 +146,11 @@ function presentedSessionId(req: Request): string | undefined {
 export async function requireAuthenticatedSession(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     const session = await readAuthenticatedSession(req);
+    if (!session && req.oauthError) {
+      const failure = req.oauthError;
+      res.setHeader("WWW-Authenticate", `Bearer error="${failure.reason === "invalid_token" ? "invalid_token" : "insufficient_scope"}"`);
+      return res.status(failure.status).json({ error: failure.message, code: failure.reason.toUpperCase() });
+    }
     if (!session) {
       const reason = getSessionEndReason(presentedSessionId(req));
       return res.status(401).json({

@@ -2973,6 +2973,12 @@ function applyRolePermissionOverrides(role: Role): Role {
   return { ...role, permissions: [...merged] };
 }
 
+/** Permissions and responsibilities of a role, for principals that are not signed-in people (OAuth clients). */
+export function roleGrantsForCode(roleCode: string): { permissions: string[]; responsibilities: string[] } | undefined {
+  const role = roleByCode(roleCode);
+  return role ? { permissions: [...new Set(role.permissions)], responsibilities: [...new Set(role.responsibilities)] } : undefined;
+}
+
 function roleByCode(roleCode: string): Role | undefined {
   const role = allRoles().find((candidate) => candidate.code === roleCode);
   return role ? applyRolePermissionOverrides(role) : undefined;

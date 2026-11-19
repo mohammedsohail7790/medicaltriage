@@ -1,11 +1,23 @@
 import type { Request, Response, NextFunction } from "express";
 import { readAuthenticatedSession } from "../middleware/auth.js";
 import type { AuthenticatedSession } from "../types/security.js";
+import type { OAuthBearerError } from "./oauthBearer.js";
 import { isElevated, PRIVILEGED_PERMISSIONS } from "./securityAdmin.js";
 
 export type AuthorizedRequest = Request & {
   securitySession?: AuthenticatedSession;
+  oauthError?: OAuthBearerError;
 };
+
+// A rejected OAuth bearer token (invalid, unapproved client, wrong network, missing scope)
+// is answered with the reason, not a bare "Authentication required".
+export function rejectIfOAuthError(req: AuthorizedRequest, res: Response): boolean {
+  if (!req.oauthError) return false;
+  const failure = req.oauthError;
+  res.setHeader("WWW-Authenticate", `Bearer error="${failure.reason === "invalid_token" ? "invalid_token" : "insufficient_scope"}"`);
+  res.status(failure.status).json({ error: failure.message, code: failure.reason.toUpperCase() });
+  return true;
+}
 
 export async function getRequestSession(req: Request): Promise<AuthenticatedSession | undefined> {
   return readAuthenticatedSession(req);
@@ -38,6 +50,7 @@ export function requirePermission(permission: string) {
     try {
       const session = await getRequestSession(req);
       if (!session) {
+        if (rejectIfOAuthError(req, res)) return undefined;
         return res.status(401).json({ error: "Authentication required" });
       }
       if (!canPerformAction(session, permission)) {
