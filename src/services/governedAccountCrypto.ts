@@ -1,22 +1,23 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
-function rootSecret(): string {
-  const secret = process.env.GOVERNED_ACCOUNT_ENCRYPTION_KEY ?? process.env.MFA_ENCRYPTION_KEY;
-  if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("GOVERNED_ACCOUNT_ENCRYPTION_KEY or MFA_ENCRYPTION_KEY is required.");
-    }
-    return "mock-dev-only-governed-account-key";
-  }
-  return secret;
+import { requireSecret, secretVersions } from "../config/secrets.js";
+
+// The governed-account key is its own secret when set, otherwise it shares the MFA key.
+function rootSecretName(): string {
+  return process.env.GOVERNED_ACCOUNT_ENCRYPTION_KEY?.trim() ? "GOVERNED_ACCOUNT_ENCRYPTION_KEY" : "MFA_ENCRYPTION_KEY";
+}
+
+function keyFor(secret: string): Buffer {
+  return scryptSync(secret, "ist-triage-governed-account-encryption-v1", 32);
 }
 
 function encryptionKey(): Buffer {
-  return scryptSync(rootSecret(), "ist-triage-governed-account-encryption-v1", 32);
+  return keyFor(requireSecret(rootSecretName()));
 }
 
 function blindIndexKey(): Buffer {
-  return scryptSync(rootSecret(), "ist-triage-governed-account-index-v1", 32);
+  // The blind index must stay stable, so it follows the current key only.
+  return scryptSync(requireSecret(rootSecretName()), "ist-triage-governed-account-index-v1", 32);
 }
 
 export function encryptGovernedIdentifier(plaintext: string): string {
@@ -29,9 +30,17 @@ export function encryptGovernedIdentifier(plaintext: string): string {
 export function decryptGovernedIdentifier(ciphertext: string): string {
   const [iv, tag, encrypted] = ciphertext.split(".").map((part) => Buffer.from(part, "base64"));
   if (!iv || !tag || !encrypted) throw new Error("Invalid governed identifier ciphertext.");
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+  let lastError: unknown;
+  for (const secret of secretVersions(rootSecretName())) {
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", keyFor(secret), iv);
+      decipher.setAuthTag(tag);
+      return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Governed identifier could not be decrypted.");
 }
 
 export function governedEmailBlindIndex(email: string): string {

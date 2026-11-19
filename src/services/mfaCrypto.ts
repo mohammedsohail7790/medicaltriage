@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
+import { requireSecret, secretVersions } from "../config/secrets.js";
 
 // Real at-rest encryption for TOTP secrets (AES-256-GCM) - no existing
 // encryption helper was found to reuse (the "ciphertext"-named columns
@@ -6,9 +7,12 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:
 // are unpopulated placeholders with no encrypt/decrypt code anywhere), so
 // this is a new, minimal, standard implementation, not a second scheme
 // competing with an existing one.
-function encryptionKey(): Buffer {
-  const secret = process.env.MFA_ENCRYPTION_KEY ?? "mock-dev-only-ist-triage-mfa-key";
+function keyFor(secret: string): Buffer {
   return scryptSync(secret, "ist-triage-mfa-salt", 32);
+}
+
+function encryptionKey(): Buffer {
+  return keyFor(requireSecret("MFA_ENCRYPTION_KEY"));
 }
 
 export function encryptMfaSecret(plaintext: string): string {
@@ -24,7 +28,16 @@ export function decryptMfaSecret(ciphertext: string): string {
   const iv = Buffer.from(ivB64, "base64");
   const authTag = Buffer.from(authTagB64, "base64");
   const encrypted = Buffer.from(encryptedB64, "base64");
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), iv);
-  decipher.setAuthTag(authTag);
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+  // Current key first, then previous keys kept during a rotation window.
+  let lastError: unknown;
+  for (const secret of secretVersions("MFA_ENCRYPTION_KEY")) {
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", keyFor(secret), iv);
+      decipher.setAuthTag(authTag);
+      return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("MFA secret could not be decrypted.");
 }

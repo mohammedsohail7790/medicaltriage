@@ -1,3 +1,4 @@
+import { missingProductionSecrets } from "./secrets.js";
 import { loadLocalEnv } from "./env.js";
 
 loadLocalEnv();
@@ -412,6 +413,12 @@ export function publicRuntimeEnvironment(): PublicRuntimeEnvironment {
 
 export function assertRuntimeConfiguration(): void {
   if (process.env.NODE_ENV === "production") {
+    const missingSecrets = missingProductionSecrets();
+    if (missingSecrets.length > 0) {
+      throw new Error(
+        ["Production runtime requires signing and encryption secrets to be configured.", ...missingSecrets.map((name) => `- ${name}`)].join("\n")
+      );
+    }
     const missingPersistenceControls = missingProductionPersistenceControls();
     if (!process.env.DATABASE_URL?.trim() || !process.env.AUDIT_DATABASE_URL?.trim() || !process.env.AUDIT_HMAC_SECRET?.trim() || missingPersistenceControls.length > 0) {
       throw new Error(

@@ -57,6 +57,8 @@ describe("runtime credential guardrails", () => {
     process.env = {
       ...originalEnv,
       NODE_ENV: "production",
+      AUTH_JWT_SECRET: "test-jwt-secret-with-enough-length",
+      MFA_ENCRYPTION_KEY: "test-mfa-key-with-enough-length",
       MOCK_MODE: "true",
       DATABASE_URL: REQUIRED_LIVE_ENV.DATABASE_URL,
       AUDIT_DATABASE_URL: REQUIRED_LIVE_ENV.AUDIT_DATABASE_URL,
@@ -72,6 +74,8 @@ describe("runtime credential guardrails", () => {
     process.env = {
       ...originalEnv,
       NODE_ENV: "production",
+      AUTH_JWT_SECRET: "test-jwt-secret-with-enough-length",
+      MFA_ENCRYPTION_KEY: "test-mfa-key-with-enough-length",
       MOCK_MODE: "true",
       DATABASE_URL: REQUIRED_LIVE_ENV.DATABASE_URL,
       AUDIT_DATABASE_URL: REQUIRED_LIVE_ENV.AUDIT_DATABASE_URL,
@@ -95,6 +99,8 @@ describe("runtime credential guardrails", () => {
     process.env = {
       ...originalEnv,
       NODE_ENV: "production",
+      AUTH_JWT_SECRET: "test-jwt-secret-with-enough-length",
+      MFA_ENCRYPTION_KEY: "test-mfa-key-with-enough-length",
       MOCK_MODE: "true",
       DATABASE_URL: "   ",
       AUDIT_DATABASE_URL: REQUIRED_LIVE_ENV.AUDIT_DATABASE_URL,
@@ -116,6 +122,8 @@ describe("runtime credential guardrails", () => {
     process.env = {
       ...originalEnv,
       NODE_ENV: "production",
+      AUTH_JWT_SECRET: "test-jwt-secret-with-enough-length",
+      MFA_ENCRYPTION_KEY: "test-mfa-key-with-enough-length",
       MOCK_MODE: "true",
       DATABASE_URL: REQUIRED_LIVE_ENV.DATABASE_URL,
       AUDIT_DATABASE_URL: REQUIRED_LIVE_ENV.AUDIT_DATABASE_URL,

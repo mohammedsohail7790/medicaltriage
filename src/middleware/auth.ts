@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedSession } from "../types/security.js";
+import { requireSecret, secretVersions } from "../config/secrets.js";
 import { getSessionFromStore, parseSessionCookie, validateSessionContext } from "../services/securityAdmin.js";
 
 const JWT_TTL_SECONDS = 30 * 60;
@@ -10,15 +11,19 @@ export type AuthenticatedRequest = Request & {
 };
 
 function jwtSecret(): string {
-  return process.env.AUTH_JWT_SECRET ?? "mock-dev-only-ist-triage-jwt-secret";
+  return requireSecret("AUTH_JWT_SECRET");
 }
 
 function encodePart(value: unknown): string {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
 }
 
+function signWith(secret: string, data: string): string {
+  return createHmac("sha256", secret).update(data).digest("base64url");
+}
+
 function sign(data: string): string {
-  return createHmac("sha256", jwtSecret()).update(data).digest("base64url");
+  return signWith(jwtSecret(), data);
 }
 
 function safeEquals(left: string, right: string): boolean {
@@ -66,8 +71,10 @@ export async function sessionFromTokenString(token: string | undefined): Promise
     return undefined;
   }
 
-  const expectedSignature = sign(`${header}.${payload}`);
-  if (!safeEquals(signature, expectedSignature)) {
+  // The current secret signs; previous secrets (rotation window) still verify.
+  const signedPart = `${header}.${payload}`;
+  const verified = secretVersions("AUTH_JWT_SECRET").some((secret) => safeEquals(signature, signWith(secret, signedPart)));
+  if (!verified) {
     return undefined;
   }
 
