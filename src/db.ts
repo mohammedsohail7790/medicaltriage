@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { fieldEncryptionEnabled, withFieldEncryption } from "./services/fieldEncryption.js";
+import { withSoftDelete } from "./services/softDelete.js";
 
 const globalForPrisma = globalThis as unknown as {
   istTriagePrisma?: PrismaClient;
@@ -41,7 +42,8 @@ export const basePrisma =
 
 // M-019/M-020: personal and clinical fields are encrypted on write and decrypted on read.
 // Always on in production; opt in elsewhere with FIELD_ENCRYPTION_ENABLED=true.
-export const prisma: PrismaClient = fieldEncryptionEnabled() ? withFieldEncryption(basePrisma) : basePrisma;
+// Soft delete (NFR-013) is always on for the record types it covers.
+export const prisma: PrismaClient = withSoftDelete(fieldEncryptionEnabled() ? withFieldEncryption(basePrisma) : basePrisma);
 
 // PR-010: production audit writes use a separate database principal whose
 // grants are limited to SELECT/INSERT on the append-only audit ledger. Local

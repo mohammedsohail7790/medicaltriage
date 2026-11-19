@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { basePrisma } from "../db.js";
+import { RETENTION_TARGETS } from "../services/retentionEngine.js";
 import { INTEGRITY_CHECKS, lastIntegrityReport, runIntegrityChecks } from "../services/integrityChecks.js";
 import { auditRead } from "../middleware/readAudit.js";
 import { auditPolicyStatement } from "../services/auditPolicy.js";
@@ -675,6 +677,64 @@ export function createAdminRouter(): Router {
         nextOffset: events.length === limit ? offset + limit : null,
         events: events.map((event) => ({ ...event, summary: traceSummary(event), change: (event.metadata as { change?: unknown } | undefined)?.change ?? null }))
       });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  // NFR-055 / NFR-057: retention policies, one per data type, each with its own period, deletion mode and
+  // schedule. Changing one needs elevation and is audited with before and after values. A policy purges
+  // only when active with a decision reference and legal basis; audit events are never in the list.
+  router.get("/retention-policies", requirePermission("audit.events.view"), async (_req, res, next) => {
+    try {
+      const rows = await basePrisma.retentionPolicy.findMany();
+      const byCode = new Map(rows.map((row) => [row.code, row]));
+      return res.json({
+        policies: RETENTION_TARGETS.map((target) => {
+          const row = byCode.get(target.code);
+          const period = (row?.retentionPeriod ?? {}) as { days?: number; decisionReference?: string; schedule?: string };
+          return { code: target.code, name: target.name, entity: target.model, archivable: target.archivable, archiveRequired: Boolean(target.requiresArchive), configured: Boolean(row), status: row?.status ?? "none", days: period.days ?? null, deletionMode: row?.deletionMode ?? null, legalBasis: row?.legalBasis ?? null, decisionReference: period.decisionReference ?? null, schedule: period.schedule ?? null };
+        }),
+        neverPurged: ["AuditEvent"]
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  router.put("/retention-policies/:code", requireElevatedPermission("admin.users.manage"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      const target = RETENTION_TARGETS.find((t) => t.code === req.params.code);
+      if (!target) return res.status(404).json({ error: "Unknown data type." });
+      const parsed = z
+        .object({
+          days: z.number().int().min(1).max(36500),
+          deletionMode: z.enum(["archive_then_delete", "hard_delete"]).default("archive_then_delete"),
+          legalBasis: z.string().trim().min(5).max(500),
+          decisionReference: z.string().trim().min(3).max(120),
+          status: z.enum(["active", "draft"]).default("draft"),
+          schedule: z.string().trim().max(120).optional()
+        })
+        .safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid retention policy", details: parsed.error.flatten() });
+      const body = parsed.data;
+      if (body.deletionMode === "hard_delete" && target.requiresArchive) return res.status(400).json({ error: "Clinical data can only be removed after an archive copy exists." });
+      if (body.deletionMode === "archive_then_delete" && !target.archivable) return res.status(400).json({ error: "This data type is not archived; use hard_delete." });
+      const before = await basePrisma.retentionPolicy.findUnique({ where: { code: target.code } });
+      const retentionPeriod = { days: body.days, decisionReference: body.decisionReference, ...(body.schedule ? { schedule: body.schedule } : {}) };
+      const saved = await basePrisma.retentionPolicy.upsert({
+        where: { code: target.code },
+        create: { code: target.code, name: target.name, entityName: target.model, retentionPeriod, legalBasis: body.legalBasis, deletionMode: body.deletionMode, status: body.status },
+        update: { retentionPeriod, legalBasis: body.legalBasis, deletionMode: body.deletionMode, status: body.status }
+      });
+      const view = (row: typeof saved | null) => (row ? { days: (row.retentionPeriod as { days?: number }).days ?? null, decisionReference: (row.retentionPeriod as { decisionReference?: string }).decisionReference ?? null, schedule: (row.retentionPeriod as { schedule?: string }).schedule ?? null, deletionMode: row.deletionMode, legalBasis: row.legalBasis, status: row.status } : null);
+      const session = req.securitySession!;
+      await recordAuditEvent({
+        id: randomUUID(), timestampIso: new Date().toISOString(), userId: session.user.id, activeRole: session.activeRole, organization: session.user.organizationId ?? "", facility: "", department: "",
+        action: "RETENTION_POLICY_UPDATED", module: "DataRetention", resource: `RetentionPolicy:${target.code}`, ipAddress: "", device: "", success: true, risk: "high",
+        metadata: { change: buildAuditChange(view(before), view(saved)!) }
+      });
+      return res.json({ policy: view(saved) });
     } catch (error) {
       return next(error);
     }

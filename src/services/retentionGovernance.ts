@@ -87,3 +87,48 @@ export function auditRetentionPolicy(env: Record<string, string | undefined> = p
 export function auditEventsEligibleBefore(policy: AuditRetentionPolicy, now: Date = new Date()): Date | null {
   return policy.mode === "fixed-days" ? new Date(now.getTime() - policy.days * 24 * 60 * 60 * 1000) : null;
 }
+
+// ---------------------------------------------------------------------------
+// Per-data-type retention policies (NFR-055, NFR-057)
+//
+// Each data type has its own policy row (RetentionPolicy.code): its own period, deletion mode and
+// schedule. A policy can purge only when it is active, names a positive period, a legal basis and the
+// reference of the decision that approved it. Without that, a run only reports what it would do.
+// ---------------------------------------------------------------------------
+
+export type DeletionMode = "archive_then_delete" | "hard_delete";
+
+export type RetentionPolicyDetails = {
+  code: string;
+  status: string;
+  retentionPeriod: unknown;
+  deletionMode: string;
+  legalBasis?: string | null;
+};
+
+export function policyRetentionDays(
+  policy: RetentionPolicyDetails | null,
+  execute: boolean,
+  cliOverride?: number
+): { days: number | null; source: string; approved: boolean } {
+  if (cliOverride !== undefined) {
+    if (!Number.isFinite(cliOverride) || cliOverride < 1) throw new Error("retention-days must be a positive number");
+    if (execute) throw new Error("Execute mode rejects --retention-days overrides; use the approved active RetentionPolicy.");
+    return { days: cliOverride, source: "--retention-days dry-run override", approved: false };
+  }
+  const period = policy?.retentionPeriod as { days?: unknown; decisionReference?: unknown; schedule?: unknown } | null;
+  const days = typeof period?.days === "number" && Number.isInteger(period.days) && period.days > 0 ? period.days : null;
+  const approved =
+    policy?.status === "active" && days !== null && typeof period?.decisionReference === "string" && period.decisionReference.trim().length > 0 && Boolean(policy.legalBasis?.trim());
+  if (approved) return { days, source: `approved RetentionPolicy ${policy!.code}`, approved: true };
+  if (execute) {
+    throw new Error(
+      `Execute mode needs an active RetentionPolicy ${policy?.code ?? ""} with a positive days value, a decisionReference and a legalBasis.`
+    );
+  }
+  return { days, source: days ? "policy present but not approved (dry run only)" : "no policy: nothing is purged", approved: false };
+}
+
+export function isDeletionMode(value: string): value is DeletionMode {
+  return value === "archive_then_delete" || value === "hard_delete";
+}

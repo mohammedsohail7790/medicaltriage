@@ -1,4 +1,5 @@
 import { captchaProvider, validateCaptchaConfiguration, WIDGET_ORIGINS } from "./services/captcha.js";
+import { validateArchiveHandoffConfiguration } from "./services/archiveHandoff.js";
 import { validateLoginEncryptionConfiguration } from "./services/loginEncryption.js";
 import { parseOAuthApiConfig } from "./services/oauthBearer.js";
 import compression from "compression";
@@ -107,6 +108,7 @@ export function createApp() {
   parseOAuthApiConfig();
   validateCaptchaConfiguration();
   validateLoginEncryptionConfiguration();
+  validateArchiveHandoffConfiguration();
   const app = express();
   // Behind Firebase Hosting and Cloud Run the socket address is a Google front end, not the user.
 // TRUST_PROXY_HOPS is the number of trusted proxies in front of the service; with it set,

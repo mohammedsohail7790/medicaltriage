@@ -1,154 +1,22 @@
 /**
- * Retention/purge job for completed queue items past a configurable
- * retention window - closes part of NFR-067/068/069 (per-subsystem purge
- * capability) and part of the RetentionPolicy accepted-risk item in
- * docs/soc2-data-governance-schema-status.md.
+ * Retention/purge of completed queue cases. Kept for the existing scheduler job and its documented
+ * command line; it now runs the general retention engine for this one data type, so it follows the same
+ * rules as every other (approved policy, legal holds, archive before delete, audit entry).
  *
- * The retention window is read from the real `RetentionPolicy` table (code
- * `TRIAGE_QUEUE_ITEM_COMPLETED`) when a row exists - this is the first real
- * enforcement code path for that previously schema-only table. `--retention-days`
- * remains available for dry-run analysis only. Execute mode rejects an
- * override and fails closed unless the approved active policy row exists.
- *
- * This is intentionally narrow: it purges only TriageQueueItem rows in
- * COMPLETED status whose updatedAt is older than the retention window. It
- * does NOT touch AviationTriageEncounter (the actual clinical record kept
- * for medical/legal reasons) or AuditEvent (audit trail must outlive the
- * operational queue record it describes) - those need their own, separately
- * decided retention periods, not bundled into this first pass.
- *
- * Archival: when the RetentionPolicy row's `deletionMode` is
- * "archive_then_delete" (or no policy row exists at all, the conservative
- * default), the full record is written to ArchivedRecord as JSON before
- * being deleted from TriageQueueItem - real archival, not just purge, per
- * NFR-068. A `deletionMode` of "hard_delete" skips archival entirely (an
- * explicit policy choice, e.g. for data that must never persist anywhere
- * post-retention).
- *
- * Legal-hold enforcement: any TriageQueueItem row with an active LegalHold
- * (resourceType "TriageQueueItem", status "active") is excluded from the
- * purge candidate set entirely, regardless of age - this is the first real
- * enforcement code path for the previously schema-only LegalHold table.
- *
- * Safety: dry-run by default. Requires --execute to actually delete.
- * Writes a summary AuditEvent for the purge run itself either way.
- *
- * Usage:
- *   npx tsx src/scripts/purgeExpiredQueueData.ts
- *   npx tsx src/scripts/purgeExpiredQueueData.ts --retention-days=90
+ *   npx tsx src/scripts/purgeExpiredQueueData.ts                      # dry run
+ *   npx tsx src/scripts/purgeExpiredQueueData.ts --retention-days=90  # what-if, dry run only
  *   npx tsx src/scripts/purgeExpiredQueueData.ts --execute
+ *
+ * See src/services/retentionEngine.ts and src/scripts/runRetention.ts for all data types.
  */
-import { PrismaClient } from "@prisma/client";
-import { appendOperationalAuditEvent } from "../services/auditLedger.js";
-import { approvedRetentionDays, excludeLegallyHeld, LEGAL_HOLD_MUTATION_LOCK_ID } from "../services/retentionGovernance.js";
+import { disconnectPrisma } from "../db.js";
+import { runRetention } from "../services/retentionEngine.js";
 
-const prisma = new PrismaClient();
-
-const RETENTION_POLICY_CODE = "TRIAGE_QUEUE_ITEM_COMPLETED";
-
-function jsonValue(value: unknown) {
-  return JSON.parse(JSON.stringify(value));
-}
-
-async function main() {
-  const retentionArg = process.argv.find((a) => a.startsWith("--retention-days="));
-  const cliOverride = retentionArg ? Number(retentionArg.split("=")[1]) : undefined;
-  const execute = process.argv.includes("--execute");
-
-  const policy = await prisma.retentionPolicy.findUnique({ where: { code: RETENTION_POLICY_CODE } });
-  const { days: retentionDays, source: retentionSource } = approvedRetentionDays(policy, execute, cliOverride);
-  const deletionMode = policy?.status === "active" ? policy.deletionMode : "archive_then_delete";
-  console.log(`Retention period source: ${retentionSource} (${retentionDays} days)`);
-  console.log(`Deletion mode: ${deletionMode}`);
-
-  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-
-  const allExpired = await prisma.triageQueueItem.findMany({
-    where: { status: "COMPLETED", updatedAt: { lt: cutoff } }
-  });
-
-  const activeHolds = await prisma.legalHold.findMany({
-    where: { resourceType: "TriageQueueItem", status: "active" },
-    select: { resourceId: true }
-  });
-  const heldIds = new Set(activeHolds.map((h) => h.resourceId));
-
-  // Closes CSQ IS.54 ("litigation holds... freeze of data from a specific
-  // point in time for a specific customer") - a per-record hold alone can't
-  // express "freeze everything for this whole tenant"; an org-level hold
-  // (resourceType "Organization", resourceId the organizationId) now excludes
-  // every one of that organization's records regardless of individual
-  // per-record hold rows.
-  const activeOrgHolds = await prisma.legalHold.findMany({
-    where: { resourceType: "Organization", status: "active" },
-    select: { resourceId: true }
-  });
-  const heldOrgIds = new Set(activeOrgHolds.map((h) => h.resourceId));
-
-  const { eligible: candidates } = excludeLegallyHeld(allExpired, heldIds, heldOrgIds);
-  const heldCount = allExpired.length - candidates.length;
-
-  console.log(
-    `Retention window: ${retentionDays} days (cutoff ${cutoff.toISOString()}). ` +
-      `${allExpired.length} COMPLETED queue item(s) past retention, ${heldCount} excluded by an active legal hold, ` +
-      `${candidates.length} eligible for purge. ` +
-      `Mode: ${execute ? "EXECUTE (will delete)" : "DRY RUN (no changes)"}`
-  );
-
-  if (candidates.length > 0) {
-    console.log("Sample (up to 5):", candidates.slice(0, 5).map((c) => ({ id: c.id, updatedAt: c.updatedAt })));
-  }
-
-  if (execute && candidates.length > 0) {
-    const result = await prisma.$transaction(async (tx) => {
-      // Serialize against every legal-hold mutation at the database boundary,
-      // then re-read eligibility. A hold that wins the lock is visible before
-      // deletion; a purge that wins is legally ordered before the later hold.
-      await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock($1)", LEGAL_HOLD_MUTATION_LOCK_ID);
-      const expired = await tx.triageQueueItem.findMany({ where: { status: "COMPLETED", updatedAt: { lt: cutoff } } });
-      const [recordHolds, organizationHolds] = await Promise.all([
-        tx.legalHold.findMany({ where: { resourceType: "TriageQueueItem", status: "active" }, select: { resourceId: true } }),
-        tx.legalHold.findMany({ where: { resourceType: "Organization", status: "active" }, select: { resourceId: true } })
-      ]);
-      const finalCandidates = excludeLegallyHeld(
-        expired,
-        new Set(recordHolds.map((hold) => hold.resourceId)),
-        new Set(organizationHolds.map((hold) => hold.resourceId))
-      ).eligible;
-      if (deletionMode === "archive_then_delete" && finalCandidates.length > 0) {
-        await tx.archivedRecord.createMany({
-          data: finalCandidates.map((candidate) => ({
-            entityName: "TriageQueueItem",
-            recordId: candidate.id,
-            policyCode: RETENTION_POLICY_CODE,
-            payload: jsonValue(candidate)
-          }))
-        });
-      }
-      return tx.triageQueueItem.deleteMany({ where: { id: { in: finalCandidates.map((candidate) => candidate.id) } } });
-    }, { isolationLevel: "Serializable" });
-    console.log(`Archived/deleted ${result.count} eligible queue item(s) under the approved policy.`);
-  }
-
-  await appendOperationalAuditEvent({
-      action: execute ? "RETENTION_PURGE_EXECUTED" : "RETENTION_PURGE_DRY_RUN",
-      module: "DataRetention",
-      resource: "TriageQueueItem",
-      success: true,
-      risk: execute ? "high" : "medium",
-      metadata: {
-        retentionDays,
-        retentionSource,
-        cutoffIso: cutoff.toISOString(),
-        candidateCount: candidates.length,
-        excludedByLegalHoldCount: heldCount
-      }
-  });
-
-  await prisma.$disconnect();
-}
-
-main().catch((error) => {
-  console.error("Purge run failed:", error);
-  process.exitCode = 1;
+const days = process.argv.find((a) => a.startsWith("--retention-days="))?.split("=")[1];
+const results = await runRetention({
+  execute: process.argv.includes("--execute"),
+  codes: ["TRIAGE_QUEUE_ITEM_COMPLETED"],
+  daysOverride: days ? Number(days) : undefined
 });
+console.log(JSON.stringify(results, null, 2));
+await disconnectPrisma();

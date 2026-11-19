@@ -272,6 +272,10 @@ model Dependent {
   createdAt        DateTime                  @default(now()) @map("created_at")
   updatedAt        DateTime                  @updatedAt @map("updated_at")
 
+  // NFR-013: soft delete. A deleted row is hidden from normal reads and kept until retention allows its purge.
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
+
   @@index([staffMemberId])
   @@map("dependents")
 }
@@ -1155,6 +1159,10 @@ model CcpDraft {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
+  // NFR-013: soft delete. A deleted row is hidden from normal reads and kept until retention allows its purge.
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
+
   @@index([istStaffId, threadId])
   @@index([status, createdAt])
   @@index([organizationId])
@@ -1178,6 +1186,10 @@ model CcpWebhookRecord {
   rawPayload        Json     @map("raw_payload")
   queueNote         String   @map("queue_note") @db.Text
   persistedAt       DateTime @default(now()) @map("persisted_at")
+
+  // NFR-013: soft delete. A deleted row is hidden from normal reads and kept until retention allows its purge.
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
 
   @@index([provider, persistedAt])
   @@index([sender, channel])
@@ -1483,8 +1495,12 @@ model ArchivedRecord {
   policyCode   String   @map("policy_code")
   payload      Json
   archivedAt   DateTime @default(now()) @map("archived_at")
+  // NFR-056: set when the record has been handed to the Qatar Airways-designated archive.
+  handedOffAt      DateTime? @map("handed_off_at")
+  handoffReference String?   @map("handoff_reference")
 
   @@index([entityName, recordId])
+  @@index([handedOffAt])
   @@map("archived_records")
 }
 

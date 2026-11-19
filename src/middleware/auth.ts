@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedSession } from "../types/security.js";
+import { runWithActor } from "../services/softDelete.js";
 import { requireSecret, secretVersions } from "../config/secrets.js";
 import { authenticateOAuthBearer, looksLikeOAuthToken, OAuthBearerError } from "../services/oauthBearer.js";
 import { getSessionEndReason, getSessionFromStore, parseSessionCookie, recordSessionActivity, validateSessionContext } from "../services/securityAdmin.js";
@@ -173,7 +174,7 @@ export async function requireAuthenticatedSession(req: AuthenticatedRequest, res
       return res.status(401).json({ error: "Session context mismatch", code: "SESSION_CONTEXT_MISMATCH" });
     }
     req.securitySession = session;
-    return next();
+    return runWithActor(session.user.id, () => next());
   } catch (error) {
     return next(error);
   }

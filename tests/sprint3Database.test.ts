@@ -145,4 +145,200 @@ describeDb("Sprint 3 database-backed behaviour", () => {
       expect(report.checks[0].problems[0].detail).toMatch(/audit chain/i);
     });
   });
+
+  describe("NFR-013 / 055 / 056 / 057 retention, archive and soft delete", () => {
+    const oldEnv = { ...process.env };
+    const age = (table: string, column: string, id: string, days: number, idColumn = "id") =>
+      basePrisma.$executeRawUnsafe(`UPDATE "${table}" SET "${column}" = now() - ($1 || ' days')::interval WHERE "${idColumn}" = $2`, String(days), id);
+    const policy = (code: string, days: number, extra: Record<string, unknown> = {}) =>
+      basePrisma.retentionPolicy.upsert({
+        where: { code },
+        create: { code, name: code, entityName: code, retentionPeriod: { days, decisionReference: `DEC-${code}` }, legalBasis: "Approved by the data owner", deletionMode: "archive_then_delete", status: "active", ...extra },
+        update: { retentionPeriod: { days, decisionReference: `DEC-${code}` }, legalBasis: "Approved by the data owner", status: "active", ...extra }
+      });
+    beforeEach(() => {
+      process.env.AUDIT_EVENT_DB_PERSISTENCE = "true";
+      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-sprint3-test";
+      process.env.FIELD_ENCRYPTION_KEY = "sprint3-field-key-0123456789abcdef";
+    });
+    afterEach(() => {
+      process.env = { ...oldEnv };
+    });
+
+    it("purges nothing without an approved policy: a run skips the data type and says why", async () => {
+      const { runRetention } = await import("../src/services/retentionEngine.js");
+      await basePrisma.retentionPolicy.deleteMany({ where: { code: "LOGIN_NONCE" } });
+      const old = await basePrisma.loginNonce.create({ data: { nonce: `${run}-nonce-a`, expiresAt: new Date(Date.now() - 400 * 86400000) } });
+      const [dry] = await runRetention({ execute: false, codes: ["LOGIN_NONCE"] });
+      expect(dry).toMatchObject({ approved: false, eligible: 0, deleted: 0 });
+      const [none] = await runRetention({ execute: true, codes: ["LOGIN_NONCE"] });
+      expect(none).toMatchObject({ approved: false, deleted: 0 });
+      expect(none.note).toMatch(/Skipped/);
+      await basePrisma.retentionPolicy.create({ data: { code: "LOGIN_NONCE", name: "n", entityName: "LoginNonce", retentionPeriod: { days: 30 }, deletionMode: "hard_delete", status: "active" } });
+      const [noDecision] = await runRetention({ execute: true, codes: ["LOGIN_NONCE"] });
+      expect(noDecision).toMatchObject({ approved: false, deleted: 0 }); // no decision reference or legal basis
+      await expect(runRetention({ execute: true, codes: ["LOGIN_NONCE"], daysOverride: 5 })).rejects.toThrow(/rejects --retention-days/);
+      await basePrisma.retentionPolicy.delete({ where: { code: "LOGIN_NONCE" } });
+      expect(await basePrisma.loginNonce.count({ where: { nonce: old.nonce } })).toBe(1);
+    });
+
+    it("purges each data type under its own policy and leaves the others alone", async () => {
+      const { runRetention } = await import("../src/services/retentionEngine.js");
+      await basePrisma.loginNonce.create({ data: { nonce: `${run}-nonce-b`, expiresAt: new Date(Date.now() - 400 * 86400000) } });
+      const session = await basePrisma.userSession.create({ data: { userId: `${run}-u`, sessionHash: `${run}-hash`, sessionPayload: {}, authMethod: "local", expiresAt: new Date(Date.now() - 400 * 86400000) } });
+      await policy("USER_SESSION_EXPIRED", 30, { deletionMode: "hard_delete" });
+      await basePrisma.retentionPolicy.deleteMany({ where: { code: "LOGIN_NONCE" } });
+      const results = await runRetention({ execute: true, codes: ["USER_SESSION_EXPIRED", "LOGIN_NONCE"] });
+      expect(results.find((r) => r.code === "USER_SESSION_EXPIRED")).toMatchObject({ approved: true, archived: 0 });
+      expect(await basePrisma.userSession.count({ where: { id: session.id } })).toBe(0);
+      expect(await basePrisma.loginNonce.count({ where: { nonce: `${run}-nonce-b` } })).toBe(1);
+      expect(await basePrisma.auditEvent.findFirst({ where: { action: "RETENTION_PURGE_EXECUTED", recordReference: "USER_SESSION_EXPIRED" } })).not.toBeNull();
+    });
+
+    it("archives before deleting, keeps ciphertext in the archive, and spares a case under legal hold", async () => {
+      const { runRetention } = await import("../src/services/retentionEngine.js");
+      const { withFieldEncryption, isEncryptedValue } = await import("../src/services/fieldEncryption.js");
+      const encrypted = withFieldEncryption(basePrisma);
+      const mk = (tag: string) => encrypted.triageQueueItem.create({ data: { istStaffId: `${run}-${tag}`, slaDeadline: new Date(), status: "COMPLETED", summary: `note ${tag}` } });
+      const purged = await mk("purge");
+      const held = await mk("held");
+      for (const row of [purged, held]) await age("triage_queue_items", "updated_at", row.id, 400);
+      await basePrisma.legalHold.create({ data: { holdCode: `${run}-hold`, resourceType: "TriageQueueItem", resourceId: held.id, reason: "test hold" } });
+      await policy("TRIAGE_QUEUE_ITEM_COMPLETED", 365);
+
+      const [result] = await runRetention({ execute: true, codes: ["TRIAGE_QUEUE_ITEM_COMPLETED"] });
+      expect(result.excludedByLegalHold).toBeGreaterThanOrEqual(1);
+      expect(await basePrisma.triageQueueItem.count({ where: { id: purged.id } })).toBe(0);
+      expect(await basePrisma.triageQueueItem.count({ where: { id: held.id } })).toBe(1);
+      const archived = await basePrisma.archivedRecord.findFirstOrThrow({ where: { recordId: purged.id } });
+      expect(archived).toMatchObject({ entityName: "TriageQueueItem", policyCode: "TRIAGE_QUEUE_ITEM_COMPLETED", handedOffAt: null });
+      expect(isEncryptedValue((archived.payload as { summary: string }).summary)).toBe(true);
+      await basePrisma.triageQueueItem.delete({ where: { id: held.id } });
+    });
+
+    it("hands archived content to the designated system decrypted, signed, and keeps only a hash", async () => {
+      const { handOffArchive, setArchiveHandoffFetchForTests } = await import("../src/services/archiveHandoff.js");
+      const { signAuditPayload } = await import("../src/services/auditForwarding.js");
+      const { createHash } = await import("node:crypto");
+      const { withFieldEncryption } = await import("../src/services/fieldEncryption.js");
+      process.env.ARCHIVE_HANDOFF_URL = "https://archive.qr.example/ingest";
+      process.env.ARCHIVE_HANDOFF_SECRET = "handoff-secret-for-test";
+      await basePrisma.archivedRecord.deleteMany({ where: { handedOffAt: null } });
+      const row = await withFieldEncryption(basePrisma).triageQueueItem.create({ data: { istStaffId: `${run}-handoff`, slaDeadline: new Date(), summary: "confidential clinical note" } });
+      const raw = await basePrisma.triageQueueItem.findUniqueOrThrow({ where: { id: row.id } });
+      const archived = await basePrisma.archivedRecord.create({ data: { entityName: "TriageQueueItem", recordId: row.id, policyCode: "TRIAGE_QUEUE_ITEM_COMPLETED", payload: JSON.parse(JSON.stringify(raw)) } });
+      await basePrisma.triageQueueItem.delete({ where: { id: row.id } });
+
+      const sent: Array<{ body: string; signature: string }> = [];
+      setArchiveHandoffFetchForTests(async (_url, init) => {
+        sent.push({ body: init.body, signature: init.headers["x-archive-signature"] });
+        return { ok: true, status: 200, json: async () => ({ reference: "QR-ARCH-001" }) };
+      });
+      const result = await handOffArchive();
+      expect(result).toMatchObject({ handedOff: 1, failed: 0, localContentRemoved: 1 });
+      expect(sent[0].signature).toBe(signAuditPayload(sent[0].body, "handoff-secret-for-test"));
+      const record = JSON.parse(sent[0].body).records[0];
+      expect(record.payload.summary).toBe("confidential clinical note");
+      const after = await basePrisma.archivedRecord.findUniqueOrThrow({ where: { id: archived.id } });
+      expect(after.handoffReference).toBe("QR-ARCH-001");
+      expect(after.handedOffAt).not.toBeNull();
+      expect(JSON.stringify(after.payload)).not.toContain("confidential");
+      expect((after.payload as { payloadSha256: string }).payloadSha256).toBe(createHash("sha256").update(JSON.stringify(record.payload)).digest("hex"));
+      setArchiveHandoffFetchForTests(undefined);
+    });
+
+    it("keeps a record that could not be handed off, alerts, and reports nothing to do when no system is configured", async () => {
+      const { handOffArchive, setArchiveHandoffFetchForTests } = await import("../src/services/archiveHandoff.js");
+      await basePrisma.archivedRecord.deleteMany({ where: { handedOffAt: null } });
+      const kept = await basePrisma.archivedRecord.create({ data: { entityName: "Dependent", recordId: `${run}-dep`, policyCode: "DEPENDENT_DELETED", payload: { fullName: "kept locally" } } });
+      delete process.env.ARCHIVE_HANDOFF_URL;
+      expect((await handOffArchive()).skipped).toMatch(/ARCHIVE_HANDOFF_URL/);
+      process.env.ARCHIVE_HANDOFF_URL = "https://archive.qr.example/ingest";
+      process.env.ARCHIVE_HANDOFF_SECRET = "handoff-secret-for-test";
+      setArchiveHandoffFetchForTests(async () => ({ ok: false, status: 503, json: async () => ({}) }));
+      const result = await handOffArchive();
+      expect(result.failed).toBe(1);
+      const row = await basePrisma.archivedRecord.findUniqueOrThrow({ where: { id: kept.id } });
+      expect(row.handedOffAt).toBeNull();
+      expect(JSON.stringify(row.payload)).toContain("kept locally");
+      expect(await basePrisma.auditEvent.findFirst({ where: { action: "ARCHIVE_HANDOFF_FAILED" } })).not.toBeNull();
+      // The integrity check complains once a record has waited too long.
+      await age("archived_records", "archived_at", kept.id, 10);
+      const { runIntegrityChecks } = await import("../src/services/integrityChecks.js");
+      const report = await runIntegrityChecks({ only: ["archive-handoff"] });
+      expect(report.checks[0].problems.map((p) => p.reference)).toContain(`ArchivedRecord:${kept.id}`);
+      setArchiveHandoffFetchForTests(undefined);
+    });
+
+    it("soft-deletes dependents, hides them, records who deleted them, restores them, and purges them only under a policy", async () => {
+      const { prisma } = await import("../src/db.js");
+      const { runWithActor, restoreSoftDeleted } = await import("../src/services/softDelete.js");
+      const { runRetention } = await import("../src/services/retentionEngine.js");
+      const staff = await basePrisma.staffMember.create({ data: { istStaffId: `${run}-soft`, department: "Ops", jobTitle: "Tester" } });
+      const dep = await prisma.dependent.create({ data: { staffMemberId: staff.id, fullName: "To Delete", relationshipType: "CHILD", age: 5, biologicalSex: "MALE" } });
+      await runWithActor("usr_admin_x", async () => {
+        await prisma.dependent.delete({ where: { id: dep.id } });
+      });
+      expect(await prisma.dependent.findUnique({ where: { id: dep.id } })).toBeNull();
+      expect(await prisma.dependent.count({ where: { staffMemberId: staff.id } })).toBe(0);
+      const stored = await basePrisma.dependent.findUniqueOrThrow({ where: { id: dep.id } });
+      expect(stored).toMatchObject({ deletedBy: "usr_admin_x" });
+      expect(stored.deletedAt).not.toBeNull();
+      expect((await prisma.dependent.findMany({ where: { staffMemberId: staff.id, deletedAt: { not: null } } })).length).toBe(1);
+
+      expect(await restoreSoftDeleted(basePrisma, "Dependent", dep.id)).toBe(true);
+      expect(await prisma.dependent.count({ where: { staffMemberId: staff.id } })).toBe(1);
+
+      await prisma.dependent.deleteMany({ where: { staffMemberId: staff.id } });
+      await age("dependents", "deleted_at", dep.id, 400);
+      await basePrisma.retentionPolicy.deleteMany({ where: { code: "DEPENDENT_DELETED" } });
+      const [dry] = await runRetention({ execute: false, codes: ["DEPENDENT_DELETED"] });
+      expect(dry.eligible).toBe(0);
+      await policy("DEPENDENT_DELETED", 365);
+      const [done] = await runRetention({ execute: true, codes: ["DEPENDENT_DELETED"] });
+      expect(done.deleted).toBeGreaterThanOrEqual(1);
+      expect(await basePrisma.dependent.count({ where: { id: dep.id } })).toBe(0);
+      expect(await basePrisma.archivedRecord.count({ where: { recordId: dep.id, policyCode: "DEPENDENT_DELETED" } })).toBe(1);
+    });
+
+    it("never offers audit events to retention", async () => {
+      const { RETENTION_TARGETS } = await import("../src/services/retentionEngine.js");
+      expect(RETENTION_TARGETS.map((t) => t.model)).not.toContain("AuditEvent");
+      expect(RETENTION_TARGETS.find((t) => t.model === "AviationTriageEncounter")?.requiresArchive).toBe(true);
+    });
+  });
+
+  describe("NFR-057 retention policy administration", () => {
+    it("lists the data types, validates changes, requires elevation and audits before and after", async () => {
+      process.env.ADMIN_PASSWORD = "TestAdminPassword!2026";
+      process.env.AUDIT_EVENT_DB_PERSISTENCE = "true";
+      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-sprint3-test";
+      const request = (await import("supertest")).default;
+      const { authenticator } = await import("otplib");
+      const { confirmMfaEnrollment, enrollMfa } = await import("../src/services/securityAdmin.js");
+      const app = (await import("../src/app.js")).createApp();
+      const admin = request.agent(app);
+      await admin.post("/api/v1/auth/login").send({ username: "rishma@irisstar.tech", password: process.env.ADMIN_PASSWORD, simulateRole: "platform_super_administrator" }).expect(200);
+
+      const list = await admin.get("/api/v1/admin/retention-policies").expect(200);
+      expect(list.body.policies.map((p: { code: string }) => p.code)).toEqual(expect.arrayContaining(["TRIAGE_QUEUE_ITEM_COMPLETED", "USER_SESSION_EXPIRED", "AVIATION_TRIAGE_ENCOUNTER"]));
+      expect(list.body.neverPurged).toContain("AuditEvent");
+      const body = { days: 90, legalBasis: "Approved by the data owner", decisionReference: "CR-2026-114", status: "active", deletionMode: "hard_delete" };
+      await admin.put("/api/v1/admin/retention-policies/EXPORT_APPROVAL").send(body).expect(403); // not elevated
+
+      const { secret } = enrollMfa("usr_platform_admin_10001");
+      confirmMfaEnrollment("usr_platform_admin_10001", authenticator.generate(secret));
+      await admin.post("/api/v1/admin/elevate").send({ code: authenticator.generate(secret) }).expect(200);
+      await admin.put("/api/v1/admin/retention-policies/NOT_A_TYPE").send(body).expect(404);
+      await admin.put("/api/v1/admin/retention-policies/EXPORT_APPROVAL").send({ ...body, days: 0 }).expect(400);
+      await admin.put("/api/v1/admin/retention-policies/AVIATION_TRIAGE_ENCOUNTER").send({ ...body, deletionMode: "hard_delete" }).expect(400);
+      await admin.put("/api/v1/admin/retention-policies/EXPORT_APPROVAL").send({ ...body, deletionMode: "archive_then_delete" }).expect(400);
+
+      await admin.put("/api/v1/admin/retention-policies/EXPORT_APPROVAL").send(body).expect(200);
+      await admin.put("/api/v1/admin/retention-policies/EXPORT_APPROVAL").send({ ...body, days: 120, schedule: "0 3 * * 0" }).expect(200);
+      const events = await basePrisma.auditEvent.findMany({ where: { action: "RETENTION_POLICY_UPDATED", resource: "RetentionPolicy:EXPORT_APPROVAL" }, orderBy: { sequenceNumber: "desc" }, take: 1 });
+      expect((events[0].metadata as { change: { fields: string[]; before: { days: number }; after: { days: number } } }).change).toMatchObject({ fields: expect.arrayContaining(["days", "schedule"]), before: { days: 90 }, after: { days: 120 } });
+      await basePrisma.retentionPolicy.delete({ where: { code: "EXPORT_APPROVAL" } });
+    });
+  });
 });
