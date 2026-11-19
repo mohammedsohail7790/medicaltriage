@@ -135,14 +135,15 @@ describeDb("Sprint 3 database-backed behaviour", () => {
     });
 
     it("detects a broken audit chain", async () => {
-      const { runIntegrityChecks } = await import("../src/services/integrityChecks.js");
+      const { INTEGRITY_CHECKS } = await import("../src/services/integrityChecks.js");
       const { appendOperationalAuditEvent } = await import("../src/services/auditLedger.js");
       await appendOperationalAuditEvent({ action: "INTEGRITY_TEST", module: "Test", resource: "Test", success: true });
-      // Simulate tampering by checking a ledger verified with the wrong key.
+      // Simulate tampering by verifying the ledger with a key that did not sign it. The check is run on its
+      // own: a full run would record its failure event under the wrong key and damage the shared test ledger.
       process.env.AUDIT_HMAC_SECRET = "a-different-secret-so-the-chain-fails";
-      const report = await runIntegrityChecks({ only: ["audit-ledger"] });
-      expect(report.ok).toBe(false);
-      expect(report.checks[0].problems[0].detail).toMatch(/audit chain/i);
+      const result = await INTEGRITY_CHECKS["audit-ledger"]({ repair: false, sampleSize: 1 });
+      expect(result.ok).toBe(false);
+      expect(result.problems[0].detail).toMatch(/audit chain/i);
     });
   });
 
