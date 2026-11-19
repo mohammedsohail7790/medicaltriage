@@ -1,4 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { buildAuditChange } from "../services/auditChange.js";
+import { PasswordPolicySchema, refreshPasswordPolicy, savePasswordPolicy } from "../services/passwordPolicy.js";
 import { requireAnyPermission } from "../middleware/rbac.js";
 import { getFeedbackSummary, getFeedbackTrend } from "../services/feedbackSummary.js";
 import {
@@ -51,6 +54,7 @@ import {
   setSecurityThreshold,
   listActiveSessionsForUser,
   listAuditEvents,
+  recordAuditEvent,
   listControlCenterModules,
   listEncryptionPolicies,
   listGovernanceWorkItems,
@@ -367,6 +371,48 @@ export function createAdminRouter(): Router {
       }
     }
   );
+
+  // NFR-016: the password policy for local accounts. Reading needs user-management access;
+  // changing it needs elevation, and the before and after values are audited.
+  router.get("/password-policy", requirePermission("admin.users.manage"), async (_req, res, next) => {
+    try {
+      return res.json({ policy: await refreshPasswordPolicy(true) });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  router.put("/password-policy", requireElevatedPermission("admin.users.manage"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      const parsed = PasswordPolicySchema.safeParse({ ...(await refreshPasswordPolicy(true)), ...(req.body ?? {}) });
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid password policy", details: parsed.error.flatten() });
+      }
+      const session = req.securitySession!;
+      const before = await refreshPasswordPolicy(true);
+      const saved = await savePasswordPolicy(parsed.data, session.user.id);
+      await recordAuditEvent({
+        id: randomUUID(),
+        timestampIso: new Date().toISOString(),
+        userId: session.user.id,
+        activeRole: session.activeRole,
+        organization: session.user.organizationId ?? "",
+        facility: "",
+        department: "",
+        action: "PASSWORD_POLICY_UPDATED",
+        module: "AccessGovernance",
+        resource: "PasswordPolicy:default",
+        ipAddress: "",
+        device: "",
+        success: true,
+        risk: "high",
+        metadata: { change: buildAuditChange(before as Record<string, unknown>, saved as Record<string, unknown>) }
+      });
+      return res.json({ policy: saved });
+    } catch (error) {
+      return next(error);
+    }
+  });
 
   // Real remediation action for access-entitlement review findings (CSQ
   // IS.18: "are all remediation actions recorded?") - suspends/reactivates

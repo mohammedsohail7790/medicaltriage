@@ -749,6 +749,9 @@ model ApplicationUser {
   accountStatus           String          @default("active") @map("account_status")
   directoryStatus         DirectoryStatus @default(ACTIVE) @map("directory_status")
   passwordHash            String?         @map("password_hash")
+  // NFR-016: password lifecycle for local accounts.
+  passwordChangedAt       DateTime?       @map("password_changed_at")
+  mustChangePassword      Boolean         @default(false) @map("must_change_password")
   createdBy               String?         @map("created_by")
   updatedBy               String?         @map("updated_by")
   createdAt               DateTime        @default(now()) @map("created_at")
@@ -1891,4 +1894,25 @@ model ExportApproval {
   @@index([status, expiresAt])
   @@index([requesterId])
   @@map("export_approvals")
+}
+
+// NFR-016: previous password hashes, so a policy can refuse reuse.
+model PasswordHistory {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("password_history")
+}
+
+// NFR-016: the administrator-configured password policy (one row, id "default").
+model PasswordPolicy {
+  id        String   @id
+  policy    Json
+  updatedBy String   @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("password_policies")
 }

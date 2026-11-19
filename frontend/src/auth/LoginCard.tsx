@@ -1,6 +1,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { setAccessToken } from "../authToken";
+import { apiBase } from "./apiBase";
 import { useLocale } from "../i18n/LocaleContext";
 import type { AuthenticatedSession } from "./session";
 
@@ -35,7 +36,6 @@ export type LoginCardProps = {
   onAuthenticated: (session: AuthenticatedSession, redirectTo: "workspace" | "admin") => void;
 };
 
-const apiBase = import.meta.env?.VITE_API_BASE_URL || "";
 
 // Real states for the MFA login/enrollment journey (closes the AR.13
 // Priority-0 gap: backend enrollment-token and challenge APIs were real,
@@ -45,7 +45,7 @@ const apiBase = import.meta.env?.VITE_API_BASE_URL || "";
 // in-memory state - never in the URL, never in localStorage/sessionStorage -
 // and are cleared the moment they're no longer needed (see resetToLogin()
 // and the success/failure branches below).
-type MfaStage = "password" | "challenge" | "enroll" | "enrollDone";
+type MfaStage = "password" | "challenge" | "enroll" | "enrollDone" | "changePassword";
 
 type LoginErrorKind = "invalid" | "locked" | "disabled" | "network" | "server";
 
@@ -76,6 +76,66 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // NFR-016: change of a temporary or expired password, before a session exists.
+  const [changeReason, setChangeReason] = useState<"temporary" | "expired">("temporary");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordProblems, setPasswordProblems] = useState<string[]>([]);
+  const [passwordRules, setPasswordRules] = useState<string[]>([]);
+
+  async function loadPasswordRules() {
+    try {
+      const response = await fetch(`${apiBase}/api/v1/auth/password/policy`);
+      if (!response.ok) return;
+      const p = await response.json();
+      const rules = [`At least ${p.minLength} characters`];
+      if (p.requireUppercase) rules.push("An uppercase letter");
+      if (p.requireLowercase) rules.push("A lowercase letter");
+      if (p.requireDigit) rules.push("A digit");
+      if (p.requireSymbol) rules.push("A symbol");
+      if (p.historyCount > 0) rules.push(`Not one of your last ${p.historyCount} passwords`);
+      setPasswordRules(rules);
+    } catch {
+      // The rules are a convenience; the server states any problem when the password is submitted.
+    }
+  }
+
+  async function submitPasswordChange(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    setPasswordProblems([]);
+    setErrorMessage("");
+    if (newPassword !== confirmPassword) {
+      setPasswordProblems(["The two new passwords do not match."]);
+      return;
+    }
+    setBusy(true);
+    try {
+      const response = await fetch(`${apiBase}/api/v1/auth/password/change`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, currentPassword: password, newPassword })
+      });
+      const body = (await response.json().catch(() => ({}))) as { error?: string; violations?: string[] };
+      if (response.ok) {
+        setPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setMfaStage("password");
+        setErrorMessage("");
+        setNotice("Your password was changed. Sign in with the new password.");
+        return;
+      }
+      if (response.status === 422 && body.violations) setPasswordProblems(body.violations);
+      else setErrorMessage(body.error ?? "The password could not be changed. Try again or contact the helpdesk.");
+    } catch {
+      setErrorMessage(messageForError("network"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  const [notice, setNotice] = useState("");
 
   const [mfaStage, setMfaStage] = useState<MfaStage>("password");
   const [challengeId, setChallengeId] = useState("");
@@ -223,6 +283,7 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
         challengeId?: string;
         mfaEnrollmentRequired?: boolean;
         enrollmentToken?: string;
+        passwordChangeRequired?: "temporary" | "expired";
       } = {};
       try {
         payload = await response.json();
@@ -241,6 +302,16 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
       }
 
       if (!response.ok) {
+        // NFR-016: a temporary or expired password must be changed before a session is issued.
+        if (payload.passwordChangeRequired) {
+          setChangeReason(payload.passwordChangeRequired);
+          setNewPassword("");
+          setConfirmPassword("");
+          setPasswordProblems([]);
+          setMfaStage("changePassword");
+          void loadPasswordRules();
+          return;
+        }
         // Real pre-auth enrollment-required response (closes the AR.13
         // Priority-0 gap): route the user into the real enrollment UI
         // instead of showing a dead-end generic failure message.
@@ -282,6 +353,55 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
       <span className="login-brand-word">IST Health</span>
     </div>
   );
+
+  if (mfaStage === "changePassword") {
+    return (
+      <form className="login-card" onSubmit={submitPasswordChange} aria-busy={busy}>
+        {brandHeader}
+        <div>
+          <h1 className="login-title">Choose a new password</h1>
+          <p className="login-subtitle">
+            {changeReason === "expired" ? "Your password has expired." : "You are using a temporary password."} Choose a new one to continue.
+          </p>
+        </div>
+        <div className="login-field">
+          <label htmlFor="new-password">New password</label>
+          <div className="login-input-row">
+            <input id="new-password" className="login-input" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+          </div>
+        </div>
+        <div className="login-field">
+          <label htmlFor="confirm-password">Confirm new password</label>
+          <div className="login-input-row">
+            <input id="confirm-password" className="login-input" type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+          </div>
+        </div>
+        {passwordRules.length > 0 && (
+          <p className="login-subtitle">Your password needs: {passwordRules.join(", ")}.</p>
+        )}
+        {passwordProblems.length > 0 && (
+          <div className="login-alert" role="alert">
+            <ul>
+              {passwordProblems.map((problem) => (
+                <li key={problem}>{problem}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {errorMessage && (
+          <div className="login-alert" role="alert">
+            {errorMessage}
+          </div>
+        )}
+        <button className="login-primary-btn" type="submit" disabled={busy || !newPassword || !confirmPassword}>
+          {busy ? "Saving..." : "Change password"}
+        </button>
+        <button className="login-secondary-btn" type="button" onClick={resetToLogin} disabled={busy}>
+          Cancel
+        </button>
+      </form>
+    );
+  }
 
   if (mfaStage === "challenge") {
     return (
@@ -415,6 +535,12 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
   return (
     <form className="login-card" onSubmit={submitLogin} aria-busy={busy}>
       {brandHeader}
+
+      {notice && (
+        <div className="login-subtitle" role="status">
+          {notice}
+        </div>
+      )}
 
       <div className="login-language-switch" role="group" aria-label="Language">
         <button

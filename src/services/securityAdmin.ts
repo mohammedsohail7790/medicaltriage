@@ -29,7 +29,7 @@ import {
   shouldUseDatabasePersistence
 } from "../config/runtime.js";
 import { decryptMfaSecret, encryptMfaSecret } from "./mfaCrypto.js";
-import { verifyGovernedPassword } from "./governedAccountCrypto.js";
+import { hashGovernedPassword, verifyGovernedPassword } from "./governedAccountCrypto.js";
 import {
   findGovernedAccount,
   listGovernedAccounts,
@@ -78,12 +78,16 @@ import {
   persistSecurityAuditEvent,
   persistUserSession,
   getPersistedSessionActivity,
+  revokeOtherPersistedSessions,
   revokePersistedSession,
   revokePersistedSessionsForUser,
   touchPersistedSessionActivity
 } from "./persistence.js";
 
 import { sessionIdleTimeoutMs } from "../config/sessionPolicy.js";
+import { getGovernedPasswordState, persistGovernedPasswordChange } from "./governedAccountPersistence.js";
+import { buildAuditChange } from "./auditChange.js";
+import { currentPasswordPolicy, isPasswordExpired, passwordViolations, refreshPasswordPolicy } from "./passwordPolicy.js";
 
 const SESSION_COOKIE = "ist_triage_session";
 // Configurable via env var per deployment (e.g. QR's required inactivity
@@ -1319,6 +1323,152 @@ const auditEvents: AuditEvent[] = [
 
 const sessions = new Map<string, AuthenticatedSession>();
 const failedLoginAttempts = new Map<string, number>();
+// NFR-016: lockout threshold and duration come from the password policy. A locked account
+// unlocks by itself when the lockout period ends.
+const lockedUntilByUsername = new Map<string, number>();
+
+function isLockedOut(username: string): boolean {
+  const policy = currentPasswordPolicy();
+  const until = lockedUntilByUsername.get(username);
+  if (until !== undefined) {
+    if (Date.now() < until) return true;
+    lockedUntilByUsername.delete(username);
+    failedLoginAttempts.delete(username);
+    return false;
+  }
+  return (failedLoginAttempts.get(username) ?? 0) >= policy.lockoutThreshold && policy.lockoutDurationMinutes <= 0;
+}
+
+// NFR-016: password lifecycle for local accounts (accounts whose password this service holds).
+// With database persistence the state lives on the account row; otherwise in memory.
+type PasswordState = { changedAtMs?: number; createdAtMs: number; mustChange: boolean; history: string[] };
+const passwordStateByUserId = new Map<string, PasswordState>();
+
+export class PasswordPolicyViolationError extends Error {
+  constructor(readonly violations: string[]) {
+    super("The new password does not meet the password policy.");
+  }
+}
+export class PasswordChangeNotAllowedError extends Error {}
+export class InvalidCurrentPasswordError extends Error {}
+
+function managesPassword(user: AdminUser, persisted: boolean): boolean {
+  return persisted || dynamicallyCreatedUserEmails.has(user.email.toLowerCase());
+}
+
+async function loadPasswordState(user: AdminUser): Promise<PasswordState | undefined> {
+  const policy = currentPasswordPolicy();
+  const persisted = await getGovernedPasswordState(user.id, policy.historyCount).catch(() => undefined);
+  if (persisted) {
+    return { changedAtMs: persisted.changedAt?.getTime(), createdAtMs: persisted.createdAt.getTime(), mustChange: persisted.mustChange, history: persisted.history };
+  }
+  return passwordStateByUserId.get(user.id);
+}
+
+/** Why a correct password cannot sign in yet, if it cannot. */
+async function passwordChangeRequirement(user: AdminUser, persisted: boolean): Promise<"temporary" | "expired" | undefined> {
+  if (!managesPassword(user, persisted)) return undefined;
+  const state = await loadPasswordState(user);
+  if (!state) return undefined;
+  const policy = currentPasswordPolicy();
+  if (state.mustChange && policy.forceChangeOnFirstLogin) return "temporary";
+  const since = state.changedAtMs ?? state.createdAtMs;
+  return isPasswordExpired(new Date(since), policy) ? "expired" : undefined;
+}
+
+function startTemporaryPasswordState(userId: string): void {
+  passwordStateByUserId.set(userId, { createdAtMs: Date.now(), mustChange: true, history: [] });
+}
+
+export async function changeLocalPassword(args: {
+  username: string;
+  currentPassword: string;
+  newPassword: string;
+  ipAddress: string;
+  device: string;
+  /** The session making the request, kept signed in while the user's other sessions end. */
+  keepSessionId?: string;
+  /** The signed-in user, when known (the session carries a masked email, so the id is used to find them). */
+  userId?: string;
+}): Promise<{ user: SafeAdminUser }> {
+  const username = args.username.trim().toLowerCase();
+  await refreshPasswordPolicy();
+  const policy = currentPasswordPolicy();
+  let persistedAccount = args.userId ? undefined : await findGovernedAccount(username);
+  if (persistedAccount) cacheGovernedUser(persistedAccount.user);
+  const user = args.userId
+    ? users.find((candidate) => candidate.id === args.userId)
+    : users.find((candidate) => candidate.email.toLowerCase() === username || candidate.employeeId.toLowerCase() === username);
+  if (user && !persistedAccount) persistedAccount = await findGovernedAccount(user.email.toLowerCase());
+  if (!user || user.accountStatus !== "active" || !managesPassword(user, Boolean(persistedAccount))) {
+    throw new PasswordChangeNotAllowedError("This account does not use a password managed here. Single sign-on users change their password with the identity provider.");
+  }
+
+  // The same account lockout as sign-in applies here, keyed the same way (by email).
+  const lockKey = user.email.toLowerCase();
+  if (isLockedOut(lockKey)) throw new PasswordChangeNotAllowedError("Account is temporarily locked. Try again later or contact the helpdesk.");
+  const currentOk = persistedAccount
+    ? verifyGovernedPassword(args.currentPassword, persistedAccount.passwordHash)
+    : safeCompare(args.currentPassword, demoPasswordByEmail[user.email.toLowerCase()] ?? "");
+  if (!currentOk) {
+    registerFailedLogin(lockKey);
+    await recordAuditEvent({
+      id: randomUUID(), timestampIso: new Date().toISOString(), userId: user.id, activeRole: user.roles[0] ?? "unknown",
+      organization: user.organization, facility: user.facility, department: user.department,
+      action: "PASSWORD_CHANGE_FAILED", module: "Authentication", resource: "local", ipAddress: args.ipAddress, device: args.device, success: false, risk: "high"
+    });
+    throw new InvalidCurrentPasswordError("The current password is not correct.");
+  }
+
+  const violations = passwordViolations(args.newPassword, policy, { username, email: user.email, fullName: user.fullName });
+  if (args.newPassword === args.currentPassword) violations.push("Choose a password different from the current one.");
+  const state = await loadPasswordState(user);
+  if (policy.historyCount > 0) {
+    const recent = (state?.history ?? []).slice(0, policy.historyCount);
+    const hashes = persistedAccount ? [persistedAccount.passwordHash, ...recent] : recent;
+    if (hashes.some((hash) => verifyGovernedPassword(args.newPassword, hash))) violations.push(`Do not reuse any of your last ${policy.historyCount} passwords.`);
+  }
+  if (violations.length > 0) throw new PasswordPolicyViolationError([...new Set(violations)]);
+
+  const previousChangedAt = state?.changedAtMs;
+  await persistGovernedPasswordChange(user.id, args.newPassword, policy.historyCount);
+  demoPasswordByEmail[user.email.toLowerCase()] = args.newPassword;
+  const history = policy.historyCount > 0 ? [hashGovernedPassword(args.currentPassword), ...(state?.history ?? [])].slice(0, policy.historyCount) : [];
+  passwordStateByUserId.set(user.id, { changedAtMs: Date.now(), createdAtMs: state?.createdAtMs ?? Date.now(), mustChange: false, history });
+  failedLoginAttempts.delete(lockKey);
+  lockedUntilByUsername.delete(lockKey);
+
+  // The user's other sessions end; the one used for the change stays.
+  for (const [id, session] of [...sessions.entries()]) {
+    if (session.user.id === user.id && id !== args.keepSessionId) {
+      sessions.delete(id);
+      sessionContextBySessionId.delete(id);
+      sessionLastActivity.delete(id);
+    }
+  }
+  if (args.keepSessionId) await revokeOtherPersistedSessions(user.id, args.keepSessionId).catch(() => undefined);
+
+  await recordAuditEvent({
+    id: randomUUID(), timestampIso: new Date().toISOString(), userId: user.id, activeRole: user.roles[0] ?? "unknown",
+    organization: user.organization, facility: user.facility, department: user.department,
+    action: "PASSWORD_CHANGED", module: "Authentication", resource: `UserAccount:${user.id}`, ipAddress: args.ipAddress, device: args.device, success: true, risk: "medium",
+    // Only the timing is recorded; passwords and hashes never enter the audit trail.
+    metadata: { change: buildAuditChange({ passwordChangedAt: previousChangedAt ? new Date(previousChangedAt).toISOString() : null }, { passwordChangedAt: new Date().toISOString() }) }
+  });
+  return { user: maskUser(user) };
+}
+
+/** Counts a failed attempt and locks the account when the policy threshold is reached. Returns true if now locked. */
+function registerFailedLogin(username: string): boolean {
+  const policy = currentPasswordPolicy();
+  const count = (failedLoginAttempts.get(username) ?? 0) + 1;
+  failedLoginAttempts.set(username, count);
+  if (count >= policy.lockoutThreshold) {
+    lockedUntilByUsername.set(username, Date.now() + policy.lockoutDurationMinutes * 60 * 1000);
+    return true;
+  }
+  return false;
+}
 
 // Real TOTP MFA state (closes AR.06/AR.13) - in-memory first (mock-mode
 // tests, and the primary read path for an already-running process), with
@@ -2012,7 +2162,8 @@ export async function createUser(
     updatedAtIso: nowIso
   };
   const temporaryPassword = randomBytes(9).toString("base64url");
-  await persistGovernedAccount(newUser, temporaryPassword);
+  await persistGovernedAccount(newUser, temporaryPassword, currentPasswordPolicy().forceChangeOnFirstLogin);
+  startTemporaryPasswordState(newUser.id);
   users.push(newUser);
   demoPasswordByEmail[email] = temporaryPassword;
   dynamicallyCreatedUserEmails.add(email);
@@ -2059,7 +2210,8 @@ export async function issueGovernedTemporaryCredential(
   user.accountStatus = "active";
   user.updatedBy = actor.userId;
   user.updatedAtIso = nowIso;
-  await persistGovernedAccount(user, temporaryPassword);
+  await persistGovernedAccount(user, temporaryPassword, currentPasswordPolicy().forceChangeOnFirstLogin);
+  startTemporaryPasswordState(user.id);
   demoPasswordByEmail[user.email.toLowerCase()] = temporaryPassword;
   dynamicallyCreatedUserEmails.add(user.email.toLowerCase());
 
@@ -2579,6 +2731,8 @@ export function resetSecurityStoreForTests(): void {
   dynamicallyCreatedUserEmails.clear();
   sessions.clear();
   failedLoginAttempts.clear();
+  lockedUntilByUsername.clear();
+  passwordStateByUserId.clear();
   rolePermissionOverrides = [];
   customRoles = [];
   mfaCredentials.clear();
@@ -3021,6 +3175,7 @@ export type AuthenticateLocalResult =
       forbidden?: boolean;
       mfaEnrollmentRequired?: boolean;
       enrollmentToken?: string;
+      passwordChangeRequired?: "temporary" | "expired";
     };
 
 export async function authenticateLocal(args: {
@@ -3036,9 +3191,9 @@ export async function authenticateLocal(args: {
   if (persistedGovernedAccount) cacheGovernedUser(persistedGovernedAccount.user);
   const user = users.find((candidate) => candidate.email.toLowerCase() === username || candidate.employeeId.toLowerCase() === username);
   const genericMessage = "Invalid username or password.";
-  const currentFailures = failedLoginAttempts.get(username) ?? 0;
+  await refreshPasswordPolicy();
 
-  if (currentFailures >= 5) {
+  if (isLockedOut(username)) {
     return { ok: false, message: "Account is temporarily locked. Contact the helpdesk.", locked: true };
   }
 
@@ -3062,7 +3217,7 @@ export async function authenticateLocal(args: {
   );
   const passwordOk = adminPasswordOk || demoPasswordOk || inMemoryGovernedPasswordOk || persistedGovernedPasswordOk;
   if (!user || !passwordOk) {
-    failedLoginAttempts.set(username, currentFailures + 1);
+    registerFailedLogin(username);
     await recordAuditEvent({
       id: randomUUID(),
       timestampIso: new Date().toISOString(),
@@ -3119,6 +3274,22 @@ export async function authenticateLocal(args: {
   }
 
   failedLoginAttempts.delete(username);
+  lockedUntilByUsername.delete(username);
+
+  // NFR-016: a temporary or expired password must be changed before a session is issued.
+  const changeRequired = await passwordChangeRequirement(user, Boolean(persistedGovernedAccount));
+  if (changeRequired) {
+    await recordAuditEvent({
+      id: randomUUID(), timestampIso: new Date().toISOString(), userId: user.id, activeRole: user.roles[0] ?? "unknown",
+      organization: user.organization, facility: user.facility, department: user.department,
+      action: "PASSWORD_CHANGE_REQUIRED", module: "Authentication", resource: "local", purpose: changeRequired, ipAddress: args.ipAddress, device: args.device, success: false, risk: "low"
+    });
+    return {
+      ok: false,
+      message: changeRequired === "temporary" ? "You are using a temporary password. Choose a new password to continue." : "Your password has expired. Choose a new password to continue.",
+      passwordChangeRequired: changeRequired
+    };
+  }
 
   // Real MFA gate (closes AR.06/AR.13) - opt-in per user, not org-mandated
   // in this phase (the questionnaire rows require the capability to exist
@@ -3455,9 +3626,7 @@ export async function verifyMfaChallenge(
   // counter for the same account - one consistent lockout semantic, not two.
   const isValid = Boolean(credential && authenticator.verify({ token: code, secret: credential.secret }));
   if (!isValid) {
-    const currentFailures = failedLoginAttempts.get(username) ?? 0;
-    failedLoginAttempts.set(username, currentFailures + 1);
-    const locked = currentFailures + 1 >= 5;
+    const locked = registerFailedLogin(username);
     await recordAuditEvent({
       id: randomUUID(),
       timestampIso: new Date().toISOString(),

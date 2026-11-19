@@ -1,4 +1,6 @@
 import { Router, type Response } from "express";
+import { z } from "zod";
+import { currentPasswordPolicy } from "../services/passwordPolicy.js";
 import { readAuthenticatedSession, signSessionJwt, type AuthenticatedRequest } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 import {
@@ -21,7 +23,11 @@ import {
   testSsoProvider,
   UserNotFoundError,
   verifyMfaChallenge,
+  changeLocalPassword,
   getSessionEndReason,
+  InvalidCurrentPasswordError,
+  PasswordChangeNotAllowedError,
+  PasswordPolicyViolationError,
   enforceSessionContextOnToken,
   sessionIdleTimeoutSeconds
 } from "../services/securityAdmin.js";
@@ -102,6 +108,56 @@ export function createAuthRouter(): Router {
     }
   });
 
+  // NFR-016: change a local password. A signed-in user changes their own; a user whose temporary or
+  // expired password blocked sign-in sends their user name and current password instead.
+  router.post("/password/change", loginRateLimit, async (req, res, next) => {
+    try {
+      const parsed = z
+        .object({ username: z.string().min(3).max(180).optional(), currentPassword: z.string().min(1).max(256), newPassword: z.string().min(1).max(256) })
+        .safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+      }
+      const session = await readAuthenticatedSession(req);
+      const username = session ? session.user.id : parsed.data.username;
+      if (!username) {
+        return res.status(400).json({ error: "A user name is required." });
+      }
+      const userAgent = req.headers["user-agent"];
+      try {
+        await changeLocalPassword({
+          username,
+          currentPassword: parsed.data.currentPassword,
+          newPassword: parsed.data.newPassword,
+          ipAddress: req.ip ?? "unknown",
+          device: Array.isArray(userAgent) ? userAgent.join(" ") : userAgent ?? "unknown",
+          keepSessionId: session?.sessionId,
+          userId: session?.user.id
+        });
+        return res.json({ changed: true });
+      } catch (error) {
+        if (error instanceof PasswordPolicyViolationError) {
+          return res.status(422).json({ error: "The new password does not meet the password policy.", code: "PASSWORD_POLICY", violations: error.violations });
+        }
+        if (error instanceof InvalidCurrentPasswordError) {
+          return res.status(401).json({ error: error.message, code: "INVALID_CURRENT_PASSWORD" });
+        }
+        if (error instanceof PasswordChangeNotAllowedError) {
+          return res.status(403).json({ error: error.message, code: "PASSWORD_CHANGE_NOT_ALLOWED" });
+        }
+        throw error;
+      }
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  // The policy a user's new password must meet, so the form can show it before submission.
+  router.get("/password/policy", (_req, res) => {
+    const { minLength, requireUppercase, requireLowercase, requireDigit, requireSymbol, historyCount, maxAgeDays } = currentPasswordPolicy();
+    return res.json({ minLength, requireUppercase, requireLowercase, requireDigit, requireSymbol, historyCount, maxAgeDays });
+  });
+
   router.post("/login", loginRateLimit, async (req, res, next) => {
     try {
       const parsed = LoginRequestSchema.safeParse(req.body);
@@ -120,9 +176,10 @@ export function createAuthRouter(): Router {
       });
 
       if (!result.ok) {
-        return res.status(result.forbidden ? 403 : result.locked ? 423 : 401).json({
+        return res.status(result.forbidden || result.passwordChangeRequired ? 403 : result.locked ? 423 : 401).json({
           error: "Authentication failed",
           message: result.message,
+          ...(result.passwordChangeRequired ? { passwordChangeRequired: result.passwordChangeRequired } : {}),
           ...(result.mfaEnrollmentRequired
             ? { mfaEnrollmentRequired: true, enrollmentToken: result.enrollmentToken }
             : {})

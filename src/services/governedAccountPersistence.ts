@@ -58,7 +58,7 @@ async function accountFromRow(row: Awaited<ReturnType<typeof prisma.applicationU
   };
 }
 
-export async function persistGovernedAccount(user: AdminUser, temporaryPassword: string): Promise<void> {
+export async function persistGovernedAccount(user: AdminUser, temporaryPassword: string, mustChangePassword = false): Promise<void> {
   if (!enabled()) return;
   const passwordHash = hashGovernedPassword(temporaryPassword);
   await prisma.$transaction(async (tx) => {
@@ -87,10 +87,11 @@ export async function persistGovernedAccount(user: AdminUser, temporaryPassword:
         accountStatus: user.accountStatus,
         directoryStatus: directoryStatus(user.directoryStatus),
         passwordHash,
+        mustChangePassword,
         createdBy: user.createdBy,
         updatedBy: user.updatedBy
       },
-      update: { passwordHash, accountStatus: user.accountStatus, updatedBy: user.updatedBy }
+      update: { passwordHash, mustChangePassword, passwordChangedAt: null, accountStatus: user.accountStatus, updatedBy: user.updatedBy }
     });
     await tx.userRole.deleteMany({ where: { userId: user.id } });
     await tx.userRole.createMany({ data: user.roles.map((roleCode) => ({ userId: user.id, roleCode, approvedBy: user.createdBy })) });
@@ -114,5 +115,35 @@ export async function persistGovernedAccountStatus(user: AdminUser): Promise<voi
   await prisma.applicationUser.updateMany({
     where: { id: user.id, passwordHash: { not: null } },
     data: { accountStatus: user.accountStatus, updatedBy: user.updatedBy }
+  });
+}
+
+// ---- NFR-016: password lifecycle -------------------------------------------------------------
+
+export type GovernedPasswordState = { changedAt?: Date; createdAt: Date; mustChange: boolean; history: string[] };
+
+export async function getGovernedPasswordState(userId: string, historyCount: number): Promise<GovernedPasswordState | undefined> {
+  if (!enabled()) return undefined;
+  const row = await prisma.applicationUser.findUnique({ where: { id: userId }, select: { passwordChangedAt: true, createdAt: true, mustChangePassword: true, passwordHash: true } });
+  if (!row?.passwordHash) return undefined;
+  const history = historyCount > 0 ? await prisma.passwordHistory.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: historyCount }) : [];
+  return {
+    changedAt: row.passwordChangedAt ?? undefined,
+    createdAt: row.createdAt,
+    mustChange: row.mustChangePassword,
+    history: [row.passwordHash, ...history.map((entry) => entry.passwordHash)]
+  };
+}
+
+/** Stores the new password, keeps the old hash in history, and clears the must-change flag. */
+export async function persistGovernedPasswordChange(userId: string, newPassword: string, historyKeep: number): Promise<void> {
+  if (!enabled()) return;
+  const newHash = hashGovernedPassword(newPassword);
+  await prisma.$transaction(async (tx) => {
+    const row = await tx.applicationUser.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+    if (row?.passwordHash) await tx.passwordHistory.create({ data: { userId, passwordHash: row.passwordHash } });
+    await tx.applicationUser.update({ where: { id: userId }, data: { passwordHash: newHash, passwordChangedAt: new Date(), mustChangePassword: false } });
+    const stale = await tx.passwordHistory.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, skip: Math.max(historyKeep, 1), select: { id: true } });
+    if (stale.length > 0) await tx.passwordHistory.deleteMany({ where: { id: { in: stale.map((entry) => entry.id) } } });
   });
 }

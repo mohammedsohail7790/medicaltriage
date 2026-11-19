@@ -704,6 +704,12 @@ export async function getPersistedUserSession(sessionId?: string): Promise<Authe
   return sessionPayload;
 }
 
+/** Ends every other session of a user, for example after a password change. */
+export async function revokeOtherPersistedSessions(userId: string, exceptSessionId: string): Promise<void> {
+  if (!shouldPersistSessionsInDatabase()) return;
+  await prisma.userSession.updateMany({ where: { userId, revokedAt: null, NOT: { sessionHash: sessionHash(exceptSessionId) } }, data: { revokedAt: new Date() } });
+}
+
 export async function revokePersistedSession(sessionId?: string): Promise<void> {
   if (!sessionId || !shouldPersistSessionsInDatabase()) {
     return;
