@@ -55,3 +55,35 @@ export function excludeLegallyHeld<T extends { id: string; organizationId?: stri
   }
   return { eligible, excluded };
 }
+
+// ---------------------------------------------------------------------------
+// Audit event retention (M-008)
+//
+// Audit events are kept for the life of the contract unless Qatar Airways sets
+// another period. The database already rejects UPDATE and DELETE on
+// audit_events, and no job in this codebase removes them. This policy makes the
+// rule explicit and configurable: AUDIT_RETENTION_DAYS unset means "life of the
+// contract" and nothing is ever eligible for removal.
+// ---------------------------------------------------------------------------
+
+export type AuditRetentionPolicy =
+  | { mode: "contract-life"; days: null; source: string }
+  | { mode: "fixed-days"; days: number; source: string };
+
+export function auditRetentionPolicy(env: Record<string, string | undefined> = process.env): AuditRetentionPolicy {
+  const raw = env.AUDIT_RETENTION_DAYS?.trim();
+  if (!raw) return { mode: "contract-life", days: null, source: "default: life of the contract" };
+  if (!/^[1-9]\d*$/.test(raw)) {
+    throw new Error("AUDIT_RETENTION_DAYS must be a positive whole number of days, or unset to keep audit events for the life of the contract.");
+  }
+  return { mode: "fixed-days", days: Number(raw), source: "AUDIT_RETENTION_DAYS set by agreement with Qatar Airways" };
+}
+
+/**
+ * The instant before which audit events may be removed, or null when they must be
+ * kept. Informational: it reports what the agreed period would allow. Removal needs
+ * a separate, approved, audited procedure because audit_events is append-only.
+ */
+export function auditEventsEligibleBefore(policy: AuditRetentionPolicy, now: Date = new Date()): Date | null {
+  return policy.mode === "fixed-days" ? new Date(now.getTime() - policy.days * 24 * 60 * 60 * 1000) : null;
+}

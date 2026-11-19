@@ -1,3 +1,5 @@
+import { parseAuditSinkConfig } from "../services/auditForwarding.js";
+import { auditRetentionPolicy } from "../services/retentionGovernance.js";
 import { missingProductionSecrets } from "./secrets.js";
 import { loadLocalEnv } from "./env.js";
 
@@ -412,6 +414,13 @@ export function publicRuntimeEnvironment(): PublicRuntimeEnvironment {
 }
 
 export function assertRuntimeConfiguration(): void {
+  // M-008: fail at startup on a malformed audit retention period or forwarding target.
+  auditRetentionPolicy();
+  const forwardingSinks = parseAuditSinkConfig(process.env.AUDIT_FORWARD_SINKS);
+  if (process.env.NODE_ENV === "production" && forwardingSinks.some((sink) => sink.type === "https") && !process.env.AUDIT_FORWARD_SECRET?.trim()) {
+    throw new Error("AUDIT_FORWARD_SECRET is required when an https audit forwarding sink is configured.");
+  }
+
   if (process.env.NODE_ENV === "production") {
     const missingSecrets = missingProductionSecrets();
     if (missingSecrets.length > 0) {

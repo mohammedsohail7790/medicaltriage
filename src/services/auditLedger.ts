@@ -2,6 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { auditPrisma } from "../db.js";
 import type { AuditEvent } from "../types/security.js";
+import { forwardCommittedAuditEvent } from "./auditForwarding.js";
 
 const AUDIT_LEDGER_LOCK_ID = 1_096_520_215_793n;
 export const AUDIT_LEDGER_GENESIS_HASH = "0".repeat(64);
@@ -90,7 +91,8 @@ function normalizedMetadata(value: Record<string, unknown> | undefined): Record<
 }
 
 export async function appendAuditEvent(event: AuditEvent, client: PrismaClient = auditPrisma): Promise<{ id: string; eventHash: string }> {
-  return client.$transaction(async (tx: AuditTransaction) => {
+  let committed: Parameters<typeof forwardCommittedAuditEvent>[0] | undefined;
+  const result = await client.$transaction(async (tx: AuditTransaction) => {
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock($1)", AUDIT_LEDGER_LOCK_ID);
     const previous = await tx.auditEvent.findFirst({
       where: { eventHash: { not: null } },
@@ -130,8 +132,19 @@ export async function appendAuditEvent(event: AuditEvent, client: PrismaClient =
         keyVersion
       }
     });
+    committed = {
+      ...event,
+      metadata: persistedEvent.metadata,
+      sequenceNumber: String(created.sequenceNumber),
+      previousHash,
+      eventHash,
+      keyVersion
+    };
     return { id: created.id, eventHash };
   });
+  // M-008: forward after the commit. Forwarding never blocks or fails the ledger write.
+  if (committed) forwardCommittedAuditEvent(committed);
+  return result;
 }
 
 export type OperationalAuditEvent = {
