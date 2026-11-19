@@ -1,6 +1,7 @@
-import { Router, type Response } from "express";
+import { Router, type NextFunction, type Response } from "express";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { decryptLoginPayload, loginEncryptionContext, loginEncryptionMode, LoginEncryptionError, loginPathSegment } from "../services/loginEncryption.js";
 import { captchaFailsClosed, captchaProvider, captchaRequirement, issueSelfChallenge, verifyCaptcha } from "../services/captcha.js";
 import { currentPasswordPolicy } from "../services/passwordPolicy.js";
 import { readAuthenticatedSession, signSessionJwt, type AuthenticatedRequest } from "../middleware/auth.js";
@@ -185,10 +186,16 @@ export function createAuthRouter(): Router {
 
   // NFR-020: lets the sign-in page know whether a challenge is needed before the first attempt
   // (for example from outside the approved networks) and which method to show.
-  router.get("/login-config", (req, res) => {
+  router.get("/login-config", async (req, res, next) => {
+    try {
     const provider = captchaProvider();
     const reason = captchaRequirement({ failedAttempts: 0, ipAddress: req.ip ?? "unknown" });
-    return res.json({ captcha: provider ? { provider, required: Boolean(reason), reason: reason ?? null, ...(provider !== "self" ? { siteKey: process.env.CAPTCHA_SITE_KEY } : {}) } : null });
+    // The encryption nonce is single use, so this answer must never be cached.
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ loginEncryption: (await loginEncryptionContext()) ?? null, captcha: provider ? { provider, required: Boolean(reason), reason: reason ?? null, ...(provider !== "self" ? { siteKey: process.env.CAPTCHA_SITE_KEY } : {}) } : null });
+    } catch (error) {
+      return next(error);
+    }
   });
 
   // A fresh proof-of-work challenge for the self-hosted method.
@@ -203,7 +210,7 @@ export function createAuthRouter(): Router {
     return res.json({ minLength, requireUppercase, requireLowercase, requireDigit, requireSymbol, historyCount, maxAgeDays });
   });
 
-  router.post("/login", loginRateLimit, async (req, res, next) => {
+  const loginHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const parsed = LoginRequestSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -245,7 +252,44 @@ export function createAuthRouter(): Router {
     } catch (error) {
       return next(error);
     }
-  });
+  };
+
+  // NFR-146: the encrypted form of sign-in. The body is `{ "encrypted": "<JWE>" }`; it is decrypted
+  // and checked for a fresh, unused nonce before the normal sign-in runs. LOGIN_ENCRYPTION_MODE
+  // decides whether the plain form is still accepted, and LOGIN_PATH_SEGMENT moves the address.
+  async function unwrapLoginBody(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const mode = loginEncryptionMode();
+      const encrypted = typeof req.body?.encrypted === "string" ? (req.body.encrypted as string) : undefined;
+      if (mode === "off" || (!encrypted && mode === "optional")) return next();
+      if (!encrypted) {
+        return res.status(400).json({ error: "Encrypted sign-in is required.", code: "LOGIN_ENCRYPTION_REQUIRED" });
+      }
+      try {
+        req.body = await decryptLoginPayload(encrypted);
+      } catch (error) {
+        if (error instanceof LoginEncryptionError) {
+          await recordAuditEvent({
+            id: randomUUID(), timestampIso: new Date().toISOString(), userId: "unknown", activeRole: "unknown", organization: "", facility: "", department: "",
+            action: "LOGIN_PAYLOAD_REJECTED", module: "Authentication", resource: "local", purpose: error.code, ipAddress: req.ip ?? "unknown", device: "", success: false, risk: "medium"
+          });
+          return res.status(error.code === "LOGIN_REPLAYED" ? 409 : 400).json({ error: error.message, code: error.code });
+        }
+        throw error;
+      }
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  const loginSegment = loginPathSegment();
+  const loginPaths = [
+    ...(loginSegment ? [`/login-${loginSegment}`] : []),
+    // With a rotated address and encryption required, the well-known address is not served at all.
+    ...(!loginSegment || loginEncryptionMode() !== "required" ? ["/login"] : [])
+  ];
+  for (const path of loginPaths) router.post(path, loginRateLimit, unwrapLoginBody, loginHandler);
 
   router.post("/mfa/verify", mfaVerifyRateLimit, async (req, res, next) => {
     try {

@@ -1916,3 +1916,12 @@ model PasswordPolicy {
 
   @@map("password_policies")
 }
+
+// NFR-146: one-time login nonces, shared across instances so a captured encrypted login cannot be replayed.
+model LoginNonce {
+  nonce     String   @id
+  expiresAt DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("login_nonces")
+}

@@ -17,7 +17,10 @@ module.exports = {
     "^(\\.{1,2}/.*)\\.js$": "$1",
     "\\.css$": "<rootDir>/frontend/test/styleMock.cjs"
   },
+  // jose (used to encrypt the sign-in form) ships ESM only; transform it the way the backend config does.
+  transformIgnorePatterns: ["node_modules/(?!.*(jose))"],
   transform: {
+    "^.+\\.jsx?$": "babel-jest",
     "^.+\\.tsx?$": [
       "ts-jest",
       {

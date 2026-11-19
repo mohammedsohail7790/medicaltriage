@@ -2,6 +2,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { setAccessToken } from "../authToken";
 import { apiBase } from "./apiBase";
+import { buildLoginRequest } from "./loginTransport";
 import { renderCaptchaWidget, solveSelfChallenge, type CaptchaPrompt } from "./captchaClient";
 import { useLocale } from "../i18n/LocaleContext";
 import type { AuthenticatedSession } from "./session";
@@ -299,18 +300,19 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
       // NFR-020: when the server asks for a security check, the self-hosted one is solved here
       // and the sign-in is sent again; a third-party widget is shown for the user to complete.
       for (let attempt = 0; ; attempt += 1) {
-        response = await fetch(`${apiBase}/api/v1/auth/login`, {
+        const loginRequest = await buildLoginRequest(apiBase, {
+          username,
+          password,
+          tenant: "ist-tech",
+          language: locale,
+          rememberMe,
+          ...(sentToken ? { captchaToken: sentToken } : {})
+        });
+        response = await fetch(loginRequest.url, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username,
-            password,
-            tenant: "ist-tech",
-            language: locale,
-            rememberMe,
-            ...(sentToken ? { captchaToken: sentToken } : {})
-          })
+          body: loginRequest.body
         });
         payload = {};
         try {

@@ -19,7 +19,8 @@ describe("security check at sign-in (NFR-020)", () => {
     const challenge = createHash("sha256").update(`${salt}37`).digest("hex");
     const bodies: Array<Record<string, unknown>> = [];
     let calls = 0;
-    (global as unknown as { fetch: jest.Mock }).fetch = jest.fn(async (_url: string, init?: { body?: string }) => {
+    (global as unknown as { fetch: jest.Mock }).fetch = jest.fn(async (url: string, init?: { body?: string }) => {
+      if (String(url).endsWith("/auth/login-config")) return { ok: true, status: 200, json: async () => ({ loginEncryption: null }) };
       bodies.push(JSON.parse(init?.body ?? "{}"));
       calls += 1;
       if (calls === 1) {
@@ -44,11 +45,11 @@ describe("security check at sign-in (NFR-020)", () => {
   });
 
   it("shows a message and a place for the widget when a third-party check is required", async () => {
-    (global as unknown as { fetch: jest.Mock }).fetch = jest.fn(async () => ({
+    (global as unknown as { fetch: jest.Mock }).fetch = jest.fn(async (url: string) => String(url).endsWith("/auth/login-config") ? { ok: true, status: 200, json: async () => ({ loginEncryption: null }) } : {
       ok: false,
       status: 403,
       json: async () => ({ captchaRequired: true, provider: "turnstile", siteKey: "key", reason: "outside-approved-network" })
-    }));
+    });
     render(
       <LocaleProvider>
         <LoginCard onAuthenticated={jest.fn()} />
