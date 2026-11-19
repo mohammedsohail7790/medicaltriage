@@ -79,6 +79,9 @@ importers:
       helmet:
         specifier: ^7.1.0
         version: 7.2.0
+      hyparquet-writer:
+        specifier: ^0.18.0
+        version: 0.18.0
       jose:
         specifier: ^6.2.8
         version: 6.2.8
@@ -170,6 +173,9 @@ importers:
       babel-jest:
         specifier: ^30.4.1
         version: 30.4.1(@babel/core@8.0.1)
+      hyparquet:
+        specifier: ^1.33.1
+        version: 1.33.1
       javascript-obfuscator:
         specifier: ^5.10.1
         version: 5.10.1
@@ -3411,6 +3417,15 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  hyparquet-writer@0.18.0:
+    resolution: {integrity: sha512-1vDuEneasjp2yuk/OnLqli5aArzHQw8NYVbJD7ytpHZ3outmJaHHRcNbA7BiiFxonWGhwgPPWnVSsREv6LxE4A==}
+
+  hyparquet@1.32.0:
+    resolution: {integrity: sha512-SpkvdfgQjcdCJA+MTzo0WSreLLy/aLRYs3xetk1SsuFvq8vF+J/97OaRnZhf+p5Nx3J27i9FhSC0bJ5eQZG/7Q==}
+
+  hyparquet@1.33.1:
+    resolution: {integrity: sha512-D623q+KpogNTsmb0sdWXKsi1zrgQTFf2A6MX0vKZChuG7kjA/O+ps7DDfSgGf0rs8SfFP7UqrsDYypxVmmgqZA==}
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -8774,6 +8789,14 @@ snapshots:
       - supports-color
 
   human-signals@2.1.0: {}
+
+  hyparquet-writer@0.18.0:
+    dependencies:
+      hyparquet: 1.32.0
+
+  hyparquet@1.32.0: {}
+
+  hyparquet@1.33.1: {}
 
   iconv-lite@0.4.24:
     dependencies:

@@ -1941,3 +1941,14 @@ model LoginNonce {
   @@index([expiresAt])
   @@map("login_nonces")
 }
+
+// NFR-050: where each consumer of incremental extraction got to, per dataset.
+model ExtractionCursor {
+  consumer  String
+  dataset   String
+  token     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([consumer, dataset])
+  @@map("extraction_cursors")
+}

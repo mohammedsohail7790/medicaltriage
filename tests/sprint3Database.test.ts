@@ -341,4 +341,137 @@ describeDb("Sprint 3 database-backed behaviour", () => {
       await basePrisma.retentionPolicy.delete({ where: { code: "EXPORT_APPROVAL" } });
     });
   });
+
+  describe("NFR-169 / NFR-050 extraction", () => {
+    const oldEnv = { ...process.env };
+    afterEach(() => {
+      process.env = { ...oldEnv };
+    });
+
+    async function twoAdmins() {
+      process.env.ADMIN_PASSWORD = "TestAdminPassword!2026";
+      process.env.AUDIT_EVENT_DB_PERSISTENCE = "true";
+      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-sprint3-test";
+      const request = (await import("supertest")).default;
+      const { authenticator } = await import("otplib");
+      const sec = await import("../src/services/securityAdmin.js");
+      sec.resetSecurityStoreForTests(); // earlier tests enrolled the administrator in MFA
+      (await import("../src/middleware/rateLimit.js")).resetRateLimitBucketsForTests();
+      const app = (await import("../src/app.js")).createApp();
+      const login = async (username: string, userId: string) => {
+        const a = request.agent(app);
+        await a.post("/api/v1/auth/login").send({ username, password: process.env.ADMIN_PASSWORD, simulateRole: "platform_super_administrator" }).expect(200);
+        const { secret } = sec.enrollMfa(userId);
+        sec.confirmMfaEnrollment(userId, authenticator.generate(secret));
+        await a.post("/api/v1/admin/elevate").send({ code: authenticator.generate(secret) }).expect(200);
+        return a;
+      };
+      const first = await login("rishma@irisstar.tech", "usr_platform_admin_10001");
+      const created = sec.upsertDirectoryUserFromHrms({ employeeId: `S3-${run}`, email: `${run}.approver@irisstar.tech`, fullName: "Extract Approver", organizationCode: "IST_TECH", jobTitle: "Administrator", roles: ["platform_super_administrator"] });
+      const second = await login(`${run}.approver@irisstar.tech`, created.user.id);
+      const approved = async (dataset: string) => {
+        const requested = await first.post(`/api/v1/admin/extract/${dataset}/requests`).send({ reason: "Quarterly portability extraction" }).expect(201);
+        const id = requested.body.approval.id as string;
+        await second.post(`/api/v1/admin/export-requests/${id}/decision`).send({ decision: "approve" }).expect(200);
+        return id;
+      };
+      return { first, second, approved };
+    }
+
+    it("takes a dataset in pages, then only what changed, with the position kept per consumer", async () => {
+      const { first, approved } = await twoAdmins();
+      const tag = `${run}-ext`;
+      const mk = (n: number) => basePrisma.staffMember.create({ data: { istStaffId: `${tag}-${n}`, department: "Ops", jobTitle: "Tester" } });
+      const rows = [await mk(1), await mk(2), await mk(3)];
+      const id = await approved("staff");
+
+      await first.get("/api/v1/admin/extract/staff").expect(403); // no approval
+      const everything = await first.get(`/api/v1/admin/extract/staff?approvalId=${id}&limit=10000`).expect(200);
+      const ours = (everything.body.rows as Array<{ istStaffId: string }>).filter((r) => r.istStaffId.startsWith(tag));
+      expect(ours).toHaveLength(3);
+      const atEnd = everything.body.nextToken as string;
+
+      // Page by page from the start of our rows: the token never skips or repeats a row.
+      const seen: string[] = [];
+      let token: string | undefined;
+      for (let guard = 0; guard < 500; guard += 1) {
+        const page = await first.get(`/api/v1/admin/extract/staff?approvalId=${id}&limit=2${token ? `&since=${token}` : ""}`).expect(200);
+        seen.push(...(page.body.rows as Array<{ id: string }>).map((r) => r.id));
+        token = page.body.nextToken;
+        if (!page.body.hasMore) break;
+      }
+      expect(new Set(seen).size).toBe(seen.length);
+      expect(rows.every((r) => seen.includes(r.id))).toBe(true);
+
+      // Incremental: nothing new, then one change and one new row.
+      const none = await first.get(`/api/v1/admin/extract/staff?approvalId=${id}&since=${atEnd}`).expect(200);
+      expect(none.body.rows).toHaveLength(0);
+      await basePrisma.staffMember.update({ where: { id: rows[0].id }, data: { jobTitle: "Changed" } });
+      const added = await mk(4);
+      const changes = await first.get(`/api/v1/admin/extract/staff?approvalId=${id}&since=${atEnd}`).expect(200);
+      expect((changes.body.rows as Array<{ id: string; jobTitle: string }>).map((r) => r.id).sort()).toEqual([rows[0].id, added.id].sort());
+      expect(changes.body.rows.find((r: { id: string }) => r.id === rows[0].id).jobTitle).toBe("Changed");
+
+      // The position is stored per consumer, and only moves when the consumer confirms.
+      await first.get(`/api/v1/admin/extract/staff?approvalId=${id}&consumer=bi-team&since=${atEnd}`).expect(200);
+      await first.post("/api/v1/admin/extract/staff/ack").send({ consumer: "bi-team", token: atEnd }).expect(204);
+      const resumed = await first.get(`/api/v1/admin/extract/staff?approvalId=${id}&consumer=bi-team`).expect(200);
+      expect(resumed.body.rows.map((r: { id: string }) => r.id)).toEqual(expect.arrayContaining([rows[0].id, added.id]));
+      expect(resumed.body.rows.length).toBe(2);
+      const stored = await basePrisma.extractionCursor.findUniqueOrThrow({ where: { consumer_dataset: { consumer: "bi-team", dataset: "staff" } } });
+      expect(stored.token).toBe(atEnd);
+      await first.post("/api/v1/admin/extract/staff/ack").send({ consumer: "bi-team", token: "garbage" }).expect(400);
+    }, 60000);
+
+    it("exports CSV and Parquet, never exports credentials, and shows deletions", async () => {
+      const { first, approved } = await twoAdmins();
+      const { prisma } = await import("../src/db.js");
+      const { runWithActor } = await import("../src/services/softDelete.js");
+      const { parquetReadObjects } = await import("hyparquet");
+      const staff = await basePrisma.staffMember.create({ data: { istStaffId: `${run}-del`, department: "Ops", jobTitle: "Tester" } });
+      const dep = await prisma.dependent.create({ data: { staffMemberId: staff.id, fullName: "Gone Child", relationshipType: "CHILD", age: 4, biologicalSex: "FEMALE" } });
+      await runWithActor("usr_x", async () => {
+        await prisma.dependent.delete({ where: { id: dep.id } });
+      });
+      const depId = await approved("dependents");
+      const json = await first.get(`/api/v1/admin/extract/dependents?approvalId=${depId}&limit=10000`).expect(200);
+      const row = json.body.rows.find((r: { id: string }) => r.id === dep.id);
+      expect(row).toMatchObject({ fullName: "Gone Child", deletedBy: "usr_x" });
+      expect(row.deletedAt).toBeTruthy();
+
+      const csv = await first.get(`/api/v1/admin/extract/dependents?approvalId=${depId}&format=csv&limit=10000`).expect(200);
+      expect(csv.headers["content-type"]).toMatch(/text\/csv/);
+      expect(csv.text.split("\n")[0]).toContain("fullName");
+      expect(csv.text).toContain("Gone Child");
+
+      const pq = await first.get(`/api/v1/admin/extract/dependents?approvalId=${depId}&format=parquet&limit=10000`).buffer(true).parse((res, cb) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => cb(null, Buffer.concat(chunks)));
+      });
+      const bytes = pq.body as Buffer;
+      const parsed = (await parquetReadObjects({ file: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer })) as Array<{ id: string; fullName: string }>;
+      expect(parsed.find((r) => r.id === dep.id)?.fullName).toBe("Gone Child");
+
+      const usersId = await approved("users");
+      const users = await first.get(`/api/v1/admin/extract/users?approvalId=${usersId}&limit=10000`).expect(200);
+      for (const user of users.body.rows) {
+        expect(Object.keys(user).some((k) => /passwordHash|ciphertext|secret/i.test(k))).toBe(false);
+      }
+      const events = await basePrisma.auditEvent.findMany({ where: { action: "EXPORT_COMPLETED", resource: { contains: "Export:dataset" } }, orderBy: { sequenceNumber: "desc" }, take: 3 });
+      expect(events.length).toBeGreaterThan(0);
+      expect((events[0].metadata as { sha256?: string }).sha256).toMatch(/^[a-f0-9]{64}$/);
+    }, 60000);
+
+    it("exposes the audit ledger and the purged-record list as datasets, and honours the disable switch", async () => {
+      const { first, approved } = await twoAdmins();
+      const auditId = await approved("audit-events");
+      const audit = await first.get(`/api/v1/admin/extract/audit-events?approvalId=${auditId}&limit=50`).expect(200);
+      expect(audit.body.rows.length).toBeGreaterThan(0);
+      expect(audit.body.rows[0]).toHaveProperty("eventHash");
+      process.env.EXPORTS_DISABLED_KINDS = "dataset";
+      const blocked = await first.get(`/api/v1/admin/extract/audit-events?approvalId=${auditId}`).expect(403);
+      expect(blocked.body.code).toBe("EXPORTS_DISABLED");
+    }, 60000);
+  });
 });

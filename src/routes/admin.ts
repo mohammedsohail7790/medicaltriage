@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { acknowledgeToken, datasetShape, ExtractionError, extractPage, listDatasets, storedToken, toCsv, toParquet } from "../services/dataExports.js";
 import { basePrisma } from "../db.js";
 import { RETENTION_TARGETS } from "../services/retentionEngine.js";
 import { INTEGRITY_CHECKS, lastIntegrityReport, runIntegrityChecks } from "../services/integrityChecks.js";
@@ -678,6 +679,75 @@ export function createAdminRouter(): Router {
         events: events.map((event) => ({ ...event, summary: traceSummary(event), change: (event.metadata as { change?: unknown } | undefined)?.change ?? null }))
       });
     } catch (error) {
+      return next(error);
+    }
+  });
+
+  // NFR-169 / NFR-050: data portability and incremental extraction. Datasets are taken in JSON, CSV or
+  // Parquet, in full or only what changed since a token. Like every export it is approval-gated (a second
+  // administrator approves a request for the dataset; the approval covers repeated pages until it
+  // expires), can be disabled, is inspected by the DLP tool when one is configured, and is audited.
+  router.get("/extract", requirePermission("reports.export"), (_req, res) => res.json({ datasets: listDatasets() }));
+
+  router.post("/extract/:dataset/requests", requirePermission("reports.export"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      datasetShape(req.params.dataset);
+      const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+      if (reason.length < 10) return res.status(400).json({ error: "A reason of at least 10 characters is required." });
+      assertExportEnabled("dataset");
+      const session = req.securitySession!;
+      const approval = await requestExportApproval({ exportKind: "dataset", resourceId: req.params.dataset, requesterId: session.user.id, reason });
+      await recordExportEvent({ action: "EXPORT_REQUESTED", kind: "dataset", session, resourceId: req.params.dataset, success: true, metadata: { approvalId: approval.id, reason } });
+      return res.status(201).json({ approval });
+    } catch (error) {
+      if (error instanceof ExportGovernanceError || error instanceof ExtractionError) return res.status(error.status).json({ error: error.message, code: error.code });
+      return next(error);
+    }
+  });
+
+  router.get("/extract/:dataset", requirePermission("reports.export"), async (req: AuthorizedRequest, res, next) => {
+    const session = req.securitySession!;
+    const dataset = req.params.dataset;
+    const approvalId = typeof req.query.approvalId === "string" ? req.query.approvalId : undefined;
+    try {
+      assertExportEnabled("dataset");
+      datasetShape(dataset);
+      // The approval stays valid for repeated pages until it expires; every page is audited.
+      await consumeExportApproval({ id: approvalId, exportKind: "dataset", resourceId: dataset, requesterId: session.user.id, consume: false });
+      const format = String(req.query.format ?? "json");
+      if (!["json", "csv", "parquet"].includes(format)) return res.status(400).json({ error: "format must be json, csv or parquet." });
+      const consumer = typeof req.query.consumer === "string" && req.query.consumer.trim() ? req.query.consumer.trim().slice(0, 80) : undefined;
+      const since = typeof req.query.since === "string" && req.query.since ? req.query.since : consumer ? await storedToken(consumer, dataset) : undefined;
+      const page = await extractPage({ dataset, since, limit: Number(req.query.limit) || undefined, session });
+      const body = format === "csv" ? toCsv(page) : format === "parquet" ? toParquet(page) : { dataset, generatedAt: new Date().toISOString(), count: page.rows.length, hasMore: page.hasMore, nextToken: page.nextToken, rows: page.rows };
+      const descriptor = describeExport("dataset", session, dataset, typeof body === "string" ? body : Buffer.isBuffer(body) ? body.toString("base64") : body, page.rows.length);
+      await inspectExportWithDlp(descriptor);
+      await recordExportEvent({ action: "EXPORT_COMPLETED", kind: "dataset", session, resourceId: dataset, success: true, metadata: { approvalId, format, incremental: Boolean(since), consumer, recordCount: descriptor.recordCount, bytes: descriptor.bytes, sha256: descriptor.sha256 } });
+      res.setHeader("X-Next-Token", page.nextToken ?? "");
+      res.setHeader("X-Has-More", String(page.hasMore));
+      res.setHeader("Content-Disposition", `attachment; filename="${dataset}.${format}"`);
+      if (format === "csv") return res.type("text/csv").send(body);
+      if (format === "parquet") return res.type("application/vnd.apache.parquet").send(body);
+      return res.json(body);
+    } catch (error) {
+      if (error instanceof ExportGovernanceError || error instanceof ExtractionError) {
+        await recordExportEvent({ action: "EXPORT_DENIED", kind: "dataset", session, resourceId: dataset, success: false, metadata: { code: error.code, approvalId } });
+        return res.status(error.status).json({ error: error.message, code: error.code });
+      }
+      return next(error);
+    }
+  });
+
+  // The consumer confirms it stored a page, which moves its position forward. Until then the same rows
+  // are offered again, so a failed delivery loses nothing.
+  router.post("/extract/:dataset/ack", requirePermission("reports.export"), async (req, res, next) => {
+    try {
+      const consumer = typeof req.body?.consumer === "string" ? req.body.consumer.trim().slice(0, 80) : "";
+      if (!consumer || typeof req.body?.token !== "string") return res.status(400).json({ error: "consumer and token are required." });
+      await acknowledgeToken(consumer, req.params.dataset, req.body.token);
+      return res.status(204).end();
+    } catch (error) {
+      if (error instanceof ExtractionError) return res.status(error.status).json({ error: error.message, code: error.code });
       return next(error);
     }
   });

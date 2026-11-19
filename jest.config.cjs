@@ -25,7 +25,7 @@ module.exports = {
   // openid-client/oauth4webapi/jose (added for real OIDC SSO) are also
   // ESM-only, same reasoning as the htmlparser2 chain above.
   transformIgnorePatterns: [
-    "node_modules/(?!.*(htmlparser2|domhandler|domutils|domelementtype|entities|dom-serializer|openid-client|oauth4webapi|jose))"
+    "node_modules/(?!.*(htmlparser2|domhandler|domutils|domelementtype|entities|dom-serializer|openid-client|oauth4webapi|jose|hyparquet|hyparquet-writer))"
   ],
   transform: {
     "^.+\\.tsx?$": ["ts-jest", { useESM: true, tsconfig: "tsconfig.test.json" }],

@@ -19,7 +19,7 @@ import { signAuditPayload } from "./auditForwarding.js";
  *   what kind, how many records, size and a SHA-256 of the file), never the content.
  */
 
-export type ExportKind = "self" | "organization";
+export type ExportKind = "self" | "organization" | "dataset";
 
 export class ExportGovernanceError extends Error {
   constructor(
