@@ -85,7 +85,7 @@ describeDb("Sprint 3 database-backed behaviour", () => {
     const oldEnv = { ...process.env };
     beforeEach(() => {
       process.env.AUDIT_EVENT_DB_PERSISTENCE = "true";
-      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-sprint3-test";
+      process.env.AUDIT_HMAC_SECRET ??= "ci-only-audit-hmac-secret-not-for-production";
       process.env.FIELD_ENCRYPTION_KEY = "sprint3-field-key-0123456789abcdef";
     });
     afterEach(() => {
@@ -94,8 +94,8 @@ describeDb("Sprint 3 database-backed behaviour", () => {
 
     it("passes on healthy data and records a passing event", async () => {
       const { runIntegrityChecks } = await import("../src/services/integrityChecks.js");
-      // (The ledger check is exercised below: other suites sign events with their own secrets in this shared test database.)
-      const report = await runIntegrityChecks({ only: ["soft-delete", "completed-cases"] });
+      const report = await runIntegrityChecks({ only: ["audit-ledger", "soft-delete", "completed-cases"] });
+      expect(report.checks.find((c) => c.name === "audit-ledger")?.checked).toBeGreaterThan(0);
       expect(report.ok).toBe(true);
       expect((await basePrisma.auditEvent.findFirst({ where: { action: "INTEGRITY_CHECK_PASSED", recordReference: report.id } }))).not.toBeNull();
     });
@@ -158,7 +158,7 @@ describeDb("Sprint 3 database-backed behaviour", () => {
       });
     beforeEach(() => {
       process.env.AUDIT_EVENT_DB_PERSISTENCE = "true";
-      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-sprint3-test";
+      process.env.AUDIT_HMAC_SECRET ??= "ci-only-audit-hmac-secret-not-for-production";
       process.env.FIELD_ENCRYPTION_KEY = "sprint3-field-key-0123456789abcdef";
     });
     afterEach(() => {
@@ -312,7 +312,7 @@ describeDb("Sprint 3 database-backed behaviour", () => {
     it("lists the data types, validates changes, requires elevation and audits before and after", async () => {
       process.env.ADMIN_PASSWORD = "TestAdminPassword!2026";
       process.env.AUDIT_EVENT_DB_PERSISTENCE = "true";
-      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-sprint3-test";
+      process.env.AUDIT_HMAC_SECRET ??= "ci-only-audit-hmac-secret-not-for-production";
       const request = (await import("supertest")).default;
       const { authenticator } = await import("otplib");
       const { confirmMfaEnrollment, enrollMfa } = await import("../src/services/securityAdmin.js");
@@ -351,7 +351,7 @@ describeDb("Sprint 3 database-backed behaviour", () => {
     async function twoAdmins() {
       process.env.ADMIN_PASSWORD = "TestAdminPassword!2026";
       process.env.AUDIT_EVENT_DB_PERSISTENCE = "true";
-      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-sprint3-test";
+      process.env.AUDIT_HMAC_SECRET ??= "ci-only-audit-hmac-secret-not-for-production";
       const request = (await import("supertest")).default;
       const { authenticator } = await import("otplib");
       const sec = await import("../src/services/securityAdmin.js");

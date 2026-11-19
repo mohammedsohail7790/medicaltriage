@@ -154,7 +154,7 @@ describeDb("Sprint 1 database-backed behaviour", () => {
     afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
     it("keeps the chain valid with before and after values, and forwards each event with a valid signature", async () => {
-      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-database-test";
+      process.env.AUDIT_HMAC_SECRET ??= "ci-only-audit-hmac-secret-not-for-production";
       process.env.AUDIT_FORWARD_SECRET = "forward-secret-for-database-test";
       const port = (server.address() as AddressInfo).port;
       process.env.AUDIT_FORWARD_SINKS = JSON.stringify([{ name: "local", type: "https", url: `http://127.0.0.1:${port}/audit` }]);
@@ -178,7 +178,7 @@ describeDb("Sprint 1 database-backed behaviour", () => {
     });
 
     it("does not fail or corrupt the ledger when a sink is down", async () => {
-      process.env.AUDIT_HMAC_SECRET = "ledger-secret-for-database-test";
+      process.env.AUDIT_HMAC_SECRET ??= "ci-only-audit-hmac-secret-not-for-production";
       process.env.AUDIT_FORWARD_SECRET = "forward-secret-for-database-test";
       process.env.AUDIT_FORWARD_SINKS = JSON.stringify([{ name: "down", type: "https", url: "http://127.0.0.1:1/audit", timeoutMs: 300 }]);
       resetAuditForwarderForTests();

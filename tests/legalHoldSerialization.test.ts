@@ -4,7 +4,8 @@ import { LEGAL_HOLD_MUTATION_LOCK_ID } from "../src/services/retentionGovernance
 
 describe("PR-011 legal-hold mutation serialization", () => {
   const migration = readFileSync(resolve("prisma/migrations/20260819090000_serialize_legal_hold_mutations/migration.sql"), "utf8");
-  const purge = readFileSync(resolve("src/scripts/purgeExpiredQueueData.ts"), "utf8");
+  // Retention purge now lives in the general retention engine (the queue script delegates to it).
+  const purge = readFileSync(resolve("src/services/retentionEngine.ts"), "utf8");
   const privacy = readFileSync(resolve("src/scripts/fulfillPrivacyRequests.ts"), "utf8");
 
   it("installs row and truncate triggers using the governed advisory lock", () => {
@@ -19,7 +20,7 @@ describe("PR-011 legal-hold mutation serialization", () => {
   ])("acquires the same lock before querying current items and holds in %s", (_label, source) => {
     const lockIndex = source.indexOf("pg_advisory_xact_lock($1)");
     const currentItemsIndex = Math.min(
-      ...[source.indexOf("tx.triageQueueItem.findMany", lockIndex), source.indexOf("tx.legalHold.findMany", lockIndex)]
+      ...[source.indexOf("tx.triageQueueItem.findMany", lockIndex), source.indexOf("tx.legalHold.findMany", lockIndex), source.indexOf("loadHolds(tx", lockIndex)]
         .filter((index) => index >= 0)
     );
     expect(lockIndex).toBeGreaterThanOrEqual(0);

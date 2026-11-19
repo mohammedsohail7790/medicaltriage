@@ -278,6 +278,8 @@ describe("Role-based Control Center bifurcation", () => {
 
     const paged = await auditor.get("/api/v1/admin/audit-events?limit=1&offset=0").expect(200);
     expect(paged.body.events).toHaveLength(1);
-    expect(paged.body.totalCount).toBe(full.body.totalCount);
+    // Viewing the audit trail is itself audited (NFR-012), so the first request may add one entry.
+    expect(paged.body.totalCount).toBeGreaterThanOrEqual(full.body.totalCount);
+    expect(paged.body.totalCount).toBeLessThanOrEqual(full.body.totalCount + 2);
   });
 });

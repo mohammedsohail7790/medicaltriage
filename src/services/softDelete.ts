@@ -31,6 +31,8 @@ function mentionsDeletedAt(where: unknown): boolean {
 }
 
 export function withSoftDelete(client: PrismaClient): PrismaClient {
+  // Tests replace the Prisma client with a minimal stand-in that cannot be extended.
+  if (typeof (client as { $extends?: unknown }).$extends !== "function") return client;
   const extended: PrismaClient = client.$extends({
     name: "soft-delete",
     query: {
