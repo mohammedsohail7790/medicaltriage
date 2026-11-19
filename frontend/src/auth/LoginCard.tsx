@@ -1,7 +1,8 @@
 import { Eye, EyeOff } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { setAccessToken } from "../authToken";
 import { apiBase } from "./apiBase";
+import { renderCaptchaWidget, solveSelfChallenge, type CaptchaPrompt } from "./captchaClient";
 import { useLocale } from "../i18n/LocaleContext";
 import type { AuthenticatedSession } from "./session";
 
@@ -137,6 +138,18 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
   }
   const [notice, setNotice] = useState("");
 
+  // NFR-020: a third-party security check shown on the sign-in form.
+  const [captchaPrompt, setCaptchaPrompt] = useState<CaptchaPrompt | undefined>();
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
+  const captchaBox = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!captchaPrompt || !captchaBox.current) return;
+    captchaBox.current.innerHTML = "";
+    renderCaptchaWidget(captchaPrompt, captchaBox.current, (token) => setCaptchaToken(token)).catch(() =>
+      setErrorMessage("The security check could not be loaded. Try again or contact the helpdesk.")
+    );
+  }, [captchaPrompt]);
+
   const [mfaStage, setMfaStage] = useState<MfaStage>("password");
   const [challengeId, setChallengeId] = useState("");
   const [enrollmentToken, setEnrollmentToken] = useState("");
@@ -254,6 +267,10 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
 
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    return attemptLogin(captchaToken);
+  }
+
+  async function attemptLogin(initialCaptchaToken?: string) {
     if (busy) {
       return;
     }
@@ -261,19 +278,8 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
     setErrorMessage("");
 
     try {
-      const response = await fetch(`${apiBase}/api/v1/auth/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          password,
-          tenant: "ist-tech",
-          language: locale,
-          rememberMe
-        })
-      });
-
+      let sentToken = initialCaptchaToken;
+      let response: Response;
       let payload: {
         message?: string;
         session?: AuthenticatedSession;
@@ -284,11 +290,49 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
         mfaEnrollmentRequired?: boolean;
         enrollmentToken?: string;
         passwordChangeRequired?: "temporary" | "expired";
+        captchaRequired?: boolean;
+        provider?: CaptchaPrompt["provider"];
+        reason?: string;
+        siteKey?: string;
+        challenge?: CaptchaPrompt["challenge"];
       } = {};
-      try {
-        payload = await response.json();
-      } catch {
-        // non-JSON error body, fall through to status-based message
+      // NFR-020: when the server asks for a security check, the self-hosted one is solved here
+      // and the sign-in is sent again; a third-party widget is shown for the user to complete.
+      for (let attempt = 0; ; attempt += 1) {
+        response = await fetch(`${apiBase}/api/v1/auth/login`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            password,
+            tenant: "ist-tech",
+            language: locale,
+            rememberMe,
+            ...(sentToken ? { captchaToken: sentToken } : {})
+          })
+        });
+        payload = {};
+        try {
+          payload = await response.json();
+        } catch {
+          // non-JSON error body, fall through to status-based message
+        }
+        if (payload.captchaRequired && payload.provider === "self" && payload.challenge && attempt < 2) {
+          sentToken = await solveSelfChallenge(payload.challenge);
+          continue;
+        }
+        break;
+      }
+      if (payload.captchaRequired) {
+        setCaptchaToken(undefined);
+        if (payload.provider && payload.provider !== "self") {
+          setCaptchaPrompt({ provider: payload.provider, siteKey: payload.siteKey, reason: payload.reason });
+          setErrorMessage("Complete the security check below, then sign in again.");
+        } else {
+          setErrorMessage("The security check could not be completed. Try again.");
+        }
+        return;
       }
 
       // Real MFA challenge (an already-enrolled user) - route to the OTP
@@ -625,7 +669,8 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
         </div>
       )}
 
-      <button className="login-primary-btn" type="submit" disabled={busy}>
+      {captchaPrompt && <div ref={captchaBox} className="login-field" aria-label="Security check" />}
+        <button className="login-primary-btn" type="submit" disabled={busy}>
         {busy ? "Signing in..." : "Sign In"}
       </button>
 

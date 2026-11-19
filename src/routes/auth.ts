@@ -1,5 +1,7 @@
 import { Router, type Response } from "express";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { captchaFailsClosed, captchaProvider, captchaRequirement, issueSelfChallenge, verifyCaptcha } from "../services/captcha.js";
 import { currentPasswordPolicy } from "../services/passwordPolicy.js";
 import { readAuthenticatedSession, signSessionJwt, type AuthenticatedRequest } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
@@ -24,7 +26,9 @@ import {
   UserNotFoundError,
   verifyMfaChallenge,
   changeLocalPassword,
+  failedLoginCountFor,
   getSessionEndReason,
+  recordAuditEvent,
   InvalidCurrentPasswordError,
   PasswordChangeNotAllowedError,
   PasswordPolicyViolationError,
@@ -54,6 +58,33 @@ function finalizeLoginResponse(req: AuthenticatedRequest, res: Response, session
     accessToken: signSessionJwt(session),
     redirectTo: controlCenterRoles.has(session.activeRole) ? "admin" : "workspace"
   });
+}
+
+// NFR-020: returns what the client must show when sign-in needs a challenge that is missing or wrong.
+async function challengeIfRequired(req: AuthenticatedRequest, username: string, token: string | undefined) {
+  const ipAddress = req.ip ?? "unknown";
+  const reason = captchaRequirement({ failedAttempts: failedLoginCountFor(username), ipAddress });
+  if (!reason) return undefined;
+  const result = await verifyCaptcha(token, ipAddress);
+  if (result === "passed" || (result === "unavailable" && !captchaFailsClosed())) return undefined;
+  if (token) {
+    await recordAuditEvent({
+      id: randomUUID(), timestampIso: new Date().toISOString(), userId: username.trim().toLowerCase(), activeRole: "unknown", organization: "", facility: "", department: "",
+      action: "CAPTCHA_FAILED", module: "Authentication", resource: "local", purpose: `${reason}; ${result}`, ipAddress, device: "", success: false, risk: "medium"
+    });
+  }
+  return captchaPrompt(reason);
+}
+
+function captchaPrompt(reason: string) {
+  const provider = captchaProvider();
+  return {
+    captchaRequired: true,
+    reason,
+    provider,
+    ...(provider === "self" ? { challenge: issueSelfChallenge() } : {}),
+    ...(provider && provider !== "self" ? { siteKey: process.env.CAPTCHA_SITE_KEY } : {})
+  };
 }
 
 export function createAuthRouter(): Router {
@@ -152,6 +183,20 @@ export function createAuthRouter(): Router {
     }
   });
 
+  // NFR-020: lets the sign-in page know whether a challenge is needed before the first attempt
+  // (for example from outside the approved networks) and which method to show.
+  router.get("/login-config", (req, res) => {
+    const provider = captchaProvider();
+    const reason = captchaRequirement({ failedAttempts: 0, ipAddress: req.ip ?? "unknown" });
+    return res.json({ captcha: provider ? { provider, required: Boolean(reason), reason: reason ?? null, ...(provider !== "self" ? { siteKey: process.env.CAPTCHA_SITE_KEY } : {}) } : null });
+  });
+
+  // A fresh proof-of-work challenge for the self-hosted method.
+  router.get("/captcha/challenge", loginRateLimit, (_req, res) => {
+    if (captchaProvider() !== "self") return res.status(404).json({ error: "Not available" });
+    return res.json(issueSelfChallenge());
+  });
+
   // The policy a user's new password must meet, so the form can show it before submission.
   router.get("/password/policy", (_req, res) => {
     const { minLength, requireUppercase, requireLowercase, requireDigit, requireSymbol, historyCount, maxAgeDays } = currentPasswordPolicy();
@@ -163,6 +208,12 @@ export function createAuthRouter(): Router {
       const parsed = LoginRequestSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid login payload", details: parsed.error.flatten() });
+      }
+
+      // NFR-020: a solved challenge is required after repeated failures and from outside the approved networks.
+      const captcha = await challengeIfRequired(req, parsed.data.username, parsed.data.captchaToken);
+      if (captcha) {
+        return res.status(403).json({ error: "Authentication failed", message: "Complete the security check to continue.", ...captcha });
       }
 
       const userAgent = req.headers["user-agent"];

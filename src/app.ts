@@ -1,3 +1,4 @@
+import { captchaProvider, validateCaptchaConfiguration, WIDGET_ORIGINS } from "./services/captcha.js";
 import { parseOAuthApiConfig } from "./services/oauthBearer.js";
 import compression from "compression";
 import cors, { type CorsOptions, type CorsOptionsDelegate } from "cors";
@@ -92,10 +93,18 @@ function corsForbiddenError() {
   return error;
 }
 
+// NFR-020: a third-party CAPTCHA widget needs its own origins in the Content-Security-Policy.
+// Nothing is added unless such a provider is configured; the self-hosted method needs none.
+function captchaWidgetOrigins(): string[] {
+  const provider = captchaProvider();
+  return provider && provider !== "self" && provider !== "custom" ? WIDGET_ORIGINS[provider] : [];
+}
+
 export function createApp() {
   assertRuntimeConfiguration();
   // AI-001 / NFR-028: fail at startup on a malformed OAuth client list rather than on the first call.
   parseOAuthApiConfig();
+  validateCaptchaConfiguration();
   const app = express();
   // Behind Firebase Hosting and Cloud Run the socket address is a Google front end, not the user.
 // TRUST_PROXY_HOPS is the number of trusted proxies in front of the service; with it set,
@@ -152,10 +161,11 @@ export function createApp() {
       contentSecurityPolicy: {
         useDefaults: true,
         directives: {
-          "connect-src": ["'self'"],
+          "connect-src": ["'self'", ...captchaWidgetOrigins()],
           "img-src": ["'self'", "data:"],
-          "script-src": ["'self'"],
-          "script-src-elem": ["'self'"],
+          "script-src": ["'self'", ...captchaWidgetOrigins()],
+          "script-src-elem": ["'self'", ...captchaWidgetOrigins()],
+          "frame-src": ["'self'", ...captchaWidgetOrigins()],
           "style-src": ["'self'", "'unsafe-inline'"],
           // Closes a real ZAP-baseline finding ("CSP: Wildcard Directive")
           // - helmet's useDefaults font-src is 'self' https: data:, which

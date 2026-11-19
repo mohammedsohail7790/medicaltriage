@@ -24,7 +24,9 @@ export const LoginRequestSchema = z.object({
   tenant: z.string().min(2).max(80).default("ist-tech"),
   language: LanguageCodeSchema.default("en"),
   rememberMe: z.boolean().default(false),
-  simulateRole: z.string().min(2).max(80).optional()
+  simulateRole: z.string().min(2).max(80).optional(),
+  // NFR-020: the solved challenge, when sign-in requires one.
+  captchaToken: z.string().max(4096).optional()
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 

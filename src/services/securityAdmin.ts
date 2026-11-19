@@ -1458,6 +1458,11 @@ export async function changeLocalPassword(args: {
   return { user: maskUser(user) };
 }
 
+/** Failed sign-in attempts counted against a user name since the last success (used to decide on a CAPTCHA). */
+export function failedLoginCountFor(username: string): number {
+  return failedLoginAttempts.get(username.trim().toLowerCase()) ?? 0;
+}
+
 /** Counts a failed attempt and locks the account when the policy threshold is reached. Returns true if now locked. */
 function registerFailedLogin(username: string): boolean {
   const policy = currentPasswordPolicy();
