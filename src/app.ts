@@ -281,7 +281,9 @@ export function createApp() {
     });
   }
 
-  app.use((_req, res) => {
+  app.use((req, res) => {
+    // Unmatched requests are logged (path only, no query) so a misrouted client or a missing route shows up in operations.
+    console.warn(JSON.stringify({ type: "route_not_found", method: req.method, path: req.path, requestId: res.getHeader("x-request-id") ?? null }));
     res.status(404).json({ error: "Route not found" });
   });
   app.use(globalErrorHandler);
