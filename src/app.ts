@@ -94,6 +94,14 @@ function corsForbiddenError() {
 export function createApp() {
   assertRuntimeConfiguration();
   const app = express();
+  // Behind Firebase Hosting and Cloud Run the socket address is a Google front end, not the user.
+// TRUST_PROXY_HOPS is the number of trusted proxies in front of the service; with it set,
+// req.ip is the real client address (used by the IP allowlist, rate limits, audit trail and
+// session binding). Unset keeps the previous behaviour.
+  const trustedProxyHops = Number(process.env.TRUST_PROXY_HOPS);
+  if (Number.isInteger(trustedProxyHops) && trustedProxyHops > 0) {
+    app.set("trust proxy", trustedProxyHops);
+  }
   const spaIndexHtml = loadSpaIndexHtml();
   const allowedOrigins = getAllowedCorsOrigins();
   const corsOptions: CorsOptionsDelegate<Request> = (req, callback) => {
@@ -113,7 +121,7 @@ export function createApp() {
       // + Bearer-token auth; session-cookie auth needs neither, since
       // `credentials: true` already covers cookies).
       methods: ["GET", "POST", "PATCH", "DELETE"],
-      allowedHeaders: ["Content-Type", "Authorization"]
+      allowedHeaders: ["Content-Type", "Authorization", "X-Client-Viewport"]
     };
     return callback(null, options);
   };

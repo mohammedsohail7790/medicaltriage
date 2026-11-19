@@ -22,6 +22,7 @@ import {
   UserNotFoundError,
   verifyMfaChallenge,
   getSessionEndReason,
+  enforceSessionContextOnToken,
   sessionIdleTimeoutSeconds
 } from "../services/securityAdmin.js";
 import {
@@ -40,6 +41,7 @@ const controlCenterRoles = new Set(["platform_super_administrator", "triage_serv
 function finalizeLoginResponse(req: AuthenticatedRequest, res: Response, session: AuthenticatedSession, rememberMe: boolean) {
   const secureCookie = req.secure || req.headers["x-forwarded-proto"] === "https";
   res.setHeader("Set-Cookie", sessionCookie(session.sessionId, rememberMe, secureCookie));
+  enforceSessionContextOnToken(session.sessionId);
   return res.json({
     authenticated: true,
     session,

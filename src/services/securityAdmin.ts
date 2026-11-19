@@ -1411,55 +1411,148 @@ const OIDC_STATE_TTL_MS = 10 * 60 * 1000;
 // IP alone is NOT rejected - mobile/CGNAT/VPN users legitimately change IP
 // mid-session - but a real IP change IS recorded as an audit event so it's
 // visible, not silently ignored.
-type SessionContext = { ipAddress: string; userAgent: string };
+type SessionContext = { ipAddress: string; userAgent: string; viewportClass?: string; enforceOnToken?: boolean };
 const sessionContextBySessionId = new Map<string, SessionContext>();
 
-export type SessionContextCheck = "ok" | "user-agent-mismatch" | "ip-changed";
+/**
+ * Marks a session as opened by a real sign-in request, so the context check also applies when
+ * its token is presented as a bearer header. This is the path the browser uses behind
+ * Firebase Hosting, where the cookie is not forwarded. Tokens issued any other way stay portable.
+ */
+export function enforceSessionContextOnToken(sessionId: string): void {
+  const bound = sessionContextBySessionId.get(sessionId);
+  if (bound) bound.enforceOnToken = true;
+}
+
+export type SessionContextCheck = "ok" | "user-agent-mismatch" | "ip-changed" | "ip-range-mismatch";
 
 export function recordSessionContext(sessionId: string, ipAddress: string, userAgent: string): void {
   sessionContextBySessionId.set(sessionId, { ipAddress, userAgent });
 }
 
+// NFR-148: a session is bound to the user, the User-Agent and the network range it was
+// opened from, and every request is checked against that context. SESSION_IP_BINDING:
+//   range           - same /24 (IPv4) or /64 (IPv6); a different range is rejected
+//   exact           - the exact address must match
+//   audit           - an address change is allowed but recorded (earlier behaviour; the
+//                     default until TRUST_PROXY_HOPS is set, see sessionIpBinding)
+//   off             - no address check
+export type SessionIpBinding = "range" | "exact" | "audit" | "off";
+
+export function sessionIpBinding(): SessionIpBinding {
+  // Without TRUST_PROXY_HOPS the application cannot see the real client address behind the
+  // proxies, so rejecting on it would reject real users. The default is therefore "range" only
+  // when the proxy chain is configured, and "audit" otherwise.
+  const configured = process.env.SESSION_IP_BINDING?.trim().toLowerCase();
+  if (configured === "range" || configured === "exact" || configured === "audit" || configured === "off") return configured;
+  return Number(process.env.TRUST_PROXY_HOPS) > 0 ? "range" : "audit";
+}
+
+function networkPrefix(address: string): string {
+  const ip = address.replace(/^::ffff:/i, "");
+  if (ip.includes(".")) return ip.split(".").slice(0, 3).join(".");
+  if (ip.includes(":")) {
+    const groups = ip.split("::")[0].split(":");
+    return groups.slice(0, 4).join(":").toLowerCase();
+  }
+  return ip;
+}
+
+export function sameNetworkRange(left: string, right: string): boolean {
+  return networkPrefix(left) === networkPrefix(right);
+}
+
+/** Coarse device class from a "WIDTHxHEIGHT" viewport header. Small resizes never change it. */
+export function viewportClassFrom(value: string | undefined): string | undefined {
+  const match = /^(\d{2,5})x(\d{2,5})$/.exec((value ?? "").trim());
+  if (!match) return undefined;
+  const width = Number(match[1]);
+  return width < 640 ? "phone" : width < 1024 ? "tablet" : "desktop";
+}
+
+async function recordSessionContextAlert(
+  action: "SESSION_CONTEXT_MISMATCH" | "SESSION_VIEWPORT_CHANGED" | "SESSION_IP_CHANGED",
+  sessionId: string,
+  detail: string,
+  ipAddress: string,
+  userAgent: string,
+  risk: "medium" | "high"
+): Promise<void> {
+  const session = sessions.get(sessionId);
+  await recordAuditEvent({
+    id: randomUUID(),
+    timestampIso: new Date().toISOString(),
+    userId: session?.user.id ?? "unknown",
+    activeRole: session?.activeRole ?? "unknown",
+    organization: session?.user.organizationId ?? "",
+    facility: "",
+    department: "",
+    action,
+    module: "Authentication",
+    resource: sessionId,
+    purpose: detail,
+    ipAddress,
+    device: userAgent,
+    success: action !== "SESSION_CONTEXT_MISMATCH",
+    risk
+  });
+  if (action === "SESSION_CONTEXT_MISMATCH") {
+    await checkSecurityAnomalyRate({ signalType: "SESSION_CONTEXT_MISMATCH", scopeKey: session?.user.id ?? sessionId, organization: session?.user.organization });
+  }
+}
+
 export async function validateSessionContext(
   sessionId: string,
   ipAddress: string,
-  userAgent: string
+  userAgent: string,
+  viewport?: string,
+  viaToken = false
 ): Promise<SessionContextCheck> {
   const bound = sessionContextBySessionId.get(sessionId);
-  if (!bound) {
+  if (!bound || (viaToken && !bound.enforceOnToken)) {
     // No context was ever recorded for this session (e.g. a session
     // restored from a different process/restart) - nothing to compare
     // against, so this is not itself a rejection reason.
     return "ok";
   }
   if (bound.userAgent !== userAgent) {
+    await recordSessionContextAlert("SESSION_CONTEXT_MISMATCH", sessionId, "User-Agent differs from the one the session was opened with.", ipAddress, userAgent, "high");
     return "user-agent-mismatch";
   }
-  if (bound.ipAddress !== ipAddress) {
-    const session = sessions.get(sessionId);
-    await recordAuditEvent({
-      id: randomUUID(),
-      timestampIso: new Date().toISOString(),
-      userId: session?.user.id ?? "unknown",
-      activeRole: session?.activeRole ?? "unknown",
-      organization: "",
-      facility: "",
-      department: "",
-      action: "SESSION_IP_CHANGED",
-      module: "Authentication",
-      resource: sessionId,
-      purpose: `IP changed from ${bound.ipAddress} to ${ipAddress} mid-session`,
-      ipAddress,
-      device: userAgent,
-      success: true,
-      risk: "medium"
-    });
+
+  const mode = sessionIpBinding();
+  let result: SessionContextCheck = "ok";
+  if (mode !== "off" && bound.ipAddress !== ipAddress) {
+    const withinRange = sameNetworkRange(bound.ipAddress, ipAddress);
+    if (mode === "exact" || (mode === "range" && !withinRange)) {
+      await recordSessionContextAlert(
+        "SESSION_CONTEXT_MISMATCH",
+        sessionId,
+        `Request came from ${ipAddress}, outside the ${mode === "exact" ? "address" : "network range"} the session was opened from (${bound.ipAddress}).`,
+        ipAddress,
+        userAgent,
+        "high"
+      );
+      return "ip-range-mismatch";
+    }
+    await recordSessionContextAlert("SESSION_IP_CHANGED", sessionId, `IP changed from ${bound.ipAddress} to ${ipAddress} mid-session`, ipAddress, userAgent, "medium");
     // Update the bound IP so this doesn't re-fire on every subsequent
     // request from the same (new) IP for the rest of the session.
-    sessionContextBySessionId.set(sessionId, { ipAddress, userAgent });
-    return "ip-changed";
+    bound.ipAddress = ipAddress;
+    result = "ip-changed";
   }
-  return "ok";
+
+  // The viewport is a signal, not a gate: windows are resized and moved between screens, so
+  // only a change of device class (phone, tablet, desktop) is reported.
+  const viewportClass = viewportClassFrom(viewport);
+  if (viewportClass) {
+    if (bound.viewportClass && bound.viewportClass !== viewportClass) {
+      await recordSessionContextAlert("SESSION_VIEWPORT_CHANGED", sessionId, `Viewport class changed from ${bound.viewportClass} to ${viewportClass}.`, ipAddress, userAgent, "medium");
+    }
+    bound.viewportClass = viewportClass;
+  }
+  sessionContextBySessionId.set(sessionId, bound);
+  return result;
 }
 
 // CSQ IS.13 ("metrics which track the speed with which access rights are
@@ -3639,7 +3732,8 @@ export type SecurityAnomalySignalType =
   | "MFA_FAILURE"
   | "PERMISSION_DENIED"
   | "CLAIM_DENIED"
-  | "PAM_ELEVATION_DENIED";
+  | "PAM_ELEVATION_DENIED"
+  | "SESSION_CONTEXT_MISMATCH";
 
 async function checkSecurityAnomalyRate(args: {
   signalType: SecurityAnomalySignalType;

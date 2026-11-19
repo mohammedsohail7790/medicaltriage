@@ -31,11 +31,13 @@ export function installBearerTokenFetch(): void {
   const originalFetch = window.fetch.bind(window);
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const token = getAccessToken();
-    if (!token) {
-      return originalFetch(input, init);
-    }
     const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-    if (!headers.has("Authorization")) {
+    // NFR-148: the browser window size is sent as an extra signal for the server's session
+    // context check. It is not a credential and is never used on its own to reject a request.
+    if (!headers.has("X-Client-Viewport")) {
+      headers.set("X-Client-Viewport", `${window.innerWidth}x${window.innerHeight}`);
+    }
+    if (token && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${token}`);
     }
     return originalFetch(input, { ...init, headers });

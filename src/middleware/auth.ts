@@ -138,12 +138,19 @@ export async function requireAuthenticatedSession(req: AuthenticatedRequest, res
         ...(reason === "idle" ? { code: "SESSION_IDLE_TIMEOUT", message: "Your session ended after a period of inactivity. Sign in again." } : {})
       });
     }
-    if (parseSessionCookie(req.headers)) {
-      const userAgent = req.headers["user-agent"] ?? "unknown";
-      const contextCheck = await validateSessionContext(session.sessionId, req.ip ?? "unknown", userAgent);
-      if (contextCheck === "user-agent-mismatch") {
-        return res.status(401).json({ error: "Session context mismatch" });
-      }
+    // NFR-148: every request is checked against the context the session was opened from
+    // (user, User-Agent, network range), whether it carries the cookie or the session token.
+    const userAgent = req.headers["user-agent"] ?? "unknown";
+    const viewport = req.headers["x-client-viewport"];
+    const contextCheck = await validateSessionContext(
+      session.sessionId,
+      req.ip ?? "unknown",
+      userAgent,
+      Array.isArray(viewport) ? viewport[0] : viewport,
+      !parseSessionCookie(req.headers)
+    );
+    if (contextCheck === "user-agent-mismatch" || contextCheck === "ip-range-mismatch") {
+      return res.status(401).json({ error: "Session context mismatch", code: "SESSION_CONTEXT_MISMATCH" });
     }
     req.securitySession = session;
     return next();
