@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { INTEGRITY_CHECKS, lastIntegrityReport, runIntegrityChecks } from "../services/integrityChecks.js";
 import { auditRead } from "../middleware/readAudit.js";
 import { auditPolicyStatement } from "../services/auditPolicy.js";
 import { buildDataCatalogue, dataCatalogueCsv } from "../services/dataCatalogue.js";
@@ -677,6 +678,24 @@ export function createAdminRouter(): Router {
     } catch (error) {
       return next(error);
     }
+  });
+
+  // NFR-059: data integrity checks, on demand. A scheduled run uses src/scripts/runIntegrityChecks.ts.
+  router.post("/integrity-checks/run", requirePermission("audit.events.view"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      const only = typeof req.body?.only === "string" ? (req.body.only as string).split(",").map((name) => name.trim()).filter(Boolean) : undefined;
+      if (only?.some((name) => !(name in INTEGRITY_CHECKS))) {
+        return res.status(400).json({ error: `Unknown check. Available: ${Object.keys(INTEGRITY_CHECKS).join(", ")}.` });
+      }
+      const report = await runIntegrityChecks({ repair: req.body?.repair !== false, only, actorUserId: req.securitySession?.user.id });
+      return res.status(report.ok ? 200 : 207).json(report);
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  router.get("/integrity-checks/last", requirePermission("audit.events.view"), (_req, res) => {
+    return res.json({ report: lastIntegrityReport() ?? null, checks: Object.keys(INTEGRITY_CHECKS) });
   });
 
   // NFR-011: the audit policy as it applies right now: auditing cannot be disabled, what is
