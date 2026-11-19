@@ -1124,6 +1124,8 @@ model UserSession {
   device         String?
   userAgent      String?   @map("user_agent")
   expiresAt      DateTime  @map("expires_at")
+  // NFR-145: last user activity, for the inactivity timeout.
+  lastActivityAt DateTime? @map("last_activity_at")
   revokedAt      DateTime? @map("revoked_at")
   createdAt      DateTime  @default(now()) @map("created_at")
 

@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedSession } from "../types/security.js";
 import { requireSecret, secretVersions } from "../config/secrets.js";
-import { getSessionFromStore, parseSessionCookie, validateSessionContext } from "../services/securityAdmin.js";
+import { getSessionEndReason, getSessionFromStore, parseSessionCookie, recordSessionActivity, validateSessionContext } from "../services/securityAdmin.js";
 
 const JWT_TTL_SECONDS = 30 * 60;
 
@@ -94,8 +94,26 @@ async function sessionFromBearerToken(req: Request): Promise<AuthenticatedSessio
   return sessionFromTokenString(authorization.slice("Bearer ".length).trim());
 }
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 export async function readAuthenticatedSession(req: Request): Promise<AuthenticatedSession | undefined> {
-  return (await getSessionFromStore(parseSessionCookie(req.headers))) ?? (await sessionFromBearerToken(req));
+  const session = (await getSessionFromStore(parseSessionCookie(req.headers))) ?? (await sessionFromBearerToken(req));
+  // NFR-145: a state-changing request is user activity and restarts the inactivity clock.
+  // Reads (including background polling) do not.
+  if (session && !SAFE_METHODS.has(req.method)) {
+    await recordSessionActivity(session.sessionId);
+  }
+  return session;
+}
+
+/** The session id a request presented, whether by cookie or by token, even if that session has ended. */
+function presentedSessionId(req: Request): string | undefined {
+  const cookieId = parseSessionCookie(req.headers);
+  if (cookieId) return cookieId;
+  const authorization = req.headers.authorization;
+  if (!authorization?.startsWith("Bearer ")) return undefined;
+  const payload = authorization.slice("Bearer ".length).trim().split(".")[1];
+  return payload ? decodePart<{ sid?: string }>(payload)?.sid : undefined;
 }
 
 // Closes NFR-169 - re-validates the session's bound IP/User-Agent on every
@@ -114,7 +132,11 @@ export async function requireAuthenticatedSession(req: AuthenticatedRequest, res
   try {
     const session = await readAuthenticatedSession(req);
     if (!session) {
-      return res.status(401).json({ error: "Authentication required" });
+      const reason = getSessionEndReason(presentedSessionId(req));
+      return res.status(401).json({
+        error: "Authentication required",
+        ...(reason === "idle" ? { code: "SESSION_IDLE_TIMEOUT", message: "Your session ended after a period of inactivity. Sign in again." } : {})
+      });
     }
     if (parseSessionCookie(req.headers)) {
       const userAgent = req.headers["user-agent"] ?? "unknown";

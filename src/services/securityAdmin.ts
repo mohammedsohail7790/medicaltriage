@@ -77,9 +77,13 @@ import {
   persistSecurityThresholdOverride,
   persistSecurityAuditEvent,
   persistUserSession,
+  getPersistedSessionActivity,
   revokePersistedSession,
-  revokePersistedSessionsForUser
+  revokePersistedSessionsForUser,
+  touchPersistedSessionActivity
 } from "./persistence.js";
+
+import { sessionIdleTimeoutMs } from "../config/sessionPolicy.js";
 
 const SESSION_COOKIE = "ist_triage_session";
 // Configurable via env var per deployment (e.g. QR's required inactivity
@@ -90,6 +94,71 @@ function minutesFromEnv(name: string, fallbackMinutes: number): number {
   return Number.isFinite(raw) && raw > 0 ? raw : fallbackMinutes;
 }
 const SESSION_TTL_MS = minutesFromEnv("SESSION_TIMEOUT_MINUTES", 30) * 60 * 1000;
+// NFR-145: a session also ends after a period with no user activity. Configurable;
+// 15 minutes by default. Activity is a state-changing request or an explicit
+// POST /auth/activity ping from the client while the user is working; background
+// polling (GET) does not count.
+const SESSION_IDLE_TIMEOUT_MS = sessionIdleTimeoutMs();
+const sessionLastActivity = new Map<string, number>();
+const sessionEndReasons = new Map<string, { reason: "idle" | "expired"; atMs: number }>();
+const ACTIVITY_PERSIST_THROTTLE_MS = 15_000;
+const lastActivityPersistedAt = new Map<string, number>();
+
+export function sessionIdleTimeoutSeconds(): number {
+  return Math.round(SESSION_IDLE_TIMEOUT_MS / 1000);
+}
+
+/** Why a session ended, for a clear message to the user. Entries live for ten minutes. */
+export function getSessionEndReason(sessionId?: string): "idle" | "expired" | undefined {
+  if (!sessionId) return undefined;
+  const entry = sessionEndReasons.get(sessionId);
+  if (!entry) return undefined;
+  if (Date.now() - entry.atMs > 10 * 60 * 1000) {
+    sessionEndReasons.delete(sessionId);
+    return undefined;
+  }
+  return entry.reason;
+}
+
+function endSessionForInactivity(sessionId: string): void {
+  const session = sessions.get(sessionId);
+  sessions.delete(sessionId);
+  sessionContextBySessionId.delete(sessionId);
+  sessionLastActivity.delete(sessionId);
+  sessionEndReasons.set(sessionId, { reason: "idle", atMs: Date.now() });
+  void revokePersistedSession(sessionId).catch(() => undefined);
+  void recordAuditEvent({
+    id: randomUUID(),
+    timestampIso: new Date().toISOString(),
+    userId: session?.user.id ?? "unknown",
+    activeRole: session?.activeRole ?? "unknown",
+    organization: session?.user.organizationId ?? "",
+    facility: "",
+    department: "",
+    action: "SESSION_IDLE_TIMEOUT",
+    module: "Authentication",
+    resource: "session",
+    ipAddress: "",
+    device: "",
+    success: true,
+    risk: "low"
+  });
+}
+
+/** Records user activity on a session, in memory and (throttled) in the shared session store. */
+export async function recordSessionActivity(sessionId?: string): Promise<void> {
+  if (!sessionId || !sessions.has(sessionId)) return;
+  const now = Date.now();
+  sessionLastActivity.set(sessionId, now);
+  if (now - (lastActivityPersistedAt.get(sessionId) ?? 0) >= ACTIVITY_PERSIST_THROTTLE_MS) {
+    lastActivityPersistedAt.set(sessionId, now);
+    try {
+      await touchPersistedSessionActivity(sessionId, new Date(now));
+    } catch (error) {
+      console.error("Failed to persist session activity:", sanitizeForLog(error));
+    }
+  }
+}
 const EXTENDED_SESSION_TTL_MS = minutesFromEnv("EXTENDED_SESSION_TIMEOUT_MINUTES", 8 * 60) * 60 * 1000;
 
 // Closes NFR-020 ("ability to restrict max number of concurrent sessions") -
@@ -3018,6 +3087,7 @@ export async function authenticateLocal(args: {
 
   const session = toSession(user, "local", args.rememberMe, args.simulateRole);
   sessions.set(session.sessionId, session);
+  sessionLastActivity.set(session.sessionId, Date.now());
   await enforceMaxConcurrentSessions(session.user.id);
   recordSessionContext(session.sessionId, args.ipAddress, args.device);
   await persistUserSession({
@@ -3325,6 +3395,7 @@ export async function verifyMfaChallenge(
   }
   const session = toSession(user, "local", challenge.rememberMe, challenge.simulateRole, true);
   sessions.set(session.sessionId, session);
+  sessionLastActivity.set(session.sessionId, Date.now());
   await enforceMaxConcurrentSessions(session.user.id);
   recordSessionContext(session.sessionId, challenge.ipAddress, challenge.device);
   await persistUserSession({ session, ipAddress: challenge.ipAddress, device: challenge.device });
@@ -3357,12 +3428,35 @@ export function getSession(sessionId?: string): AuthenticatedSession | undefined
   }
   if (new Date(session.expiresAtIso).getTime() < Date.now()) {
     sessions.delete(sessionId);
+    sessionLastActivity.delete(sessionId);
+    sessionEndReasons.set(sessionId, { reason: "expired", atMs: Date.now() });
+    return undefined;
+  }
+  // A session first seen here (issued or restored) starts its inactivity clock now.
+  const lastActivity = sessionLastActivity.get(sessionId);
+  if (lastActivity === undefined) {
+    sessionLastActivity.set(sessionId, Date.now());
+  } else if (Date.now() - lastActivity > SESSION_IDLE_TIMEOUT_MS) {
+    endSessionForInactivity(sessionId);
     return undefined;
   }
   return session;
 }
 
 export async function getSessionFromStore(sessionId?: string): Promise<AuthenticatedSession | undefined> {
+  // With shared session storage the user may have been active on another instance. Before
+  // treating this instance's copy as idle, take the newest activity time from the store.
+  if (sessionId && sessions.has(sessionId)) {
+    const local = sessionLastActivity.get(sessionId);
+    if (local !== undefined && Date.now() - local > SESSION_IDLE_TIMEOUT_MS / 3) {
+      try {
+        const shared = await getPersistedSessionActivity(sessionId);
+        if (shared && shared.getTime() > local) sessionLastActivity.set(sessionId, shared.getTime());
+      } catch (error) {
+        console.error("Failed to read shared session activity:", sanitizeForLog(error));
+      }
+    }
+  }
   const localSession = getSession(sessionId);
   if (localSession) {
     return localSession;
@@ -3374,6 +3468,8 @@ export async function getSessionFromStore(sessionId?: string): Promise<Authentic
   }
 
   sessions.set(persistedSession.sessionId, persistedSession);
+  const sharedActivity = await getPersistedSessionActivity(persistedSession.sessionId).catch(() => undefined);
+  if (sharedActivity) sessionLastActivity.set(persistedSession.sessionId, sharedActivity.getTime());
   return getSession(persistedSession.sessionId);
 }
 
@@ -4116,6 +4212,7 @@ export async function completeSsoLogin(
 
   const session = toSession(user, config.provider.protocol === "oidc" ? "oidc" : "entra-id", false, undefined, true);
   sessions.set(session.sessionId, session);
+  sessionLastActivity.set(session.sessionId, Date.now());
   await enforceMaxConcurrentSessions(session.user.id);
   recordSessionContext(session.sessionId, ipAddress, device);
   await persistUserSession({ session, ipAddress, device });

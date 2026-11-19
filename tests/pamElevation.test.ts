@@ -77,7 +77,11 @@ describe("PAM: JIT privileged-access elevation", () => {
       const secret = enrollAndConfirmMfa(SYS_ADMIN_ID);
       await sysAdmin.post("/api/v1/admin/elevate").send({ code: authenticator.generate(secret) }).expect(200);
 
-      jest.advanceTimersByTime(16 * 60 * 1000);
+      // 16 minutes pass in total. The user is active in between (an activity ping), so it
+      // is the 15-minute elevation that lapses, not the 15-minute inactivity timeout (NFR-145).
+      jest.advanceTimersByTime(8 * 60 * 1000);
+      await sysAdmin.post("/api/v1/auth/activity").expect(204);
+      jest.advanceTimersByTime(8 * 60 * 1000);
 
       const rejected = await sysAdmin
         .patch("/api/v1/admin/users/usr_nurse_10001/status")

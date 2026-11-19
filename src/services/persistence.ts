@@ -1,3 +1,4 @@
+import { sessionIdleTimeoutMs } from "../config/sessionPolicy.js";
 import { createHash } from "node:crypto";
 import { sanitizeForLog } from "../utils/logSanitizer.js";
 import type {
@@ -655,11 +656,25 @@ export async function persistUserSession(args: {
       ipAddress: args.ipAddress,
       device: args.device,
       userAgent: args.device,
-      expiresAt: new Date(args.session.expiresAtIso)
+      expiresAt: new Date(args.session.expiresAtIso),
+      lastActivityAt: new Date()
     }
   });
 
   return { persisted: true, recordId: created.id };
+}
+
+/** NFR-145: records user activity on a persisted session so every instance sees it. */
+export async function touchPersistedSessionActivity(sessionId: string, at: Date): Promise<void> {
+  if (!shouldPersistSessionsInDatabase()) return;
+  await prisma.userSession.updateMany({ where: { sessionHash: sessionHash(sessionId), revokedAt: null }, data: { lastActivityAt: at } });
+}
+
+/** The last recorded activity of a persisted session, or undefined when unknown. */
+export async function getPersistedSessionActivity(sessionId: string): Promise<Date | undefined> {
+  if (!shouldPersistSessionsInDatabase()) return undefined;
+  const row = await prisma.userSession.findUnique({ where: { sessionHash: sessionHash(sessionId) }, select: { lastActivityAt: true, createdAt: true } });
+  return row ? row.lastActivityAt ?? row.createdAt : undefined;
 }
 
 export async function getPersistedUserSession(sessionId?: string): Promise<AuthenticatedSession | undefined> {
@@ -673,6 +688,11 @@ export async function getPersistedUserSession(sessionId?: string): Promise<Authe
     }
   });
   if (!row || row.revokedAt || row.expiresAt.getTime() <= Date.now()) {
+    return undefined;
+  }
+  // NFR-145: a session with no activity for the idle period is over, on every instance.
+  if (Date.now() - (row.lastActivityAt ?? row.createdAt).getTime() > sessionIdleTimeoutMs()) {
+    await prisma.userSession.updateMany({ where: { id: row.id, revokedAt: null }, data: { revokedAt: new Date() } });
     return undefined;
   }
 

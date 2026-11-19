@@ -20,7 +20,9 @@ import {
   SsoStateInvalidError,
   testSsoProvider,
   UserNotFoundError,
-  verifyMfaChallenge
+  verifyMfaChallenge,
+  getSessionEndReason,
+  sessionIdleTimeoutSeconds
 } from "../services/securityAdmin.js";
 import {
   LoginRequestSchema,
@@ -73,9 +75,26 @@ export function createAuthRouter(): Router {
     try {
       const session = await readAuthenticatedSession(req);
       if (!session) {
-        return res.status(401).json({ authenticated: false });
+        const reason = getSessionEndReason(parseSessionCookie(req.headers));
+        return res.status(401).json({ authenticated: false, ...(reason === "idle" ? { code: "SESSION_IDLE_TIMEOUT" } : {}) });
       }
-      return res.json({ authenticated: true, session });
+      return res.json({ authenticated: true, session, idleTimeoutSeconds: sessionIdleTimeoutSeconds() });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  // NFR-145: the client calls this while the user is working. A POST counts as activity
+  // (see readAuthenticatedSession), so a user who is reading or typing keeps the session
+  // alive while background polling does not.
+  router.post("/activity", async (req, res, next) => {
+    try {
+      const session = await readAuthenticatedSession(req);
+      if (!session) {
+        const reason = getSessionEndReason(parseSessionCookie(req.headers));
+        return res.status(401).json({ authenticated: false, ...(reason === "idle" ? { code: "SESSION_IDLE_TIMEOUT" } : {}) });
+      }
+      return res.status(204).end();
     } catch (error) {
       return next(error);
     }

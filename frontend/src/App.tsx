@@ -17,6 +17,7 @@ import KanbanWorkspace from "./KanbanWorkspace";
 import { LoginLayout } from "./auth/LoginLayout";
 import { LoginCard } from "./auth/LoginCard";
 import type { AuthenticatedSession } from "./auth/session";
+import { useInactivityTimeout } from "./auth/useInactivityTimeout";
 import { QueueProvider } from "./QueueContext";
 import TriageWorkspace from "./TriageWorkspace";
 import NurseWorkspaceRedesign from "./components/Triage/NurseWorkspaceRedesign";
@@ -286,13 +287,24 @@ export default function App() {
     return () => window.removeEventListener("hashchange", syncViewFromHash);
   }, [hasAdminAccess, session]);
 
-  async function logout() {
-    await fetch(`${apiBase}/api/v1/auth/logout`, { method: "POST", credentials: "include" });
+  async function endSession(message: string) {
+    await fetch(`${apiBase}/api/v1/auth/logout`, { method: "POST", credentials: "include" }).catch(() => undefined);
     clearAccessToken();
     setSession(null);
     setActiveView("workspace");
-    setSessionStatus("Signed out.");
+    setSessionStatus(message);
   }
+
+  function logout() {
+    return endSession("Signed out.");
+  }
+
+  // NFR-145: sign out after a period of inactivity and keep the session alive while the user works.
+  useInactivityTimeout({
+    enabled: Boolean(session),
+    apiBase,
+    onTimeout: () => void endSession("Your session ended after a period of inactivity. Sign in again.")
+  });
 
   if (!session) {
     return (
