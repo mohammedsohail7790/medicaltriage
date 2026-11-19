@@ -113,22 +113,28 @@ function ElevationStatusCard({ elevation }: { elevation: ReturnType<typeof useEl
   );
 }
 
+type TraceEvent = AuditEvent & { summary: string; recordReference?: string; change: { fields?: string[]; before?: Record<string, unknown> | null; after?: Record<string, unknown> | null } | null };
+
+// NFR-012: the audit trace view. Finds who changed or viewed a record, by user, record, kind and date.
 function ResourceHistoryCard() {
-  const [resourceId, setResourceId] = useState("");
-  const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [record, setRecord] = useState("");
+  const [user, setUser] = useState("");
+  const [kind, setKind] = useState("");
+  const [since, setSince] = useState("");
+  const [events, setEvents] = useState<TraceEvent[]>([]);
   const [status, setStatus] = useState("");
 
   async function search() {
-    if (!resourceId.trim()) {
-      return;
-    }
+    const params = new URLSearchParams();
+    if (record.trim()) params.set("record", record.trim());
+    if (user.trim()) params.set("user", user.trim());
+    if (kind) params.set("kind", kind);
+    if (since) params.set("since", new Date(since).toISOString());
     setStatus("Searching...");
     try {
-      const result = await fetchJson<{ resource: string; events: AuditEvent[] }>(
-        `/api/v1/admin/audit-events/resource/${encodeURIComponent(resourceId.trim())}`
-      );
+      const result = await fetchJson<{ count: number; events: TraceEvent[] }>(`/api/v1/admin/audit-trace?${params.toString()}`);
       setEvents(result.events);
-      setStatus(`${result.events.length} event(s) found for ${result.resource}.`);
+      setStatus(`${result.count} event(s) found.`);
     } catch {
       setStatus("Unable to search audit history.");
     }
@@ -136,27 +142,30 @@ function ResourceHistoryCard() {
 
   return (
     <article className="help-card help-card-wide">
-      <h3 className="help-title">Resource modification history</h3>
-      <p>Trace every recorded change to a specific record, e.g. UserAccount:usr_123 or Role:system_administrator:admin.roles.manage.</p>
+      <h3 className="help-title">Audit trace</h3>
+      <p>Find who changed or viewed a record. Changes show the values before and after; views of confidential screens are listed as reads.</p>
       <div className="admin-inline-form">
-        <Input
-          type="text"
-          placeholder="Resource id (e.g. UserAccount:usr_123)"
-          value={resourceId}
-          onChange={(event) => setResourceId(event.target.value)}
-          className="flex-1"
-        />
+        <Input type="text" placeholder="Record (e.g. case-10002)" value={record} onChange={(event) => setRecord(event.target.value)} className="flex-1" />
+        <Input type="text" placeholder="User id" value={user} onChange={(event) => setUser(event.target.value)} className="flex-1" />
+        <select aria-label="Kind" value={kind} onChange={(event) => setKind(event.target.value)}>
+          <option value="">Changes and reads</option>
+          <option value="changes">Changes only</option>
+          <option value="reads">Reads only</option>
+        </select>
+        <Input type="date" aria-label="From" value={since} onChange={(event) => setSince(event.target.value)} />
         <Button onClick={search}>Trace</Button>
       </div>
       {status && <small>{status}</small>}
       <div className="admin-list">
         {events.map((event) => (
           <div key={event.id}>
-            <strong>{event.action}</strong>
-            <span>
-              {new Date(event.timestampIso).toLocaleString()} | {event.userId} ({event.activeRole})
-            </span>
-            <small>{event.purpose ?? "No purpose recorded."}</small>
+            <strong>{event.summary}</strong>
+            <span>{new Date(event.timestampIso).toLocaleString()}</span>
+            {event.change?.fields && event.change.fields.length > 0 && (
+              <small>
+                {event.change.fields.map((field) => `${field}: ${JSON.stringify(event.change?.before?.[field] ?? null)} -> ${JSON.stringify(event.change?.after?.[field] ?? null)}`).join("; ")}
+              </small>
+            )}
           </div>
         ))}
       </div>
