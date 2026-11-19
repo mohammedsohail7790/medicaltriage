@@ -2,6 +2,11 @@
 module.exports = {
   preset: "ts-jest/presets/default-esm",
   testEnvironment: "node",
+  // The suites run one after another (many share a database and process-level state), but in a
+  // single worker process that is recycled whenever its memory use passes this limit. Running every
+  // suite in one process, as --runInBand does, used to end with "JavaScript heap out of memory"
+  // once the suite grew past about 60 files.
+  workerIdleMemoryLimit: "1500MB",
   testMatch: ["**/tests/**/*.test.ts"],
   setupFiles: ["<rootDir>/tests/jest.setup.ts"],
   extensionsToTreatAsEsm: [".ts"],

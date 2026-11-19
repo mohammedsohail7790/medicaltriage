@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { webHardening } from "./vite.hardening";
 
 export default defineConfig({
   root: "frontend",
-  plugins: [react()],
+  plugins: [react(), ...webHardening()],
   server: {
     port: 5173,
     strictPort: false,
@@ -28,7 +29,11 @@ export default defineConfig({
   },
   build: {
     outDir: "../dist-web",
-    emptyOutDir: true
+    emptyOutDir: true,
+    // NFR-147: all JavaScript is minified; the sign-in code is additionally obfuscated
+    // (see vite.hardening.ts). No source maps are published.
+    minify: "esbuild",
+    sourcemap: false
   }
 });
 
