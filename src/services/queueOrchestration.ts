@@ -1,3 +1,4 @@
+import { buildAuditChange, type AuditChange } from "./auditChange.js";
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { isMockMode, shouldPersistQueueInDatabase } from "../config/runtime.js";
@@ -1297,6 +1298,29 @@ function jsonValue(value: unknown): Prisma.InputJsonValue {
 // common day-to-day actions unaudited. All durable writes now pass through
 // the centralized chained ledger writer even when request/IP/device context
 // is unavailable.
+// M-007: the attributes of a queue record whose before and after values are kept
+// in the audit trail (queue state, disposition and clinical approval).
+const AUDITED_QUEUE_FIELDS = [
+  "status",
+  "currentStage",
+  "calculatedSeverity",
+  "dispositionCode",
+  "destinationName",
+  "matchedProtocolId",
+  "assignedNurseId",
+  "lockedBy",
+  "identityValidated",
+  "clinicalApproval",
+  "sbarCopied",
+  "deletedAt"
+] as const;
+
+function queueAuditSnapshot(record: QueueRecord): Record<string, unknown> {
+  const source = record as unknown as Record<string, unknown>;
+  // Deep copy so later in-place edits to the record cannot alter the captured "before".
+  return JSON.parse(JSON.stringify(Object.fromEntries(AUDITED_QUEUE_FIELDS.map((key) => [key, source[key] ?? null])))) as Record<string, unknown>;
+}
+
 async function recordQueueAuditEvent(args: {
   session: AuthenticatedSession;
   action: string;
@@ -1304,7 +1328,12 @@ async function recordQueueAuditEvent(args: {
   success: boolean;
   riskLevel?: string;
   metadata?: Record<string, unknown>;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
 }): Promise<void> {
+  const change: AuditChange | undefined =
+    args.before !== undefined || args.after !== undefined ? buildAuditChange(args.before, args.after) : undefined;
+  const metadata = change ? { ...(args.metadata ?? {}), change } : args.metadata;
   // In-memory-first, always recorded regardless of QUEUE_DB_PERSISTENCE -
   // matching the established audit pattern elsewhere in this codebase
   // (securityAdmin.ts's recordAuditEvent). Previously this whole function
@@ -1326,7 +1355,8 @@ async function recordQueueAuditEvent(args: {
     ipAddress: "",
     device: "",
     success: args.success,
-    risk: (args.riskLevel as "low" | "medium" | "high" | "critical" | undefined) ?? "low"
+    risk: (args.riskLevel as "low" | "medium" | "high" | "critical" | undefined) ?? "low",
+    metadata
   });
   if (!shouldPersistQueueInDatabase()) {
     return;
@@ -1341,7 +1371,7 @@ async function recordQueueAuditEvent(args: {
       recordReference: args.recordId,
       success: args.success,
       risk: (args.riskLevel as "low" | "medium" | "high" | "critical" | undefined) ?? "medium",
-      metadata: args.metadata
+      metadata
   });
 }
 
@@ -1889,7 +1919,15 @@ export async function deleteQueueItem(session: AuthenticatedSession, id: string)
       where: { id },
       data: { deletedAt: new Date(), deletedBy: session.user.id }
     });
-    await recordQueueAuditEvent({ session, action: "QUEUE_ITEM_DELETE", recordId: id, success: true, riskLevel: "high" });
+    await recordQueueAuditEvent({
+      session,
+      action: "QUEUE_ITEM_DELETE",
+      recordId: id,
+      success: true,
+      riskLevel: "high",
+      before: queueAuditSnapshot(record),
+      after: { ...queueAuditSnapshot(record), deletedAt: new Date().toISOString() }
+    });
     return;
   }
   store().delete(id);
@@ -2058,7 +2096,9 @@ export async function createQueueItem(session: AuthenticatedSession, request: Qu
       action: "QUEUE_ITEM_CREATE",
       recordId: record.id,
       success: true,
-      metadata: { channel: record.channel, patientType: record.patientType, stationCode: record.stationCode }
+      metadata: { channel: record.channel, patientType: record.patientType, stationCode: record.stationCode },
+      before: null,
+      after: queueAuditSnapshot(record)
     });
     return toDto(dbRowToRecord(row));
   }
@@ -2084,6 +2124,7 @@ export async function claimQueueItem(session: AuthenticatedSession, id: string):
   requireTenantAccess(record, session);
   requireUnlockedOrOwned(record, session);
   const previous = { status: record.status, currentStage: record.currentStage };
+  const beforeSnapshot = queueAuditSnapshot(record);
   const claimedAtIso = nowIso();
   record.lockedBy = session.user.id;
   record.assignedNurseId = session.user.id;
@@ -2104,7 +2145,9 @@ export async function claimQueueItem(session: AuthenticatedSession, id: string):
     action: "QUEUE_ITEM_CLAIM",
     recordId: record.id,
     success: true,
-    metadata: { fromStatus: previous.status, fromStage: previous.currentStage }
+    metadata: { fromStatus: previous.status, fromStage: previous.currentStage },
+    before: beforeSnapshot,
+    after: queueAuditSnapshot(record)
   });
   return toDto(saved);
 }
@@ -2174,6 +2217,7 @@ export async function updateQueueContext(
   requireTenantAccess(record, session);
   requireUnlockedOrOwned(record, session);
   const previousMatchedProtocolId = record.matchedProtocolId;
+  const beforeSnapshot = queueAuditSnapshot(record);
   const isProtocolOverride = Boolean(
     update.matchedProtocolId &&
       record.preparedProtocol?.primaryProtocolId &&
@@ -2343,7 +2387,9 @@ export async function updateQueueContext(
             preparedProtocolStatus: record.preparedProtocol?.status ?? null
           }
         : {})
-    }
+    },
+    before: beforeSnapshot,
+    after: queueAuditSnapshot(record)
   });
   return toDto(saved);
 }
@@ -2367,6 +2413,7 @@ export async function moveQueueItem(
   validateClinicalSequence(record, request);
 
   const previous = { status: record.status, currentStage: record.currentStage };
+  const beforeSnapshot = queueAuditSnapshot(record);
   record.currentStage = request.toStage;
   if (request.toStatus) {
     record.status = request.toStatus;
@@ -2403,7 +2450,9 @@ export async function moveQueueItem(
       toStatus: record.status,
       toStage: record.currentStage,
       reason: request.reason
-    }
+    },
+    before: beforeSnapshot,
+    after: queueAuditSnapshot(record)
   });
   return toDto(saved);
 }

@@ -3,9 +3,13 @@ import type { OverrideStatusFlag, Prisma, TriageSeverity } from "@prisma/client"
 import { z } from "zod";
 import { shouldUseDatabasePersistence } from "../config/runtime.js";
 import { prisma } from "../db.js";
+import { buildAuditChange } from "../services/auditChange.js";
+import { appendOperationalAuditEvent } from "../services/auditLedger.js";
+import { recordAuditEvent } from "../services/securityAdmin.js";
 import { requirePermission, type AuthorizedRequest } from "../services/authorization.js";
 import { organizationWhereClause } from "../services/tenantScope.js";
 import { auditSignatureFor, isSignedHumanApprovalTrace, traceObjects } from "../services/safetyKernel.js";
+import { randomUUID } from "node:crypto";
 import type { AuthenticatedSession } from "../types/security.js";
 import { isSeverityDowngrade } from "../types/triage.js";
 
@@ -260,6 +264,50 @@ function mockSafetyDashboard() {
   };
 }
 
+// M-007: every clinical approval is also written to the hash-chained audit ledger
+// with the before and after state of the approval record.
+async function auditApprovalChange(
+  encounterId: string,
+  before: Record<string, unknown> | null,
+  after: Record<string, unknown>,
+  session: AuthenticatedSession | undefined,
+  persisted: boolean
+): Promise<void> {
+  const change = buildAuditChange(before, after);
+  const metadata = { decision: after.decision, change };
+  await recordAuditEvent({
+    id: `approval-${randomUUID()}`,
+    timestampIso: new Date().toISOString(),
+    userId: session?.user.id ?? "",
+    activeRole: session?.activeRole ?? "",
+    organization: session?.user.organizationId ?? "",
+    facility: "",
+    department: "",
+    action: "CLINICAL_APPROVAL_REVIEW",
+    module: "Approval",
+    resource: `AviationTriageEncounter:${encounterId}`,
+    ipAddress: "",
+    device: "",
+    success: true,
+    risk: "high",
+    metadata
+  });
+  if (persisted) {
+    await appendOperationalAuditEvent({
+      userId: session?.user.id,
+      activeRole: session?.activeRole,
+      organization: session?.user.organizationId ?? undefined,
+      action: "CLINICAL_APPROVAL_REVIEW",
+      module: "Approval",
+      resource: "AviationTriageEncounter",
+      recordReference: encounterId,
+      success: true,
+      risk: "high",
+      metadata
+    });
+  }
+}
+
 async function recordApprovalReview(
   encounterId: string,
   request: ApprovalRequest,
@@ -293,7 +341,18 @@ async function recordApprovalReview(
   const auditSignature = auditSignatureFor(traceEvent);
   const signedTraceEvent = { ...traceEvent, auditSignature };
 
+  const approvalAfter = {
+    decision: request.decision,
+    rulesEngineSeverity: request.rulesEngineSeverity,
+    finalApprovedSeverity: request.finalApprovedSeverity,
+    finalDispositionCode: request.finalDispositionCode,
+    nurseOverrideReasonCode: traceEvent.nurseOverrideReasonCode,
+    isCriticalFloorBreach,
+    modifiedCarePlan: Boolean(request.modifiedCarePlan)
+  };
+
   if (!shouldUseDatabasePersistence()) {
+    await auditApprovalChange(encounterId, null, approvalAfter, session, false);
     return {
       persisted: false,
       reason: "mock-mode",
@@ -353,6 +412,27 @@ async function recordApprovalReview(
       data: createData
     });
   }
+
+  const approvalBefore = existing
+    ? {
+        rulesEngineSeverity: existing.rulesEngineSeverity,
+        overrideStatusFlag: existing.overrideStatusFlag,
+        isCriticalFloorBreach: existing.isCriticalFloorBreach,
+        originalAiRecommendation: existing.originalAiRecommendation,
+        approvalEvents: traceObjects(existing.explainabilityTrace).length
+      }
+    : null;
+  await auditApprovalChange(
+    encounterId,
+    approvalBefore,
+    {
+      ...approvalAfter,
+      overrideStatusFlag: overrideFlagFor(request),
+      approvalEvents: nextTrace.length
+    },
+    session,
+    true
+  );
 
   return {
     persisted: true,
