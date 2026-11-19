@@ -2,7 +2,8 @@ import request from "supertest";
 import { createApp } from "../src/app.js";
 import { resetRateLimitBucketsForTests } from "../src/middleware/rateLimit.js";
 import { resetQueueStoreForTests } from "../src/services/queueOrchestration.js";
-import { confirmMfaEnrollment, enrollMfa, resetSecurityStoreForTests } from "../src/services/securityAdmin.js";
+import { resetExportGovernanceForTests } from "../src/services/exportGovernance.js";
+import { confirmMfaEnrollment, enrollMfa, resetSecurityStoreForTests, upsertDirectoryUserFromHrms } from "../src/services/securityAdmin.js";
 import { authenticator } from "otplib";
 
 const TEST_ADMIN_PASSWORD = "TestAdminPassword!2026";
@@ -23,6 +24,36 @@ async function elevate(agent: request.Agent) {
   await agent.post("/api/v1/admin/elevate").send({ code: authenticator.generate(secret) }).expect(200);
 }
 
+// M-021: an administrator export needs a second administrator's approval. This
+// requests the export as `requester`, has a second administrator approve it, and
+// then downloads it with the approval.
+async function approvedOrgExport(requester: request.Agent, organizationId: string) {
+  const created = upsertDirectoryUserFromHrms({
+    employeeId: "IST-10098",
+    email: "export.approver@irisstar.tech",
+    fullName: "Export Approver",
+    organizationCode: "IST_TECH",
+    jobTitle: "Platform Administrator",
+    roles: ["platform_super_administrator"]
+  });
+  const approver = request.agent(app);
+  await approver
+    .post("/api/v1/auth/login")
+    .send({ username: "export.approver@irisstar.tech", password: TEST_ADMIN_PASSWORD, simulateRole: "platform_super_administrator" })
+    .expect(200);
+  const { secret } = enrollMfa(created.user.id);
+  confirmMfaEnrollment(created.user.id, authenticator.generate(secret));
+  await approver.post("/api/v1/admin/elevate").send({ code: authenticator.generate(secret) }).expect(200);
+
+  const requested = await requester
+    .post(`/api/v1/admin/organizations/${organizationId}/export-requests`)
+    .send({ reason: "Data portability regression test" })
+    .expect(201);
+  const id = requested.body.approval.id as string;
+  await approver.post(`/api/v1/admin/export-requests/${id}/decision`).send({ decision: "approve" }).expect(200);
+  return requester.get(`/api/v1/admin/organizations/${organizationId}/export?approvalId=${id}`).expect(200);
+}
+
 // NFR-011 (soft-delete, real audit-lifecycle retention) and CO.13/LG.04
 // (org-scoped data export/isolation) - both closed 2026-08-05.
 describe("Queue-item soft delete and org-scoped export", () => {
@@ -30,6 +61,7 @@ describe("Queue-item soft delete and org-scoped export", () => {
     resetQueueStoreForTests();
     resetSecurityStoreForTests();
     resetRateLimitBucketsForTests();
+    resetExportGovernanceForTests();
   });
 
   it("excludes a deleted item from the normal queue listing but keeps it exportable via org export", async () => {
@@ -54,7 +86,7 @@ describe("Queue-item soft delete and org-scoped export", () => {
 
     const sysAdmin = await agentFor("rishma@irisstar.tech", "platform_super_administrator");
     await elevate(sysAdmin);
-    const orgExport = await sysAdmin.get(`/api/v1/admin/organizations/${organizationId}/export`).expect(200);
+    const orgExport = await approvedOrgExport(sysAdmin, organizationId);
     expect(orgExport.headers["content-disposition"]).toMatch(/attachment; filename="ist-health-org-export-/);
     // A soft-deleted item stays traceable at the database layer (NFR-011),
     // but the org-export path intentionally excludes it too - a genuinely
@@ -79,7 +111,7 @@ describe("Queue-item soft delete and org-scoped export", () => {
 
     const sysAdmin = await agentFor("rishma@irisstar.tech", "platform_super_administrator");
     await elevate(sysAdmin);
-    const orgExport = await sysAdmin.get(`/api/v1/admin/organizations/${organizationId}/export`).expect(200);
+    const orgExport = await approvedOrgExport(sysAdmin, organizationId);
     expect(orgExport.body.queueItems.some((item: { id: string }) => item.id === caseId)).toBe(true);
   });
 
