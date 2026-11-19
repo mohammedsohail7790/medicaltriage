@@ -2972,6 +2972,10 @@ export function listEncryptionPolicies(): EncryptionPolicy[] {
 export function listAuditEvents(filter?: {
   userId?: string;
   resource?: string;
+  recordReference?: string;
+  action?: string;
+  module?: string;
+  kind?: "reads" | "changes";
   since?: string;
   until?: string;
   limit?: number;
@@ -2983,6 +2987,21 @@ export function listAuditEvents(filter?: {
         return false;
       }
       if (filter?.resource && event.resource !== filter.resource) {
+        return false;
+      }
+      if (filter?.recordReference && event.recordReference !== filter.recordReference) {
+        return false;
+      }
+      if (filter?.action && event.action !== filter.action) {
+        return false;
+      }
+      if (filter?.module && event.module !== filter.module) {
+        return false;
+      }
+      if (filter?.kind === "reads" && event.action !== "DATA_READ") {
+        return false;
+      }
+      if (filter?.kind === "changes" && event.action === "DATA_READ") {
         return false;
       }
       if (filter?.since && event.timestampIso < filter.since) {

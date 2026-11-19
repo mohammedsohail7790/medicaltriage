@@ -1,3 +1,4 @@
+import { auditRead } from "../middleware/readAudit.js";
 import { Router } from "express";
 import { validateStaffMember } from "../services/hrms.js";
 import { StaffValidateRequestSchema } from "../types/triage.js";
@@ -5,7 +6,7 @@ import { StaffValidateRequestSchema } from "../types/triage.js";
 export function createStaffRouter(): Router {
   const router = Router();
 
-  router.post("/validate", async (req, res) => {
+  router.post("/validate", auditRead("staff-profile"), async (req, res) => {
     const parsed = StaffValidateRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: "Invalid staff validation payload", details: parsed.error.flatten() });

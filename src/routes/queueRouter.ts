@@ -1,3 +1,4 @@
+import { auditRead } from "../middleware/readAudit.js";
 import { Router } from "express";
 import { requireAnyPermission } from "../middleware/rbac.js";
 import { rateLimit } from "../middleware/rateLimit.js";
@@ -77,7 +78,7 @@ export function createQueueRouter(): Router {
   router.use(requireAnyPermission(["triage.workspace.view", "triage.queue.manage", "admin.users.manage"]));
   router.use(queueTierRateLimit);
 
-  router.get("/", async (req: AuthorizedRequest, res, next) => {
+  router.get("/", auditRead("queue-list"), async (req: AuthorizedRequest, res, next) => {
     try {
       const parsed = QueueListQuerySchema.safeParse(req.query);
       if (!parsed.success) {
@@ -173,7 +174,7 @@ export function createQueueRouter(): Router {
     return res.json({ completions: getCompletionCounter() });
   });
 
-  router.get("/:id", async (req: AuthorizedRequest, res, next) => {
+  router.get("/:id", auditRead("queue-item", "id"), async (req: AuthorizedRequest, res, next) => {
     try {
       const item = await getQueueItem(sessionFrom(req), req.params.id);
       return res.json({ item });

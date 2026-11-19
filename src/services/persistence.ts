@@ -560,7 +560,19 @@ function toRiskClassification(riskLevel: string | null): AuditEvent["risk"] {
  */
 export async function listPersistedAuditEvents(
   limit = 200,
-  filter?: { userId?: string; organization?: string; action?: string; resource?: string; since?: string; until?: string; offset?: number }
+  filter?: {
+    userId?: string;
+    organization?: string;
+    action?: string;
+    resource?: string;
+    recordReference?: string;
+    module?: string;
+    /** NFR-012: only reads of data (DATA_READ events) or only changes (everything else). */
+    kind?: "reads" | "changes";
+    since?: string;
+    until?: string;
+    offset?: number;
+  }
 ): Promise<AuditEvent[]> {
   if (!shouldPersistAuditEventsInDatabase()) {
     return [];
@@ -572,6 +584,9 @@ export async function listPersistedAuditEvents(
       ...(filter?.organization ? { organization: filter.organization } : {}),
       ...(filter?.action ? { action: filter.action } : {}),
       ...(filter?.resource ? { resource: filter.resource } : {}),
+      ...(filter?.recordReference ? { recordReference: filter.recordReference } : {}),
+      ...(filter?.module ? { module: filter.module } : {}),
+      ...(filter?.kind === "reads" ? { action: "DATA_READ" } : filter?.kind === "changes" ? { action: { not: "DATA_READ" } } : {}),
       ...(filter?.since || filter?.until
         ? {
             timestamp: {

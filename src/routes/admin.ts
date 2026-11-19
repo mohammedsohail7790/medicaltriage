@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { auditRead } from "../middleware/readAudit.js";
 import { auditPolicyStatement } from "../services/auditPolicy.js";
 import { buildDataCatalogue, dataCatalogueCsv } from "../services/dataCatalogue.js";
 import { buildAuditChange } from "../services/auditChange.js";
@@ -169,6 +170,14 @@ const controlCenterPermissions = [
   "operations.dashboard.view"
 ];
 
+// A one-line description of an audit event for the trace view.
+function traceSummary(event: { action: string; userId: string; activeRole: string; resource: string; recordReference?: string; purpose?: string; success: boolean; metadata?: Record<string, unknown> }): string {
+  const change = (event.metadata as { change?: { fields?: string[] } } | undefined)?.change;
+  const what = event.action === "DATA_READ" ? `viewed ${event.resource}${event.recordReference ? ` ${event.recordReference}` : ""}` : `${event.action.toLowerCase().replace(/_/g, " ")} on ${event.resource}${event.recordReference ? ` ${event.recordReference}` : ""}`;
+  const fields = change?.fields?.length ? `; changed ${change.fields.join(", ")}` : "";
+  return `${event.userId} (${event.activeRole}) ${what}${fields}${event.success ? "" : " [failed]"}`;
+}
+
 export function createAdminRouter(): Router {
   const router = Router();
 
@@ -194,7 +203,7 @@ export function createAdminRouter(): Router {
     return res.json({ dashboard: getSecurityDashboard() });
   });
 
-  router.get("/users", requirePermission("admin.users.manage"), async (req, res, next) => {
+  router.get("/users", requirePermission("admin.users.manage"), auditRead("user-directory"), async (req, res, next) => {
     const parsed = PaginationQuerySchema.safeParse(req.query);
     if (!parsed.success) {
       return res.status(400).json({ error: "Invalid pagination parameters", details: parsed.error.flatten() });
@@ -631,6 +640,45 @@ export function createAdminRouter(): Router {
     return res.json({ policies: listEncryptionPolicies() });
   });
 
+  // NFR-012: the audit trace view. Finds the modification history of a record or a user, and the
+  // reads of confidential data, by user, record, action, kind (reads or changes) and time. Each event
+  // carries a one-line summary and, for changes, the before and after values.
+  router.get("/audit-trace", requirePermission("audit.events.view"), auditRead("audit-trail"), async (req, res, next) => {
+    try {
+      const q = (name: string) => (typeof req.query[name] === "string" && (req.query[name] as string).trim() ? (req.query[name] as string).trim() : undefined);
+      const kind = q("kind");
+      if (kind !== undefined && kind !== "reads" && kind !== "changes") {
+        return res.status(400).json({ error: "kind must be reads or changes." });
+      }
+      for (const name of ["since", "until"]) {
+        if (q(name) && Number.isNaN(Date.parse(q(name)!))) return res.status(400).json({ error: `${name} must be a date.` });
+      }
+      const limit = Math.min(Math.max(Number(q("limit") ?? 100) || 100, 1), 500);
+      const offset = Math.max(Number(q("offset") ?? 0) || 0, 0);
+      const filter = {
+        userId: q("user"),
+        recordReference: q("record"),
+        resource: q("resource"),
+        action: q("action"),
+        module: q("module"),
+        kind: kind as "reads" | "changes" | undefined,
+        since: q("since"),
+        until: q("until")
+      };
+      const events = shouldPersistAuditEventsInDatabase()
+        ? await listPersistedAuditEvents(limit, { ...filter, offset })
+        : listAuditEvents({ ...filter, limit, offset });
+      return res.json({
+        filters: Object.fromEntries(Object.entries(filter).filter(([, value]) => value !== undefined)),
+        count: events.length,
+        nextOffset: events.length === limit ? offset + limit : null,
+        events: events.map((event) => ({ ...event, summary: traceSummary(event), change: (event.metadata as { change?: unknown } | undefined)?.change ?? null }))
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
   // NFR-011: the audit policy as it applies right now: auditing cannot be disabled, what is
   // configurable, and how a change is governed.
   router.get("/audit-policy", requirePermission("audit.events.view"), async (_req, res, next) => {
@@ -643,7 +691,7 @@ export function createAdminRouter(): Router {
 
   // AI-016: the data catalogue (every table and field with its classification label) for a
   // governance platform such as Microsoft Purview. JSON by default, ?format=csv for a flat file.
-  router.get("/data-catalogue", requirePermission("audit.events.view"), (req, res, next) => {
+  router.get("/data-catalogue", requirePermission("audit.events.view"), auditRead("data-catalogue"), (req, res, next) => {
     try {
       const catalogue = buildDataCatalogue();
       if (req.query.format === "csv") {
@@ -657,7 +705,7 @@ export function createAdminRouter(): Router {
     }
   });
 
-  router.get("/audit-events", requirePermission("audit.events.view"), async (req, res, next) => {
+  router.get("/audit-events", requirePermission("audit.events.view"), auditRead("audit-trail"), async (req, res, next) => {
     try {
       const parsed = PaginationQuerySchema.safeParse(req.query);
       if (!parsed.success) {
@@ -697,7 +745,7 @@ export function createAdminRouter(): Router {
   // at every existing recordAuditEvent() call site, so this route filters
   // on that field directly - a real modification-history trace, in
   // chronological order, per resource.
-  router.get("/audit-events/resource/:resource", requirePermission("audit.events.view"), async (req, res, next) => {
+  router.get("/audit-events/resource/:resource", requirePermission("audit.events.view"), auditRead("audit-trail", "resource"), async (req, res, next) => {
     try {
       const resource = decodeURIComponent(req.params.resource);
       const events = shouldUseDatabasePersistence()
