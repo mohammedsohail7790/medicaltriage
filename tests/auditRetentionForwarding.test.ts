@@ -138,6 +138,7 @@ describe("M-008 audit forwarding", () => {
     process.env.NODE_ENV = "production";
     process.env.AUTH_JWT_SECRET = "jwt-secret-for-test-run-1234";
     process.env.MFA_ENCRYPTION_KEY = "mfa-key-for-test-run-123456";
+    process.env.FIELD_ENCRYPTION_KEY = "field-key-for-test-run-1234";
     process.env.DATABASE_URL = "postgresql://u:p@localhost:5432/db";
     process.env.AUDIT_DATABASE_URL = "postgresql://u:p@localhost:5432/db";
     process.env.AUDIT_HMAC_SECRET = "audit-hmac-secret-for-test-run";

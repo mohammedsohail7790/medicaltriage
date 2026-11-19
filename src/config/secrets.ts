@@ -87,7 +87,7 @@ export function secretVersions(name: string): string[] {
 }
 
 /** Names that must be configured before the service starts in production. */
-export const REQUIRED_PRODUCTION_SECRETS = ["AUTH_JWT_SECRET", "MFA_ENCRYPTION_KEY"] as const;
+export const REQUIRED_PRODUCTION_SECRETS = ["AUTH_JWT_SECRET", "MFA_ENCRYPTION_KEY", "FIELD_ENCRYPTION_KEY"] as const;
 
 export function missingProductionSecrets(): string[] {
   return REQUIRED_PRODUCTION_SECRETS.filter((name) => {

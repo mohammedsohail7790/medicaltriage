@@ -45,7 +45,8 @@ describe("M-039 secret handling", () => {
     process.env.NODE_ENV = "production";
     delete process.env.AUTH_JWT_SECRET;
     delete process.env.MFA_ENCRYPTION_KEY;
-    expect(missingProductionSecrets()).toEqual(["AUTH_JWT_SECRET", "MFA_ENCRYPTION_KEY"]);
+    delete process.env.FIELD_ENCRYPTION_KEY;
+    expect(missingProductionSecrets()).toEqual(["AUTH_JWT_SECRET", "MFA_ENCRYPTION_KEY", "FIELD_ENCRYPTION_KEY"]);
     expect(() => assertRuntimeConfiguration()).toThrow(/AUTH_JWT_SECRET/);
   });
 

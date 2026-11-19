@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { fieldEncryptionEnabled, withFieldEncryption } from "./services/fieldEncryption.js";
 
 const globalForPrisma = globalThis as unknown as {
   istTriagePrisma?: PrismaClient;
@@ -30,12 +31,17 @@ function withConnectionLimit(databaseUrl: string): string {
 
 const datasourceUrl = process.env.DATABASE_URL ? withConnectionLimit(process.env.DATABASE_URL) : undefined;
 
-export const prisma =
+// The unwrapped client. Maintenance scripts use it to read and rewrite stored ciphertext.
+export const basePrisma =
   globalForPrisma.istTriagePrisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
     ...(datasourceUrl ? { datasourceUrl } : {})
   });
+
+// M-019/M-020: personal and clinical fields are encrypted on write and decrypted on read.
+// Always on in production; opt in elsewhere with FIELD_ENCRYPTION_ENABLED=true.
+export const prisma: PrismaClient = fieldEncryptionEnabled() ? withFieldEncryption(basePrisma) : basePrisma;
 
 // PR-010: production audit writes use a separate database principal whose
 // grants are limited to SELECT/INSERT on the append-only audit ledger. Local
@@ -48,12 +54,12 @@ export const auditPrisma = process.env.AUDIT_DATABASE_URL
   : prisma;
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.istTriagePrisma = prisma;
+  globalForPrisma.istTriagePrisma = basePrisma;
 }
 
 export async function disconnectPrisma(): Promise<void> {
   if (auditPrisma !== prisma) {
     await auditPrisma.$disconnect();
   }
-  await prisma.$disconnect();
+  await basePrisma.$disconnect();
 }
