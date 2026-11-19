@@ -4,7 +4,6 @@ import { z } from "zod";
 import { shouldUseDatabasePersistence } from "../config/runtime.js";
 import { prisma } from "../db.js";
 import { buildAuditChange } from "../services/auditChange.js";
-import { appendOperationalAuditEvent } from "../services/auditLedger.js";
 import { recordAuditEvent } from "../services/securityAdmin.js";
 import { requirePermission, type AuthorizedRequest } from "../services/authorization.js";
 import { organizationWhereClause } from "../services/tenantScope.js";
@@ -264,14 +263,14 @@ function mockSafetyDashboard() {
   };
 }
 
-// M-007: every clinical approval is also written to the hash-chained audit ledger
-// with the before and after state of the approval record.
+// M-007: every clinical approval is also written to the audit trail with the before
+// and after state of the approval record. recordAuditEvent writes it to the
+// hash-chained ledger whenever audit persistence is enabled.
 async function auditApprovalChange(
   encounterId: string,
   before: Record<string, unknown> | null,
   after: Record<string, unknown>,
-  session: AuthenticatedSession | undefined,
-  persisted: boolean
+  session: AuthenticatedSession | undefined
 ): Promise<void> {
   const change = buildAuditChange(before, after);
   const metadata = { decision: after.decision, change };
@@ -292,20 +291,6 @@ async function auditApprovalChange(
     risk: "high",
     metadata
   });
-  if (persisted) {
-    await appendOperationalAuditEvent({
-      userId: session?.user.id,
-      activeRole: session?.activeRole,
-      organization: session?.user.organizationId ?? undefined,
-      action: "CLINICAL_APPROVAL_REVIEW",
-      module: "Approval",
-      resource: "AviationTriageEncounter",
-      recordReference: encounterId,
-      success: true,
-      risk: "high",
-      metadata
-    });
-  }
 }
 
 async function recordApprovalReview(
@@ -352,7 +337,7 @@ async function recordApprovalReview(
   };
 
   if (!shouldUseDatabasePersistence()) {
-    await auditApprovalChange(encounterId, null, approvalAfter, session, false);
+    await auditApprovalChange(encounterId, null, approvalAfter, session);
     return {
       persisted: false,
       reason: "mock-mode",
@@ -430,8 +415,7 @@ async function recordApprovalReview(
       overrideStatusFlag: overrideFlagFor(request),
       approvalEvents: nextTrace.length
     },
-    session,
-    true
+    session
   );
 
   return {
