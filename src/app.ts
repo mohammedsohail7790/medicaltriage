@@ -37,6 +37,7 @@ import { createCcpRouter } from "./routes/ccp.js";
 import { createEmrRouter } from "./routes/emr.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createHelpApiRouter, createHelpPageRouter } from "./routes/helpRouter.js";
+import { apiVersioning, createVersionsRouter } from "./middleware/apiVersioning.js";
 import { createApiDocsRouter } from "./routes/apiDocsRouter.js";
 import { createMeRouter } from "./routes/meRouter.js";
 import { createHrmsRouter } from "./routes/hrms.js";
@@ -243,12 +244,14 @@ export function createApp() {
     });
   });
 
+  app.use(apiVersioning());
   app.get("/api/v1/runtime/environment", (_req, res) => {
     res.json(publicRuntimeEnvironment());
   });
 
   // NFR-166 / NFR-092 / NFR-093: webhooks, alert rules and the message broker listen to platform events.
   registerPlatformSubscribers();
+  app.use("/api/v1", createVersionsRouter());
   app.use("/api/v1", defaultApiRateLimit);
   app.use("/api/v1/auth", createAuthRouter());
   app.use("/api/v1", createDeveloperApiRouter());
