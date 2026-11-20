@@ -16,6 +16,8 @@ import { explainCandidate, possibleConditions, sourceInfo } from "../services/cl
 import { DispositionCodeSchema } from "../types/triage.js";
 import { ProtocolSearchQuerySchema } from "../types/clinicalContent.js";
 
+export const BranchRuleInputSchema = BranchRuleInput;
+
 function parsePositiveQuestionIds(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.flatMap((item) => String(item).split(",")).map((item) => item.trim()).filter(Boolean);
@@ -121,7 +123,7 @@ export function createProtocolsRouter(): Router {
 
   router.post("/:protocolId/branch-rules", requirePermission("protocol.library.manage"), async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = BranchRuleInput.safeParse(req.body);
+      const parsed = BranchRuleInputSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid branch rule", details: parsed.error.flatten() });
       const rule = await draftRule(req.params.protocolId, parsed.data, req.securitySession!.user.id);
       await auditRule(req, "BRANCH_RULE_DRAFTED", `BranchRule:${rule.id}`, null, { protocolId: rule.protocolId, from: rule.fromQuestionId, answer: rule.answer, next: rule.nextQuestionId });

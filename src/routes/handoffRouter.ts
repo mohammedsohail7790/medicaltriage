@@ -8,6 +8,10 @@ import { HandoffInput, HandoffResponse, ReferralInput, acceptHandoff, approveHan
 import { recordAuditEvent } from "../services/securityAdmin.js";
 import type { AuthenticatedSession } from "../types/security.js";
 
+export const ReferralInputSchema = ReferralInput;
+export const HandoffInputSchema = HandoffInput;
+export const HandoffResponseSchema = HandoffResponse;
+
 /** Referral letters (F-017) and escalation to a teleconsultant physician (F-016). */
 
 async function audit(session: AuthenticatedSession, action: string, resource: string, before: Record<string, unknown> | null, after: Record<string, unknown> | null) {
@@ -26,6 +30,7 @@ const referralView = (item: WorkItem) => ({ id: item.id, status: item.status, ca
 const handoffView = (item: WorkItem) => ({ id: item.id, status: item.status, caseRef: item.caseRef ?? null, createdAtIso: item.createdAtIso, assignee: item.assignee ?? null, urgency: item.payload.urgency, question: item.payload.question, summary: item.payload.summary, nurseName: item.payload.nurseName, response: item.payload.response ?? null });
 
 export const ReferralSendInput = z.object({ to: z.string().trim().email().max(200) });
+export const ReferralSendInputSchema = ReferralSendInput;
 
 export function createHandoffRouter(): Router {
   const router = Router();
@@ -35,7 +40,7 @@ export function createHandoffRouter(): Router {
   // ---- referral letters ----
   router.post("/referrals", nurse, async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = ReferralInput.safeParse(req.body);
+      const parsed = ReferralInputSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid referral", details: parsed.error.flatten() });
       const item = await createReferral(parsed.data, req.securitySession!);
       await audit(req.securitySession!, "REFERRAL_DRAFTED", `ClinicalWorkItem:${item.id}`, null, { caseRef: item.caseRef ?? null, destination: parsed.data.destinationName });
@@ -68,7 +73,7 @@ export function createHandoffRouter(): Router {
 
   router.post("/referrals/:id/send", nurse, async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = ReferralSendInput.safeParse(req.body);
+      const parsed = ReferralSendInputSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid recipient", details: parsed.error.flatten() });
       const item = await sendReferral(String(req.params.id), parsed.data.to, req.securitySession!);
       await audit(req.securitySession!, item.status === "sent" ? "REFERRAL_SENT" : "REFERRAL_SEND_FAILED", `ClinicalWorkItem:${item.id}`, { status: "approved" }, { status: item.status, recipientDomain: parsed.data.to.split("@")[1] });
@@ -81,7 +86,7 @@ export function createHandoffRouter(): Router {
   // ---- teleconsultant escalation ----
   router.post("/teleconsult", nurse, async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = HandoffInput.safeParse(req.body);
+      const parsed = HandoffInputSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid handoff", details: parsed.error.flatten() });
       const item = await proposeHandoff(parsed.data, req.securitySession!);
       await audit(req.securitySession!, "TELECONSULT_PROPOSED", `ClinicalWorkItem:${item.id}`, null, { caseRef: item.caseRef ?? null, urgency: parsed.data.urgency });
@@ -133,7 +138,7 @@ export function createHandoffRouter(): Router {
 
   router.post("/teleconsult/:id/respond", physician, async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = HandoffResponse.safeParse(req.body);
+      const parsed = HandoffResponseSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid response", details: parsed.error.flatten() });
       const item = await respondToHandoff(String(req.params.id), parsed.data, req.securitySession!);
       await audit(req.securitySession!, "TELECONSULT_ANSWERED", `ClinicalWorkItem:${item.id}`, { status: "accepted" }, { status: "answered", outcome: parsed.data.outcome });

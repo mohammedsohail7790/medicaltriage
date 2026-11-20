@@ -12,6 +12,12 @@ import { recordAuditEvent } from "../services/securityAdmin.js";
 import type { AuthenticatedSession } from "../types/security.js";
 import { liveSafetyDashboard } from "./approvalRouter.js";
 
+export const IncidentInputSchema = IncidentInput;
+export const IncidentClosureSchema = IncidentClosure;
+export const SamplingInputSchema = SamplingInput;
+export const QaReviewInputSchema = QaReviewInput;
+export const InitialAssessmentPolicySchema = InitialAssessmentPolicy;
+
 /**
  * Clinical safety and quality (F-019, F-020, F-021, F-023). Everything here reads live records: where there
  * is no database the dashboard says so instead of showing sample figures.
@@ -79,7 +85,7 @@ export function createSafetyRouter(): Router {
 
   router.put("/initial-assessment-policy", requireAnyPermission("admin.users.manage"), async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = InitialAssessmentPolicy.safeParse(req.body);
+      const parsed = InitialAssessmentPolicySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid policy", details: parsed.error.flatten() });
       // Switching the rule-out off is a clinical-risk decision and needs a stated reason.
       if (!parsed.data.required && !parsed.data.reason) return res.status(400).json({ error: "A reason is required to make the Initial Assessment optional." });
@@ -102,7 +108,7 @@ export function createSafetyRouter(): Router {
   // ---- F-021 incidents ----
   router.post("/incidents", reportAccess, async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = IncidentInput.safeParse(req.body);
+      const parsed = IncidentInputSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid incident report", details: parsed.error.flatten() });
       const item = await reportIncident(parsed.data, req.securitySession!);
       await audit(req.securitySession!, "INCIDENT_REPORTED", `ClinicalWorkItem:${item.id}`, null, { type: parsed.data.type, severity: parsed.data.severity, caseRef: parsed.data.caseRef ?? null });
@@ -134,7 +140,7 @@ export function createSafetyRouter(): Router {
 
   router.post("/incidents/:id/close", manage, async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = IncidentClosure.safeParse(req.body);
+      const parsed = IncidentClosureSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid closure", details: parsed.error.flatten() });
       const before = await getItem(String(req.params.id), "incident");
       const item = await closeIncident(String(req.params.id), parsed.data, req.securitySession!);
@@ -148,7 +154,7 @@ export function createSafetyRouter(): Router {
   // ---- F-020 sampling and review ----
   router.post("/qa/samples", sampleAccess, async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = SamplingInput.safeParse(req.body);
+      const parsed = SamplingInputSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid sampling request", details: parsed.error.flatten() });
       const result = await sampleCalls(parsed.data, req.securitySession!);
       await audit(req.securitySession!, "QA_SAMPLE_DRAWN", `QaSelection:${result.selectionId}`, null, { eligible: result.eligible, selected: result.selected.length, count: parsed.data.count ?? null, percent: parsed.data.percent ?? null });
@@ -168,7 +174,7 @@ export function createSafetyRouter(): Router {
 
   router.post("/qa/:id/review", requirePermission("qa.review.perform"), async (req: AuthorizedRequest, res, next) => {
     try {
-      const parsed = QaReviewInput.safeParse(req.body);
+      const parsed = QaReviewInputSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid review", details: parsed.error.flatten() });
       const item = await submitQaReview(String(req.params.id), parsed.data, req.securitySession!);
       await audit(req.securitySession!, "QA_REVIEW_SUBMITTED", `ClinicalWorkItem:${item.id}`, { status: "pending" }, { status: "reviewed", score: parsed.data.score, followUp: parsed.data.followUp });
@@ -181,7 +187,3 @@ export function createSafetyRouter(): Router {
   return router;
 }
 
-export const IncidentReportSchema = IncidentInput;
-export const QaReviewSchema = QaReviewInput;
-export const SamplingRequestSchema = SamplingInput;
-export const IncidentClosureSchema = IncidentClosure;

@@ -38,6 +38,7 @@ import { createEmrRouter } from "./routes/emr.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createHelpApiRouter, createHelpPageRouter } from "./routes/helpRouter.js";
 import { createHandoffRouter } from "./routes/handoffRouter.js";
+import { createNoteTemplatesRouter } from "./routes/noteTemplates.js";
 import { createSafetyRouter } from "./routes/safetyRouter.js";
 import { apiAnalytics } from "./services/apiAnalytics.js";
 import { gatewayGuard } from "./middleware/gatewayGuard.js";
@@ -267,6 +268,7 @@ export function createApp() {
   app.use("/api/v1/admin", requireAuthenticatedSession, createAdminRouter());
   app.use("/api/v1/admin/integrations", requireAuthenticatedSession, createIntegrationAdminRouter());
   app.use("/api/v1/handoff", requireAuthenticatedSession, createHandoffRouter());
+  app.use("/api/v1/note-templates", requireAuthenticatedSession, createNoteTemplatesRouter());
   app.use("/api/v1/safety", requireAuthenticatedSession, createSafetyRouter());
   app.use("/api/v1/approval", requireAuthenticatedSession, createApprovalRouter());
   app.use("/api/v1/ccp", requireAuthenticatedSession, interfaceWatcher("ccp"), createCcpRouter());

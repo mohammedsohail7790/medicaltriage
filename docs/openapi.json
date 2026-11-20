@@ -809,6 +809,154 @@
         ],
         "additionalProperties": false
       },
+      "ReferralSendInputSchema": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "additionalProperties": false
+      },
+      "ReferralInputSchema": {
+        "type": "object",
+        "properties": {
+          "caseRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "patientName": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "istStaffId": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64
+          },
+          "patientAgeYears": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          },
+          "destinationName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "destinationPhone": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "destinationHours": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "destinationAddress": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1000
+          },
+          "assessment": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2000
+          },
+          "recommendation": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2000
+          },
+          "adviceDelivery": {
+            "type": "string",
+            "enum": [
+              "give_now",
+              "send_later"
+            ]
+          }
+        },
+        "required": [
+          "caseRef",
+          "destinationName",
+          "reason",
+          "assessment",
+          "recommendation"
+        ],
+        "additionalProperties": false
+      },
+      "HandoffResponseSchema": {
+        "type": "object",
+        "properties": {
+          "advice": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 4000
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "agree_with_nurse",
+              "change_disposition",
+              "needs_call_back",
+              "needs_emergency_services"
+            ]
+          },
+          "suggestedDisposition": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "advice",
+          "outcome"
+        ],
+        "additionalProperties": false
+      },
+      "HandoffInputSchema": {
+        "type": "object",
+        "properties": {
+          "caseRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "routine",
+              "urgent",
+              "emergency"
+            ]
+          },
+          "question": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 2000
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "caseRef",
+          "urgency",
+          "question",
+          "summary"
+        ],
+        "additionalProperties": false
+      },
       "VerifyRequestSchema": {
         "type": "object",
         "properties": {
@@ -1148,6 +1296,79 @@
           "eventType",
           "occurredAtIso",
           "direction"
+        ],
+        "additionalProperties": false
+      },
+      "TemplateInputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "section": {
+            "type": "string",
+            "enum": [
+              "subjective",
+              "objective",
+              "assessment",
+              "plan",
+              "advice"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "en",
+              "ar"
+            ],
+            "default": "en"
+          },
+          "body": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "name",
+          "section",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "BranchRuleInputSchema": {
+        "type": "object",
+        "properties": {
+          "fromQuestionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "answer": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no"
+            ]
+          },
+          "nextQuestionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "reasoning": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "fromQuestionId",
+          "answer",
+          "nextQuestionId",
+          "reasoning"
         ],
         "additionalProperties": false
       },
@@ -1609,6 +1830,149 @@
         ],
         "additionalProperties": false
       },
+      "IncidentClosureSchema": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 2000
+          },
+          "correctiveActions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 500
+            },
+            "maxItems": 20,
+            "default": []
+          },
+          "shareLearning": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "outcome"
+        ],
+        "additionalProperties": false
+      },
+      "IncidentInputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "incident",
+              "near_miss"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "moderate",
+              "high",
+              "critical"
+            ]
+          },
+          "caseRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "occurredAtIso": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 4000
+          },
+          "immediateAction": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "type",
+          "severity",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "InitialAssessmentPolicySchema": {
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "required"
+        ],
+        "additionalProperties": false
+      },
+      "QaReviewInputSchema": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "findings": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 3000
+          },
+          "followUp": {
+            "type": "string",
+            "enum": [
+              "none",
+              "coaching",
+              "incident"
+            ],
+            "default": "none"
+          }
+        },
+        "required": [
+          "score",
+          "findings"
+        ],
+        "additionalProperties": false
+      },
+      "SamplingInputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "percent": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 100
+          },
+          "fromIso": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "toIso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "SearchQuerySchema": {
         "type": "object",
         "properties": {
@@ -2045,6 +2409,38 @@
               "maxLength": 80
             },
             "default": []
+          },
+          "advice_delivery": {
+            "type": "string",
+            "enum": [
+              "give_now",
+              "send_later"
+            ]
+          },
+          "destination_contact": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 160
+              },
+              "phone": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "hours": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "address": {
+                "type": "string",
+                "maxLength": 300
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -8267,6 +8663,566 @@
         }
       }
     },
+    "/api/v1/handoff/referrals/{id}/approve": {
+      "post": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "POST /api/v1/handoff/referrals/{id}/approve",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/referrals/{id}/pdf": {
+      "get": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "GET /api/v1/handoff/referrals/{id}/pdf",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/referrals/{id}/send": {
+      "post": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "POST /api/v1/handoff/referrals/{id}/send",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralSendInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/referrals": {
+      "post": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "POST /api/v1/handoff/referrals",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/teleconsult/{id}/accept": {
+      "post": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "POST /api/v1/handoff/teleconsult/{id}/accept",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/teleconsult/{id}/approve": {
+      "post": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "POST /api/v1/handoff/teleconsult/{id}/approve",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/teleconsult/{id}/respond": {
+      "post": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "POST /api/v1/handoff/teleconsult/{id}/respond",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffResponseSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/teleconsult/{id}": {
+      "get": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "GET /api/v1/handoff/teleconsult/{id}",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/teleconsult/queue": {
+      "get": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "GET /api/v1/handoff/teleconsult/queue",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/teleconsult": {
+      "post": {
+        "tags": [
+          "handoff"
+        ],
+        "summary": "POST /api/v1/handoff/teleconsult",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/help/restricted-access/verify": {
       "post": {
         "tags": [
@@ -8470,6 +9426,377 @@
         }
       }
     },
+    "/api/v1/note-templates/{id}/approve": {
+      "post": {
+        "tags": [
+          "note-templates"
+        ],
+        "summary": "POST /api/v1/note-templates/{id}/approve",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/note-templates/{id}/render": {
+      "post": {
+        "tags": [
+          "note-templates"
+        ],
+        "summary": "POST /api/v1/note-templates/{id}/render",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/note-templates/{id}": {
+      "delete": {
+        "tags": [
+          "note-templates"
+        ],
+        "summary": "DELETE /api/v1/note-templates/{id}",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "note-templates"
+        ],
+        "summary": "PUT /api/v1/note-templates/{id}",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/note-templates/all": {
+      "get": {
+        "tags": [
+          "note-templates"
+        ],
+        "summary": "GET /api/v1/note-templates/all",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/note-templates": {
+      "get": {
+        "tags": [
+          "note-templates"
+        ],
+        "summary": "GET /api/v1/note-templates",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "note-templates"
+        ],
+        "summary": "POST /api/v1/note-templates",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/oauth/token": {
       "post": {
         "tags": [
@@ -8502,12 +9829,350 @@
         }
       }
     },
+    "/api/v1/protocols/{protocolId}/branch-rules": {
+      "get": {
+        "tags": [
+          "protocols"
+        ],
+        "summary": "GET /api/v1/protocols/{protocolId}/branch-rules",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "protocolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "protocols"
+        ],
+        "summary": "POST /api/v1/protocols/{protocolId}/branch-rules",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "protocolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BranchRuleInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/protocols/{protocolId}/care-advice": {
       "get": {
         "tags": [
           "protocols"
         ],
         "summary": "GET /api/v1/protocols/{protocolId}/care-advice",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "protocolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/{protocolId}/explain": {
+      "get": {
+        "tags": [
+          "protocols"
+        ],
+        "summary": "GET /api/v1/protocols/{protocolId}/explain",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "protocolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/{protocolId}/next-question": {
+      "get": {
+        "tags": [
+          "protocols"
+        ],
+        "summary": "GET /api/v1/protocols/{protocolId}/next-question",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "protocolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/{protocolId}/possible-conditions": {
+      "get": {
+        "tags": [
+          "protocols"
+        ],
+        "summary": "GET /api/v1/protocols/{protocolId}/possible-conditions",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "protocolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/{protocolId}/source": {
+      "get": {
+        "tags": [
+          "protocols"
+        ],
+        "summary": "GET /api/v1/protocols/{protocolId}/source",
         "security": [
           {
             "bearerAuth": []
@@ -8574,6 +10239,116 @@
         "parameters": [
           {
             "name": "protocolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/branch-rules/{ruleId}/sign-off": {
+      "post": {
+        "tags": [
+          "protocols"
+        ],
+        "summary": "POST /api/v1/protocols/branch-rules/{ruleId}/sign-off",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/branch-rules/{ruleId}": {
+      "delete": {
+        "tags": [
+          "protocols"
+        ],
+        "summary": "DELETE /api/v1/protocols/branch-rules/{ruleId}",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ruleId",
             "in": "path",
             "required": true,
             "schema": {
@@ -9800,6 +11575,577 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/safety/dashboard": {
+      "get": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "GET /api/v1/safety/dashboard",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/safety/incidents/{id}/close": {
+      "post": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "POST /api/v1/safety/incidents/{id}/close",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncidentClosureSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/incidents/{id}/review": {
+      "post": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "POST /api/v1/safety/incidents/{id}/review",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/safety/incidents": {
+      "get": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "GET /api/v1/safety/incidents",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "POST /api/v1/safety/incidents",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncidentInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/initial-assessment-policy": {
+      "get": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "GET /api/v1/safety/initial-assessment-policy",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "PUT /api/v1/safety/initial-assessment-policy",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitialAssessmentPolicySchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/qa/{id}/review": {
+      "post": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "POST /api/v1/safety/qa/{id}/review",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QaReviewInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/qa/queue": {
+      "get": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "GET /api/v1/safety/qa/queue",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/safety/qa/samples": {
+      "post": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "POST /api/v1/safety/qa/samples",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SamplingInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/red-flags": {
+      "post": {
+        "tags": [
+          "safety"
+        ],
+        "summary": "POST /api/v1/safety/red-flags",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
           },
           "429": {
             "description": "Rate limit exceeded; see Retry-After"

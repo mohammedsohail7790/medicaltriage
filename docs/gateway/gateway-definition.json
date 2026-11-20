@@ -732,6 +732,66 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/handoff/referrals/{id}/approve",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/handoff/referrals/{id}/pdf",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/handoff/referrals/{id}/send",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/handoff/referrals",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/handoff/teleconsult/{id}/accept",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/handoff/teleconsult/{id}/approve",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/handoff/teleconsult/{id}/respond",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/handoff/teleconsult/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/handoff/teleconsult/queue",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/handoff/teleconsult",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/help/restricted-access/verify",
       "authenticated": false,
       "hasRequestSchema": true
@@ -762,9 +822,63 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/note-templates/{id}/approve",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/note-templates/{id}/render",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/note-templates/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/note-templates/{id}",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/note-templates/all",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/note-templates",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/note-templates",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/oauth/token",
       "authenticated": false,
       "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/{protocolId}/branch-rules",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/protocols/{protocolId}/branch-rules",
+      "authenticated": true,
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -774,7 +888,43 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/protocols/{protocolId}/explain",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/{protocolId}/next-question",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/{protocolId}/possible-conditions",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/{protocolId}/source",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/protocols/{protocolId}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/protocols/branch-rules/{ruleId}/sign-off",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/protocols/branch-rules/{ruleId}",
       "authenticated": true,
       "hasRequestSchema": false
     },
@@ -896,6 +1046,72 @@
       "method": "GET",
       "path": "/api/v1/runtime/environment",
       "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/safety/dashboard",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/safety/incidents/{id}/close",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/safety/incidents/{id}/review",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/safety/incidents",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/safety/incidents",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/safety/initial-assessment-policy",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/safety/initial-assessment-policy",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/safety/qa/{id}/review",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/safety/qa/queue",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/safety/qa/samples",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/safety/red-flags",
+      "authenticated": true,
       "hasRequestSchema": false
     },
     {
