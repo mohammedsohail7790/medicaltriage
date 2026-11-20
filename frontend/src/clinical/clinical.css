@@ -1,26 +1,28 @@
-.clinical-shell { min-height: 100vh; background: #f7f8fa; color: #1f2933; font: 14px/1.5 Inter, "Segoe UI", system-ui, sans-serif; }
-.clinical-header { background: #fff; border-bottom: 1px solid #e4e7eb; padding: 14px 28px; display: flex; align-items: center; gap: 16px; }
-.clinical-header h1 { margin: 0; font-size: 18px; }
-.clinical-header small { color: #52606d; display: block; }
-.clinical-header .spacer { flex: 1; }
-.clinical-tabs { display: flex; gap: 4px; padding: 0 28px; background: #fff; border-bottom: 1px solid #e4e7eb; overflow-x: auto; }
-.clinical-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 12px 14px; cursor: pointer; font: inherit; color: #52606d; }
-.clinical-tabs button[aria-selected="true"] { color: #1d4ed8; border-bottom-color: #1d4ed8; font-weight: 600; }
-.clinical-main { max-width: 1100px; margin: 0 auto; padding: 24px 28px 60px; }
-.clinical-card { background: #fff; border: 1px solid #e4e7eb; border-radius: 12px; padding: 18px 22px; margin-bottom: 16px; }
-.clinical-card h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: #6b7280; }
-.clinical-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-.clinical-kpis div { border: 1px solid #e4e7eb; border-radius: 10px; padding: 10px 14px; }
-.clinical-kpis b { display: block; font-size: 22px; }
-.clinical-kpis span { color: #6b7280; font-size: 12px; }
-.clinical-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
-.clinical-row input, .clinical-row select, .clinical-row textarea { font: inherit; padding: 6px 8px; border: 1px solid #cbd2d9; border-radius: 6px; }
-.clinical-row textarea { width: 100%; min-height: 70px; }
-.clinical-list > div { padding: 10px 0; border-top: 1px solid #eef0f3; }
-.clinical-list > div:first-child { border-top: 0; }
-.clinical-list span { display: block; color: #52606d; font-size: 13px; }
-.clinical-note { background: #fffbeb; color: #92400e; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
-.clinical-error { color: #b91c1c; font-size: 13px; }
-.clinical-btn { background: #1d4ed8; color: #fff; border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer; font: inherit; }
-.clinical-btn.secondary { background: #fff; color: #1f2933; border: 1px solid #cbd2d9; }
-.clinical-btn:disabled { opacity: .5; cursor: not-allowed; }
+/* The application neutralises ordinary class styling globally, so these rules use an id scope and !important. */
+#clinical-root { min-height: 100vh !important; background: #f7f8fa !important; color: #1f2933 !important; font: 14px/1.5 Inter, "Segoe UI", system-ui, sans-serif !important; }
+#cockpit-root .clinical-actions { font-size: 13px !important; margin-top: 16px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-header { background: #fff !important; border-bottom: 1px solid #e4e7eb !important; padding: 14px 28px !important; display: flex !important; align-items: center !important; gap: 16px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-header h1 { margin: 0 !important; font-size: 18px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-header small { color: #52606d !important; display: block !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-header .spacer { flex: 1 !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-tabs { display: flex !important; gap: 4px !important; padding: 0 28px !important; background: #fff !important; border-bottom: 1px solid #e4e7eb !important; overflow-x: auto !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-tabs button { background: none !important; border: 0 !important; border-bottom: 2px solid transparent !important; padding: 12px 14px !important; cursor: pointer !important; font: inherit !important; color: #52606d !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-tabs button[aria-selected="true"] { color: #1d4ed8 !important; border-bottom-color: #1d4ed8 !important; font-weight: 600 !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-main { max-width: 1100px !important; margin: 0 auto !important; padding: 24px 28px 60px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-card { background: #fff !important; border: 1px solid #e4e7eb !important; border-radius: 12px !important; padding: 18px 22px !important; margin-bottom: 16px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-card h2 { margin: 0 0 10px !important; font-size: 12px !important; text-transform: uppercase !important; letter-spacing: .07em !important; color: #6b7280 !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-kpis { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important; gap: 12px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-kpis div { border: 1px solid #e4e7eb !important; border-radius: 10px !important; padding: 10px 14px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-kpis b { display: block !important; font-size: 22px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-kpis span { color: #6b7280 !important; font-size: 12px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-row { display: flex !important; gap: 8px !important; flex-wrap: wrap !important; align-items: center !important; margin: 8px 0 !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-row input, .clinical-row select, .clinical-row textarea { font: inherit !important; padding: 6px 8px !important; border: 1px solid #cbd2d9 !important; border-radius: 6px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-row textarea { width: 100% !important; min-height: 70px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-list > div { padding: 10px 0 !important; border-top: 1px solid #eef0f3 !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-list > div:first-child { border-top: 0 !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-list span { display: block !important; color: #52606d !important; font-size: 13px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-note { background: #fffbeb !important; color: #92400e !important; border-radius: 8px !important; padding: 8px 12px !important; font-size: 13px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-error { color: #b91c1c !important; font-size: 13px !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-btn { background: #1d4ed8 !important; color: #fff !important; border: 0 !important; border-radius: 6px !important; padding: 7px 14px !important; cursor: pointer !important; font: inherit !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-btn.secondary { background: #fff !important; color: #1f2933 !important; border: 1px solid #cbd2d9 !important; }
+:is(#clinical-root, #cockpit-root .clinical-actions) .clinical-btn:disabled { opacity: .5 !important; cursor: not-allowed !important; }

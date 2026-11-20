@@ -27,7 +27,7 @@ export function ClinicalWorkspace({ session, onLogout }: Props) {
   const [active, setActive] = useState(tabs[0]?.key);
   const current = tabs.find((t) => t.key === active) ?? tabs[0];
   return (
-    <div className="clinical-shell">
+    <div id="clinical-root" className="clinical-shell">
       <header className="clinical-header">
         <div><h1>Clinical workspace</h1><small>{session.user.fullName} | {session.activeRole.replace(/_/g, " ")}</small></div>
         <span className="spacer" />

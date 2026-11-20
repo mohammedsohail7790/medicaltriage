@@ -1,3 +1,6 @@
+// The clinical actions panel has its own tests (clinical/ClinicalWorkspace.test.tsx).
+jest.mock("../ClinicalActionsPanel", () => ({ ClinicalActionsPanel: () => null }));
+
 import { render, screen, waitFor } from "@testing-library/react";
 import { CompletionStage } from "./CompletionStage";
 import type { QueueItem } from "../../QueueContext";
