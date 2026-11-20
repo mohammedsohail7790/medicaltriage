@@ -18,6 +18,7 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
   { name: "qhie", label: "Qatar Health Information Exchange", requiredConfig: ["QHIE_BASE_URL", "QHIE_ACCESS_TOKEN"], probeUrlFrom: "QHIE_BASE_URL", dependsOn: "customer" },
   { name: "emr-fhir", label: "EMR (FHIR write-back)", requiredConfig: ["FHIR_BASE_URL", "FHIR_ACCESS_TOKEN"], probeUrlFrom: "FHIR_BASE_URL", dependsOn: "customer" },
   { name: "oracle-hcm", label: "Oracle Fusion HCM directory", requiredConfig: ["ORACLE_HEALTH_BASE_URL"], probeUrlFrom: "ORACLE_HEALTH_BASE_URL", dependsOn: "customer" },
+  { name: "teleconsult", label: "Teleconsultant physician service", requiredConfig: ["TELECONSULT_URL", "TELECONSULT_TOKEN"], probeUrlFrom: "TELECONSULT_URL", dependsOn: "customer" },
   { name: "dlp", label: "Data-loss-prevention service", requiredConfig: ["EXPORT_DLP_URL"], probeUrlFrom: "EXPORT_DLP_URL", dependsOn: "customer" },
   { name: "archive-handoff", label: "Archive system", requiredConfig: ["ARCHIVE_HANDOFF_URL", "ARCHIVE_HANDOFF_SECRET"], probeUrlFrom: "ARCHIVE_HANDOFF_URL", dependsOn: "customer" },
   { name: "captcha", label: "CAPTCHA provider", requiredConfig: ["CAPTCHA_PROVIDER"], anyOfConfig: [["CAPTCHA_SECRET", "CAPTCHA_SELF_DIFFICULTY"]], dependsOn: "platform" },

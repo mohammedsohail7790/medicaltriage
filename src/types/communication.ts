@@ -79,6 +79,8 @@ export type EmailSendInput = {
   subject: string;
   body: string;
   from?: string;
+  /** Files sent with the message, as base64 (for example a referral letter). */
+  attachments?: Array<{ name: string; contentType: string; contentBase64: string }>;
 };
 
 export type MessageAttachment = {

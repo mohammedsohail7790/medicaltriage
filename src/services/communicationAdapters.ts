@@ -310,7 +310,10 @@ export class MicrosoftGraphEmailAdapter implements EmailAdapter {
               address: message.to
             }
           }
-        ]
+        ],
+        ...(message.attachments?.length
+          ? { attachments: message.attachments.map((a) => ({ "@odata.type": "#microsoft.graph.fileAttachment", name: a.name, contentType: a.contentType, contentBytes: a.contentBase64 })) }
+          : {})
       },
       saveToSentItems: true
     };
