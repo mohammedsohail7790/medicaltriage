@@ -32,11 +32,19 @@ describeDb("Sprint 4 database-backed behaviour", () => {
     await basePrisma.webhookSubscription.deleteMany({});
     await basePrisma.integrationJob.deleteMany({});
   });
+  // Each test starts with no subscriptions or deliveries, so a leftover from an earlier test or run cannot be sent by it.
+  beforeEach(async () => {
+    await basePrisma.webhookDelivery.deleteMany({});
+    await basePrisma.webhookSubscription.deleteMany({});
+  });
   afterEach(() => wh.setWebhookSenderForTests(undefined));
   afterAll(async () => {
     await basePrisma.$disconnect();
   });
 
+  // Rows get their due time from PostgreSQL (microseconds); the workers compare with a JavaScript clock (milliseconds).
+  // Within the same millisecond a fresh row is not yet due, which is harmless in service (the next poll takes it).
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 10));
   const event = (type: string): import("../src/services/eventBus.js").PlatformEvent => ({ id: `${run}-${type}-${Math.random()}`, type, occurredAtIso: new Date().toISOString(), risk: "low", success: true, subject: "case-1", data: { action: type.toUpperCase(), userId: "u1" } });
 
   describe("NFR-166 outbound webhooks", () => {
@@ -53,6 +61,7 @@ describeDb("Sprint 4 database-backed behaviour", () => {
       expect(raw.secret).not.toContain("whsec_");
       const e = event("queue.item.completed");
       await bus.publishEvent(e);
+      await settle();
       expect(await basePrisma.webhookDelivery.count({ where: { eventId: e.id, subscriptionId: match.id } })).toBe(1);
       expect(await basePrisma.webhookDelivery.count({ where: { eventId: e.id, subscriptionId: other.id } })).toBe(0);
       await basePrisma.webhookSubscription.deleteMany({ where: { id: { in: [match.id, other.id] } } });
@@ -62,6 +71,7 @@ describeDb("Sprint 4 database-backed behaviour", () => {
       const { id, secret } = await subscription(["*"]);
       const e = event("approval.recorded");
       await bus.publishEvent(e);
+      await settle();
       const sent: Array<{ url: string; headers: Record<string, string>; body: string }> = [];
       wh.setWebhookSenderForTests(async (url, init) => {
         sent.push({ url, headers: init.headers as Record<string, string>, body: String(init.body) });
@@ -82,6 +92,7 @@ describeDb("Sprint 4 database-backed behaviour", () => {
       const { id } = await subscription(["retry.*"]);
       const e = event("retry.me");
       await bus.publishEvent(e);
+      await settle();
       let answer = 500;
       let calls = 0;
       wh.setWebhookSenderForTests(async () => {
@@ -123,6 +134,7 @@ describeDb("Sprint 4 database-backed behaviour", () => {
       const { id } = await subscription(["race.*"]);
       const e = event("race.now");
       await bus.publishEvent(e);
+      await settle();
       let calls = 0;
       wh.setWebhookSenderForTests(async () => {
         calls += 1;
@@ -139,6 +151,7 @@ describeDb("Sprint 4 database-backed behaviour", () => {
       await basePrisma.webhookSubscription.update({ where: { id }, data: { status: "paused" } });
       const e = event("paused.event");
       await bus.publishEvent(e);
+      await settle();
       expect(await basePrisma.webhookDelivery.count({ where: { eventId: e.id } })).toBe(0);
       await basePrisma.webhookSubscription.delete({ where: { id } });
     });
@@ -155,6 +168,7 @@ describeDb("Sprint 4 database-backed behaviour", () => {
       process.env.INTEGRATION_JOB_MAX_ATTEMPTS = "2";
       process.env.INTEGRATION_JOB_BACKOFF_BASE_MS = "1000";
       const id = await jobs.enqueueJob({ type: "test.job", payload: { n: 1 }, correlationId: `${run}-job` });
+      await settle();
       const t0 = new Date();
       expect((await jobs.processJobs({ types: ["test.job"], now: t0 })).retried).toBe(1);
       let row = await basePrisma.integrationJob.findUniqueOrThrow({ where: { id } });
@@ -185,6 +199,7 @@ describeDb("Sprint 4 database-backed behaviour", () => {
       });
       const e = event("broker.test");
       await bus.publishEvent(e);
+      await settle();
       await jobs.processJobs({ types: ["broker.publish"], limit: 500 });
       expect(published).toEqual([]);
       const pending = await basePrisma.integrationJob.findMany({ where: { type: "broker.publish", correlationId: e.id } });

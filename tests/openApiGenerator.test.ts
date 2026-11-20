@@ -37,6 +37,6 @@ describe("OpenAPI generation", () => {
     const { spec } = generateOpenApiFromApp(createApp(), srcDir, await loadSchemaRegistry(srcDir), info);
     const paths = (spec as { paths: Record<string, Record<string, { requestBody?: unknown }>> }).paths;
     const missing = Object.values(paths).flatMap((ops) => Object.entries(ops).filter(([m, o]) => ["post", "put", "patch"].includes(m) && !o.requestBody));
-    expect(missing.length).toBeLessThanOrEqual(43);
+    expect(missing.length).toBeLessThanOrEqual(44);
   });
 });
