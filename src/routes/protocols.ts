@@ -6,6 +6,7 @@ import {
   listClinicalProtocols,
   searchClinicalProtocols
 } from "../services/clinicalContent.js";
+import { explainCandidate, possibleConditions, sourceInfo } from "../services/clinicalExplain.js";
 import { DispositionCodeSchema } from "../types/triage.js";
 import { ProtocolSearchQuerySchema } from "../types/clinicalContent.js";
 
@@ -75,6 +76,31 @@ export function createProtocolsRouter(): Router {
       protocols,
       totalCount: all.length
     });
+  });
+
+  // F-006: where a protocol's content comes from and who reviewed it.
+  router.get("/:protocolId/source", (req, res) => {
+    const protocol = getClinicalProtocolById(req.params.protocolId);
+    if (!protocol) return res.status(404).json({ error: "Protocol not found" });
+    return res.json(sourceInfo(protocol));
+  });
+
+  // F-022 / AI-023: why this protocol was suggested, from the search and the questions answered.
+  router.get("/:protocolId/explain", (req, res) => {
+    const age = req.query.ageYears === undefined ? undefined : Number(req.query.ageYears);
+    const explanation = explainCandidate(req.params.protocolId, {
+      q: typeof req.query.q === "string" ? req.query.q.slice(0, 240) : undefined,
+      ageYears: age !== undefined && Number.isInteger(age) && age >= 0 && age <= 120 ? age : undefined,
+      positiveQuestionIds: parsePositiveQuestionIds(req.query.positiveQuestionIds)
+    });
+    if (!explanation) return res.status(404).json({ error: "Protocol not found" });
+    return res.json(explanation);
+  });
+
+  // F-009: possible-conditions view, off until clinically and regulatorily reviewed.
+  router.get("/:protocolId/possible-conditions", (req, res) => {
+    const result = possibleConditions(req.params.protocolId);
+    return res.status(result.enabled && !result.protocolId ? 404 : 200).json(result);
   });
 
   router.get("/:protocolId", (req, res) => {
