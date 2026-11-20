@@ -37,6 +37,7 @@ import { createCcpRouter } from "./routes/ccp.js";
 import { createEmrRouter } from "./routes/emr.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createHelpApiRouter, createHelpPageRouter } from "./routes/helpRouter.js";
+import { createJobStatusRouter, createOpsAdminRouter } from "./routes/opsAdmin.js";
 import { createHandoffRouter } from "./routes/handoffRouter.js";
 import { createNoteTemplatesRouter } from "./routes/noteTemplates.js";
 import { createSafetyRouter } from "./routes/safetyRouter.js";
@@ -267,6 +268,8 @@ export function createApp() {
   app.use("/api/v1/integrations/call-center", interfaceWatcher("call-center"), createCallCenterInboundRouter());
   app.use("/api/v1/admin", requireAuthenticatedSession, createAdminRouter());
   app.use("/api/v1/admin/integrations", requireAuthenticatedSession, createIntegrationAdminRouter());
+  app.use("/api/v1/admin/ops", requireAuthenticatedSession, createOpsAdminRouter());
+  app.use("/api/v1/jobs", requireAuthenticatedSession, createJobStatusRouter());
   app.use("/api/v1/handoff", requireAuthenticatedSession, createHandoffRouter());
   app.use("/api/v1/note-templates", requireAuthenticatedSession, createNoteTemplatesRouter());
   app.use("/api/v1/safety", requireAuthenticatedSession, createSafetyRouter());

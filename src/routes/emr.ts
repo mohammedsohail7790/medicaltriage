@@ -30,7 +30,7 @@ export function createEmrRouter(): Router {
       if (asynchronous) {
         const jobId = await enqueueJob({
           type: "emr.writeback",
-          payload: { encounterId: req.params.encounterId, organizationId: req.securitySession?.user.organizationId ?? null, options: { isDraft: parsed.data.isDraft, dryRun: parsed.data.dryRun, patientId: parsed.data.patientId, practitionerId: parsed.data.practitionerId } },
+          payload: { encounterId: req.params.encounterId, requestedBy: req.securitySession?.user.id ?? null, organizationId: req.securitySession?.user.organizationId ?? null, options: { isDraft: parsed.data.isDraft, dryRun: parsed.data.dryRun, patientId: parsed.data.patientId, practitionerId: parsed.data.practitionerId } },
           correlationId: (req as AuthorizedRequest & RequestWithId).requestId
         });
         return res.status(202).json({ queued: true, jobId });
