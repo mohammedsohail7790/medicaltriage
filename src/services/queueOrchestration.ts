@@ -1,3 +1,4 @@
+import { rule } from "./businessRules.js";
 import { initialAssessmentRequired } from "./initialAssessment.js";
 import { runInTransaction } from "./dbTransaction.js";
 import { buildAuditChange, type AuditChange } from "./auditChange.js";
@@ -134,7 +135,6 @@ type QueuePrismaClient = {
 
 const STAGE_ORDER: QueueClinicalStage[] = ["INTAKE", "IDENTITY", "VITALS", "PROTOCOL", "DISPOSITION", "SBAR"];
 const COMPLETED_STAGE: QueueClinicalStage = "SBAR";
-const ACTIVE_LOCK_MINUTES = 5;
 
 const clinicalOperatorRoles = new Set(["remote_triage_nurse"]);
 const supervisorRoles = new Set(["triage_service_manager", "platform_super_administrator"]);
@@ -170,7 +170,7 @@ function deadline(minutes: number): string {
 }
 
 function lockDeadline(): string {
-  return new Date(Date.now() + ACTIVE_LOCK_MINUTES * 60_000).toISOString();
+  return new Date(Date.now() + rule("queue.lock_minutes") * 60_000).toISOString();
 }
 
 function queueClient(): QueuePrismaClient {
@@ -792,29 +792,30 @@ function toDto(record: QueueRecord): QueueItemDto {
   });
 }
 
-function computePriority(record: Pick<QueueRecord, "safetyFloorActive" | "calculatedSeverity" | "slaDeadlineIso" | "patientType" | "jobTitle" | "customAviationTags">): number {
+export function computePriority(record: Pick<QueueRecord, "safetyFloorActive" | "calculatedSeverity" | "slaDeadlineIso" | "patientType" | "jobTitle" | "customAviationTags">): number {
   let score = 0;
+  // NFR-144: the weights are administrator-editable business rules (see businessRules.ts); the defaults are the former constants.
   if (record.safetyFloorActive || record.calculatedSeverity === "EMERGENCY") {
-    score += 10_000;
+    score += rule("queue.priority.emergency");
   }
 
   const minutesToSla = Math.floor((new Date(record.slaDeadlineIso).getTime() - Date.now()) / 60_000);
   if (minutesToSla <= 0) {
-    score += 2_500;
+    score += rule("queue.priority.sla_overdue");
   } else {
-    score += Math.max(0, 1_500 - minutesToSla * 25);
+    score += Math.max(0, rule("queue.priority.sla_base") - minutesToSla * rule("queue.priority.sla_per_minute"));
   }
 
   if (record.patientType === "Dependent") {
-    score += 600;
+    score += rule("queue.priority.dependent");
   }
 
   const roleText = `${record.jobTitle ?? ""} ${record.customAviationTags.join(" ")}`.toLowerCase();
   if (roleText.includes("pilot") || roleText.includes("flight_deck")) {
-    score += 350;
+    score += rule("queue.priority.flight_deck");
   }
   if (roleText.includes("cabin")) {
-    score += 250;
+    score += rule("queue.priority.cabin");
   }
 
   return score;

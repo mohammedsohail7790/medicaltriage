@@ -6,6 +6,7 @@ import { buildAuditChange } from "../services/auditChange.js";
 import { requireElevatedPermission, requirePermission, canPerformAction, type AuthorizedRequest } from "../services/authorization.js";
 import { WorkError } from "../services/clinicalWork.js";
 import { ScheduleInput, cancelRun, cancelSchedule, createSchedule, getRun, listRuns, listSchedules, runNow, schedulerHandlerNames, setScheduleEnabled } from "../services/jobScheduler.js";
+import { listRules, ruleHistory, setRule } from "../services/businessRules.js";
 import { collectMetrics } from "../observability/metrics.js";
 import { recentTraces, spansForTrace } from "../observability/tracing.js";
 import { Thresholds, evaluate, getThresholds, setThresholds } from "../services/performanceMonitor.js";
@@ -93,6 +94,33 @@ export function createOpsAdminRouter(): Router {
       const outcome = await runSyntheticChecks();
       await audit(req.securitySession!, "SYNTHETIC_CHECKS_RUN", "SyntheticChecks", null, { ok: outcome.ok, failed: outcome.results.filter((r) => !r.ok).length });
       return res.json(outcome);
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  // ---- configurable business rules (NFR-144) ----
+  router.get("/rules", read, async (_req, res, next) => {
+    try {
+      return res.json({ rules: await listRules(), note: "Clinical safety floors are not configurable here; they change only through a clinical release." });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.get("/rules/:key/history", read, async (req, res, next) => {
+    try {
+      return res.json({ history: await ruleHistory(String(req.params.key)) });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.put("/rules/:key", write, async (req: AuthorizedRequest, res, next) => {
+    try {
+      const change = await setRule(String(req.params.key), req.body?.value, req.securitySession!.user.id, typeof req.body?.reason === "string" ? req.body.reason : "");
+      await audit(req.securitySession!, "BUSINESS_RULE_CHANGED", `BusinessRule:${req.params.key}`, { value: change.before }, { value: change.after, version: change.version, reason: String(req.body.reason).slice(0, 200) });
+      return res.json({ key: req.params.key, ...change });
     } catch (error) {
       return fail(res, error, next);
     }
