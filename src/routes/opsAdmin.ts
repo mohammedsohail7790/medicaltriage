@@ -7,6 +7,8 @@ import { requireElevatedPermission, requirePermission, canPerformAction, type Au
 import { WorkError } from "../services/clinicalWork.js";
 import { ScheduleInput, cancelRun, cancelSchedule, createSchedule, getRun, listRuns, listSchedules, runNow, schedulerHandlerNames, setScheduleEnabled } from "../services/jobScheduler.js";
 import { listRules, ruleHistory, setRule } from "../services/businessRules.js";
+import { databaseRoleReport } from "../services/databaseRole.js";
+import { rotationReport } from "../services/secretRotation.js";
 import { collectMetrics } from "../observability/metrics.js";
 import { recentTraces, spansForTrace } from "../observability/tracing.js";
 import { Thresholds, evaluate, getThresholds, setThresholds } from "../services/performanceMonitor.js";
@@ -121,6 +123,17 @@ export function createOpsAdminRouter(): Router {
       const change = await setRule(String(req.params.key), req.body?.value, req.securitySession!.user.id, typeof req.body?.reason === "string" ? req.body.reason : "");
       await audit(req.securitySession!, "BUSINESS_RULE_CHANGED", `BusinessRule:${req.params.key}`, { value: change.before }, { value: change.after, version: change.version, reason: String(req.body.reason).slice(0, 200) });
       return res.json({ key: req.params.key, ...change });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  // ---- NFR-161 secret rotation, NFR-153 database role ----
+  router.get("/secrets-rotation", read, (_req, res) => res.json(rotationReport()));
+
+  router.get("/database-role", read, async (_req, res, next) => {
+    try {
+      return res.json(await databaseRoleReport());
     } catch (error) {
       return fail(res, error, next);
     }

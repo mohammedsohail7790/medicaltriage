@@ -48,6 +48,7 @@ import { requestCounter } from "./services/resourceGuard.js";
 import { apiAnalytics } from "./services/apiAnalytics.js";
 import { gatewayGuard } from "./middleware/gatewayGuard.js";
 import { apiVersioning, createVersionsRouter } from "./middleware/apiVersioning.js";
+import { validateInfrastructureConfiguration } from "./config/infrastructureGuards.js";
 import { createApiDocsRouter } from "./routes/apiDocsRouter.js";
 import { createMeRouter } from "./routes/meRouter.js";
 import { createHrmsRouter } from "./routes/hrms.js";
@@ -124,6 +125,8 @@ export function createApp() {
   validateCaptchaConfiguration();
   validateLoginEncryptionConfiguration();
   validateArchiveHandoffConfiguration();
+  // Sprint 7: data residency, database transport and sign-in policy, checked at start-up in production.
+  validateInfrastructureConfiguration();
   const app = express();
   // Behind Firebase Hosting and Cloud Run the socket address is a Google front end, not the user.
 // TRUST_PROXY_HOPS is the number of trusted proxies in front of the service; with it set,

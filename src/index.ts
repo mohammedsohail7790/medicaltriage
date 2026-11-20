@@ -1,4 +1,5 @@
 import { installLogStream } from "./observability/logStream.js";
+import { enforceDatabaseRole } from "./services/databaseRole.js";
 import { createApp } from "./app.js";
 import { contentPackageReady } from "./services/clinicalContent.js";
 import { startIncomingCallSimulator } from "./services/callSimulator.js";
@@ -21,6 +22,8 @@ await contentPackageReady;
 // disclosed residual limitation, not a full fix.
 await hydrateRolePermissionOverridesFromDatabase();
 startRoleCatalogRefresh();
+// NFR-153: with DB_ROLE_CHECK=enforce the service refuses to start on a database role with more power than it needs.
+await enforceDatabaseRole();
 const app = createApp();
 startPlatformWorkers();
 // NFR-011: the audit configuration in force is written to the ledger at every start.

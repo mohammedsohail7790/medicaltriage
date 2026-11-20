@@ -1,3 +1,4 @@
+import { localLoginAllowed } from "../config/infrastructureGuards.js";
 import { connectedApps, rememberReturn, sanitizeReturnTo, takeReturn } from "../services/ssoLinks.js";
 import { Router, type NextFunction, type Response } from "express";
 import { z } from "zod";
@@ -223,6 +224,15 @@ export function createAuthRouter(): Router {
       const captcha = await challengeIfRequired(req, parsed.data.username, parsed.data.captchaToken);
       if (captcha) {
         return res.status(403).json({ error: "Authentication failed", message: "Complete the security check to continue.", ...captcha });
+      }
+
+      // NFR-151: with single sign-on enforced, a local password works only for a named break-glass account.
+      if (!localLoginAllowed(parsed.data.username)) {
+        await recordAuditEvent({
+          id: randomUUID(), timestampIso: new Date().toISOString(), userId: parsed.data.username.trim().toLowerCase(), activeRole: "unknown", organization: "", facility: "", department: "",
+          action: "LOCAL_LOGIN_REFUSED_SSO_ENFORCED", module: "Authentication", resource: "local", ipAddress: req.ip ?? "unknown", device: "", success: false, risk: "low"
+        });
+        return res.status(403).json({ error: "Authentication failed", message: "Sign in with your organisation account.", ssoRequired: true });
       }
 
       const userAgent = req.headers["user-agent"];

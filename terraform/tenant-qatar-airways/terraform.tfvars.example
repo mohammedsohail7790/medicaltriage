@@ -1,0 +1,12 @@
+# Copy to terraform.tfvars and fill in with the values Qatar Airways IT approves. Nothing here is a real value.
+project_id             = "qatar-airways-aimltriage-prod"
+approved_regions       = ["me-central1"]
+region                 = "me-central1"
+dr_region              = null # agree the pair with Qatar Airways IT; it must be an approved region
+domain                 = "triage.example.invalid"
+approved_ingress_cidrs = ["192.0.2.0/24"]
+image                  = "me-central1-docker.pkg.dev/qatar-airways-aimltriage-prod/aimltriage/app@sha256:REPLACE_WITH_DIGEST"
+admin_group            = "group:aimltriage-admins@example.invalid"
+approver_group         = "group:aimltriage-approvers@example.invalid"
+siem_pubsub_topic      = "projects/qatar-airways-aimltriage-prod/topics/siem-feed"
+# customer_managed_key = "projects/QR_KEY_PROJECT/locations/me-central1/keyRings/QR/cryptoKeys/aimltriage" # AI-012, by 2027-08-01

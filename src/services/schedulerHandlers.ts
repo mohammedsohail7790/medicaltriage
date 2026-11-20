@@ -47,4 +47,11 @@ export function registerSchedulerHandlers(): void {
     const { sendMetricsReport } = await import("./metricsReport.js");
     return sendMetricsReport({ to: Array.isArray(params.to) ? params.to.map(String) : [], report: params.report === "usage" ? "usage" : "performance" });
   });
+
+  registerSchedulerHandler("secrets.rotation_check", async () => {
+    const { checkSecretRotation } = await import("./secretRotation.js");
+    const result = await checkSecretRotation();
+    if (!result.ok) throw new Error(`Overdue for rotation: ${result.overdue.join(", ")}`);
+    return { overdue: 0, unknown: result.unknown.length };
+  });
 }
