@@ -2,7 +2,7 @@ import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { callExternal } from "../integration/externalClient.js";
 import { prisma } from "../db.js";
-import { shouldUseDatabasePersistence } from "../config/runtime.js";
+import { shouldPersistPlatformInDatabase } from "../config/runtime.js";
 import { eventMatches, subscribe, toCloudEvent, type PlatformEvent } from "./eventBus.js";
 import { recordAuditEvent } from "./securityAdmin.js";
 
@@ -25,7 +25,7 @@ export class WebhookError extends Error {
 }
 
 export function requireDatabase(): void {
-  if (!shouldUseDatabasePersistence()) throw new WebhookError(409, "Webhooks need database persistence, which is off in this environment.", "WEBHOOKS_NEED_DATABASE");
+  if (!shouldPersistPlatformInDatabase()) throw new WebhookError(409, "Webhooks need database persistence, which is off in this environment.", "WEBHOOKS_NEED_DATABASE");
 }
 
 export function signWebhook(secret: string, timestamp: number, body: string): string {
@@ -87,7 +87,7 @@ export async function createSubscription(input: z.infer<typeof SubscriptionInput
 // ---- enqueue -------------------------------------------------------------------------------------
 
 export async function enqueueForEvent(event: PlatformEvent): Promise<number> {
-  if (!shouldUseDatabasePersistence()) return 0;
+  if (!shouldPersistPlatformInDatabase()) return 0;
   const subscriptions = await prisma.webhookSubscription.findMany({ where: { status: "active" } });
   const payload = toCloudEvent(event);
   let queued = 0;
@@ -190,7 +190,7 @@ export async function replayDeliveries(filter: { id?: string; subscriptionId?: s
 
 let timer: ReturnType<typeof setInterval> | undefined;
 export function startWebhookWorker(everyMs = 5000): void {
-  if (timer || !shouldUseDatabasePersistence()) return;
+  if (timer || !shouldPersistPlatformInDatabase()) return;
   timer = setInterval(() => void processDueDeliveries().catch((e) => console.error(JSON.stringify({ type: "webhook_worker_failed", error: e instanceof Error ? e.name : "error" }))), everyMs);
   timer.unref?.();
 }

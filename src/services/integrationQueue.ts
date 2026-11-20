@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "../db.js";
-import { shouldUseDatabasePersistence } from "../config/runtime.js";
+import { shouldPersistPlatformInDatabase } from "../config/runtime.js";
 import { backoffMs } from "./webhooks.js";
 
 /**
@@ -33,7 +33,7 @@ function policy() {
 
 export async function enqueueJob(args: { type: string; payload: Record<string, unknown>; correlationId?: string; maxAttempts?: number }): Promise<string> {
   const correlationId = args.correlationId ?? randomUUID();
-  if (!shouldUseDatabasePersistence()) {
+  if (!shouldPersistPlatformInDatabase()) {
     const handler = handlers.get(args.type);
     if (!handler) throw new Error(`No handler for integration job type ${args.type}.`);
     const id = `inline-${randomUUID()}`;
@@ -85,7 +85,7 @@ export async function replayJobs(filter: { id?: string; type?: string }): Promis
 
 let timer: ReturnType<typeof setInterval> | undefined;
 export function startJobWorker(everyMs = 5000): void {
-  if (timer || !shouldUseDatabasePersistence()) return;
+  if (timer || !shouldPersistPlatformInDatabase()) return;
   timer = setInterval(() => void processJobs().catch((e) => console.error(JSON.stringify({ type: "job_worker_failed", error: e instanceof Error ? e.name : "error" }))), everyMs);
   timer.unref?.();
 }

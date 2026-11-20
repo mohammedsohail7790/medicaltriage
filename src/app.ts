@@ -1,3 +1,4 @@
+import { createDeveloperApiRouter, createDeveloperPageRouter } from "./routes/developerRouter.js";
 import { createIntegrationAdminRouter } from "./routes/integrationAdmin.js";
 import { registerPlatformSubscribers } from "./services/platformEvents.js";
 import { interfaceWatcher } from "./integration/interfaceLog.js";
@@ -250,6 +251,7 @@ export function createApp() {
   registerPlatformSubscribers();
   app.use("/api/v1", defaultApiRateLimit);
   app.use("/api/v1/auth", createAuthRouter());
+  app.use("/api/v1", createDeveloperApiRouter());
   // NFR-096: inbound calls from other systems are logged before they are processed.
   app.use("/api/v1/hrms", interfaceWatcher("hrms"), createHrmsRouter());
   app.use("/api/v1/integrations/call-center", interfaceWatcher("call-center"), createCallCenterInboundRouter());
@@ -280,6 +282,7 @@ export function createApp() {
   // existing docs/openapi.json spec, top-level like /help since it's a
   // developer-facing reference page, not part of the Vite SPA bundle.
   app.use(createApiDocsRouter());
+  app.use(createDeveloperPageRouter());
 
   if (spaIndexHtml) {
     app.use(express.static(staticRoot, { index: false }));

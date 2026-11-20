@@ -101,9 +101,9 @@ export function looksLikeOAuthToken(token: string): boolean {
   }
 }
 
-export type OAuthFailure = "invalid_token" | "client_not_approved" | "network_not_permitted" | "insufficient_scope";
+export type OAuthFailure = "invalid_token" | "client_not_approved" | "network_not_permitted" | "insufficient_scope" | "rate_limited";
 export class OAuthBearerError extends Error {
-  constructor(readonly reason: OAuthFailure, message: string, readonly status: number) {
+  constructor(readonly reason: OAuthFailure, message: string, readonly status: number, readonly retryAfterSeconds?: number) {
     super(message);
     this.name = "OAuthBearerError";
   }
@@ -176,12 +176,20 @@ export async function authenticateOAuthBearer(token: string, ipAddress: string):
     await audit("OAUTH_CLIENT_AUTHENTICATED", clientId, true, ipAddress, `role ${client.role}`);
   }
 
+  return buildApiClientSession({ clientId, role: client.role, expiresAtSeconds: payload.exp ?? 0, jti: String(payload.jti ?? payload.exp) });
+}
+
+/** The principal for an API client, with the permissions of exactly one non-administrative role. */
+export function buildApiClientSession(args: { clientId: string; role: string; expiresAtSeconds: number; jti: string; label?: string }): AuthenticatedSession {
+  const grants = roleGrantsForCode(args.role);
+  if (!grants) throw new OAuthBearerError("client_not_approved", "The client's role is not available.", 403);
+  if (grants.permissions.some((permission) => PRIVILEGED_PERMISSIONS.has(permission))) throw new OAuthBearerError("client_not_approved", "The client's role is not allowed for API clients.", 403);
   const nowIso = new Date().toISOString();
   const user = {
-    id: `oauth:${clientId}`,
-    employeeId: clientId,
+    id: `oauth:${args.clientId}`,
+    employeeId: args.clientId,
     hrmsId: "",
-    fullName: `API client ${clientId}`,
+    fullName: args.label ?? `API client ${args.clientId}`,
     email: "",
     mobile: "",
     organization: "",
@@ -197,7 +205,7 @@ export async function authenticateOAuthBearer(token: string, ipAddress: string):
     authenticationMethod: "oidc",
     mfaStatus: "disabled",
     accountStatus: "active",
-    roles: [client.role],
+    roles: [args.role],
     responsibilities: grants.responsibilities,
     queues: [],
     accessProfiles: [],
@@ -207,12 +215,12 @@ export async function authenticateOAuthBearer(token: string, ipAddress: string):
     updatedAtIso: nowIso
   } as unknown as SafeAdminUser;
   return {
-    sessionId: `oauth:${clientId}:${String(payload.jti ?? payload.exp)}`,
+    sessionId: `oauth:${args.clientId}:${args.jti}`,
     user,
-    activeRole: client.role,
+    activeRole: args.role,
     permissions: grants.permissions,
     responsibilities: grants.responsibilities,
-    expiresAtIso: new Date((payload.exp ?? 0) * 1000).toISOString(),
+    expiresAtIso: new Date(args.expiresAtSeconds * 1000).toISOString(),
     authMethod: "oidc",
     mfaVerified: false
   };

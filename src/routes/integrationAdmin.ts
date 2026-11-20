@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { requireElevatedPermission, requirePermission, type AuthorizedRequest } from "../services/authorization.js";
 import { buildAuditChange } from "../services/auditChange.js";
+import { ConsumerError, DecisionInput, decide as decideConsumer, rotateSecret as rotateConsumerSecret, setStatus as setConsumerStatus } from "../services/apiConsumers.js";
 import { RuleError, RuleInput, createRule, deleteRule, getRule, listRules, updateRule } from "../services/eventRules.js";
 import { publishEvent } from "../services/eventBus.js";
 import { jobHandlerTypes, processJobs, replayJobs } from "../services/integrationQueue.js";
@@ -199,6 +200,56 @@ export function createIntegrationAdminRouter(): Router {
       return fail(res, error, next);
     }
   });
+
+  // ---- API consumers (NFR-003) ----
+  const consumerFail = (res: import("express").Response, error: unknown, next: import("express").NextFunction) =>
+    error instanceof ConsumerError ? res.status(error.status).json({ error: error.message, code: error.code }) : fail(res, error, next);
+
+  router.get("/api-consumers", read, async (req, res, next) => {
+    try {
+      const status = typeof req.query.status === "string" ? req.query.status : undefined;
+      const rows = await prisma.apiConsumer.findMany({ where: status ? { status } : {}, orderBy: { requestedAt: "desc" }, take: 200 });
+      return res.json({ consumers: rows.map(({ clientSecretHash: _h, ...row }) => row) });
+    } catch (error) {
+      return consumerFail(res, error, next);
+    }
+  });
+
+  router.post("/api-consumers/:id/decision", write, async (req: AuthorizedRequest, res, next) => {
+    try {
+      const parsed = DecisionInput.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid decision", details: parsed.error.flatten() });
+      const result = await decideConsumer(req.params.id, parsed.data, req.securitySession!.user.id);
+      await audit(req.securitySession!, parsed.data.decision === "approve" ? "API_CONSUMER_APPROVED" : "API_CONSUMER_REJECTED", `ApiConsumer:${req.params.id}`, { status: "pending" }, { status: result.status, role: parsed.data.role ?? null, rateLimitPerMinute: parsed.data.rateLimitPerMinute ?? null, clientId: result.clientId ?? null });
+      res.setHeader("Cache-Control", "no-store");
+      return res.json(result.clientSecret ? { ...result, note: "Send these credentials to the consumer now; the secret cannot be shown again." } : result);
+    } catch (error) {
+      return consumerFail(res, error, next);
+    }
+  });
+
+  router.post("/api-consumers/:id/rotate-secret", write, async (req: AuthorizedRequest, res, next) => {
+    try {
+      const result = await rotateConsumerSecret(req.params.id);
+      await audit(req.securitySession!, "API_CONSUMER_SECRET_ROTATED", `ApiConsumer:${req.params.id}`, null, { clientId: result.clientId });
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({ ...result, note: "The previous secret no longer works. Send the new one now; it cannot be shown again." });
+    } catch (error) {
+      return consumerFail(res, error, next);
+    }
+  });
+
+  for (const [path, status] of [["suspend", "suspended"], ["reinstate", "approved"]] as const) {
+    router.post(`/api-consumers/:id/${path}`, write, async (req: AuthorizedRequest, res, next) => {
+      try {
+        await setConsumerStatus(req.params.id, status);
+        await audit(req.securitySession!, status === "suspended" ? "API_CONSUMER_SUSPENDED" : "API_CONSUMER_REINSTATED", `ApiConsumer:${req.params.id}`, { status: status === "suspended" ? "approved" : "suspended" }, { status });
+        return res.json({ status });
+      } catch (error) {
+        return consumerFail(res, error, next);
+      }
+    });
+  }
 
   // ---- integration job queue ----
   router.get("/jobs", read, async (req, res, next) => {

@@ -15,6 +15,7 @@ export function rejectIfOAuthError(req: AuthorizedRequest, res: Response): boole
   if (!req.oauthError) return false;
   const failure = req.oauthError;
   res.setHeader("WWW-Authenticate", `Bearer error="${failure.reason === "invalid_token" ? "invalid_token" : "insufficient_scope"}"`);
+      if (failure.retryAfterSeconds) res.setHeader("Retry-After", String(failure.retryAfterSeconds));
   res.status(failure.status).json({ error: failure.message, code: failure.reason.toUpperCase() });
   return true;
 }

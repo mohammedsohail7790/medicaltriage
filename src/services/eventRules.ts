@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { shouldUseDatabasePersistence } from "../config/runtime.js";
+import { shouldPersistPlatformInDatabase } from "../config/runtime.js";
 import { prisma } from "../db.js";
 import { getEmailAdapter } from "./communicationAdapters.js";
 import { eventMatches, subscribe, type PlatformEvent } from "./eventBus.js";
@@ -68,18 +68,18 @@ const fromRow = (row: Row): StoredRule => ({
 });
 
 export async function listRules(): Promise<StoredRule[]> {
-  if (!shouldUseDatabasePersistence()) return [...memory.values()].sort((a, b) => a.name.localeCompare(b.name));
+  if (!shouldPersistPlatformInDatabase()) return [...memory.values()].sort((a, b) => a.name.localeCompare(b.name));
   return (await prisma.eventRule.findMany({ orderBy: { name: "asc" } })).map(fromRow);
 }
 export async function getRule(id: string): Promise<StoredRule | undefined> {
-  if (!shouldUseDatabasePersistence()) return memory.get(id);
+  if (!shouldPersistPlatformInDatabase()) return memory.get(id);
   const row = await prisma.eventRule.findUnique({ where: { id } });
   return row ? fromRow(row) : undefined;
 }
 export async function createRule(input: RuleInputType, actor: string): Promise<StoredRule> {
   validateRule(input);
   cache = undefined;
-  if (!shouldUseDatabasePersistence()) {
+  if (!shouldPersistPlatformInDatabase()) {
     const now = new Date().toISOString();
     const rule: StoredRule = { ...input, id: `rule-${randomUUID()}`, createdBy: actor, updatedBy: actor, createdAtIso: now, updatedAtIso: now };
     memory.set(rule.id, rule);
@@ -91,7 +91,7 @@ export async function updateRule(id: string, input: RuleInputType, actor: string
   validateRule(input);
   cache = undefined;
   if (!(await getRule(id))) throw new RuleError(404, "Rule not found.", "RULE_NOT_FOUND");
-  if (!shouldUseDatabasePersistence()) {
+  if (!shouldPersistPlatformInDatabase()) {
     const current = memory.get(id)!;
     const next: StoredRule = { ...current, ...input, updatedBy: actor, updatedAtIso: new Date().toISOString() };
     memory.set(id, next);
@@ -102,7 +102,7 @@ export async function updateRule(id: string, input: RuleInputType, actor: string
 export async function deleteRule(id: string): Promise<void> {
   cache = undefined;
   if (!(await getRule(id))) throw new RuleError(404, "Rule not found.", "RULE_NOT_FOUND");
-  if (!shouldUseDatabasePersistence()) memory.delete(id);
+  if (!shouldPersistPlatformInDatabase()) memory.delete(id);
   else await prisma.eventRule.delete({ where: { id } });
 }
 
@@ -144,7 +144,7 @@ export async function evaluateRules(event: PlatformEvent): Promise<FiredAlert[]>
     await notify(rule, event);
     fired.push(alert);
     alertListeners.forEach((fn) => fn(alert));
-    if (shouldUseDatabasePersistence()) void prisma.eventRule.update({ where: { id: rule.id }, data: { lastFiredAt: new Date() } }).catch(() => undefined);
+    if (shouldPersistPlatformInDatabase()) void prisma.eventRule.update({ where: { id: rule.id }, data: { lastFiredAt: new Date() } }).catch(() => undefined);
   }
   return fired;
 }

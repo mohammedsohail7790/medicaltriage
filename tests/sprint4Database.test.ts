@@ -1,11 +1,12 @@
 import type { Application } from "express";
+import supertest from "supertest";
 
 // Sprint 4 paths that need PostgreSQL: durable webhook delivery with retry, dead-letter and replay, the
 // integration job queue, and the interface watcher log. Skipped without DATABASE_URL.
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
 process.env.ADMIN_PASSWORD = "TestAdminPassword!2026";
-process.env.MOCK_MODE = "false"; // database persistence on for the subsystems under test
+process.env.PLATFORM_DB_PERSISTENCE = "true"; // durable state on for the subsystems under test
 process.env.AUDIT_EVENT_DB_PERSISTENCE = "true";
 process.env.AUDIT_HMAC_SECRET ??= "ci-only-audit-hmac-secret-not-for-production";
 process.env.FIELD_ENCRYPTION_ENABLED = "true";
@@ -220,6 +221,149 @@ describeDb("Sprint 4 database-backed behaviour", () => {
       expect(JSON.stringify(row.payload)).not.toContain("Secret Name");
       setExternalClientForTests(undefined);
       delete process.env.INTERFACE_LOG_DB_PERSISTENCE;
+    });
+  });
+
+  describe("NFR-003 / NFR-004 consumer onboarding, tokens and budgets", () => {
+    let app: Application;
+    let admin: ReturnType<typeof supertest.agent>;
+    const oldEnv = { ...process.env };
+
+    beforeAll(async () => {
+      const { authenticator } = await import("otplib");
+      const sec = await import("../src/services/securityAdmin.js");
+      sec.resetSecurityStoreForTests();
+      (await import("../src/middleware/rateLimit.js")).resetRateLimitBucketsForTests();
+      app = (await import("../src/app.js")).createApp();
+      admin = supertest.agent(app);
+      await admin.post("/api/v1/auth/login").send({ username: "rishma@irisstar.tech", password: process.env.ADMIN_PASSWORD, simulateRole: "platform_super_administrator" }).expect(200);
+      const { secret } = sec.enrollMfa("usr_platform_admin_10001");
+      sec.confirmMfaEnrollment("usr_platform_admin_10001", authenticator.generate(secret));
+      await admin.post("/api/v1/admin/elevate").send({ code: authenticator.generate(secret) }).expect(200);
+    });
+    afterAll(() => {
+      process.env = { ...oldEnv };
+    });
+
+    const form = { name: "Reporting app", organization: "Qatar Airways IT", contactEmail: "dev@qr.example", purpose: "Read queue statistics for the operations dashboard.", sizing: { expectedRequestsPerMinute: 30, peakRequestsPerMinute: 120, integrationType: "read-only" } };
+    const api = () => supertest(app);
+
+    async function onboard(decision: Record<string, unknown> = { decision: "approve", role: "remote_triage_nurse", rateLimitPerMinute: 100 }) {
+      const request = api();
+      const registered = await request.post("/api/v1/developer/register").send(form).expect(201);
+      const approved = await admin.post(`/api/v1/admin/integrations/api-consumers/${registered.body.requestId}/decision`).send(decision).expect(200);
+      return { id: registered.body.requestId as string, ...approved.body } as { id: string; clientId: string; clientSecret: string };
+    }
+    function tokenFor(clientId: string, clientSecret: string) {
+      const request = api();
+      return request.post("/api/v1/oauth/token").type("form").send({ grant_type: "client_credentials", client_id: clientId, client_secret: clientSecret });
+    }
+
+    it("onboards a consumer end to end through the API alone: register, approve, credentials, token, call", async () => {
+      const request = api();
+      const page = await request.get("/developers").expect(200);
+      expect(page.text).toContain("Request access");
+      await request.get("/developers/register.js").expect(200);
+      const bad = await request.post("/api/v1/developer/register").send({ name: "x" }).expect(400);
+      expect(bad.body.error).toMatch(/Please check/);
+
+      const credentials = await onboard();
+      expect(credentials.clientId).toMatch(/^cl_/);
+      expect(credentials.clientSecret).toMatch(/^cs_/);
+      const stored = await basePrisma.apiConsumer.findUniqueOrThrow({ where: { id: credentials.id } });
+      expect(stored).toMatchObject({ status: "approved", role: "remote_triage_nurse", rateLimitPerMinute: 100 });
+      expect(JSON.stringify(stored)).not.toContain(credentials.clientSecret);
+      const listed = await admin.get("/api/v1/admin/integrations/api-consumers?status=approved").expect(200);
+      expect(JSON.stringify(listed.body)).not.toContain("clientSecretHash");
+
+      const token = await tokenFor(credentials.clientId, credentials.clientSecret).expect(200);
+      expect(token.body).toMatchObject({ token_type: "Bearer", expires_in: 3600 });
+      expect(token.headers["cache-control"]).toBe("no-store");
+      await request.get("/api/v1/queue").set("Authorization", `Bearer ${token.body.access_token}`).expect(200);
+      await request.get("/api/v1/admin/users").set("Authorization", `Bearer ${token.body.access_token}`).expect(403); // its role does not allow it
+    });
+
+    it("refuses wrong secrets, unknown clients, unsupported grants, tampered and expired tokens", async () => {
+      const request = api();
+      const c = await onboard();
+      await tokenFor(c.clientId, "cs_wrong").expect(401);
+      await tokenFor("cl_unknown", "cs_x").expect(401);
+      await request.post("/api/v1/oauth/token").type("form").send({ grant_type: "password" }).expect(400);
+      const good = (await tokenFor(c.clientId, c.clientSecret).expect(200)).body.access_token as string;
+      const [h, p, sig] = good.split(".");
+      const forgedPayload = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(p, "base64url").toString()), cid: c.clientId, exp: 99999999999 })).toString("base64url");
+      await request.get("/api/v1/queue").set("Authorization", `Bearer ${h}.${forgedPayload}.${sig}`).expect(401);
+      const expiredPayload = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(p, "base64url").toString()), exp: 1 })).toString("base64url");
+      await request.get("/api/v1/queue").set("Authorization", `Bearer ${h}.${expiredPayload}.${sig}`).expect(401);
+      const basic = Buffer.from(`${c.clientId}:${c.clientSecret}`).toString("base64");
+      await request.post("/api/v1/oauth/token").set("Authorization", `Basic ${basic}`).type("form").send({ grant_type: "client_credentials" }).expect(200);
+    });
+
+    it("gives each consumer its own request budget and answers 429 with Retry-After when it is used up", async () => {
+      const request = api();
+      const c = await onboard({ decision: "approve", role: "remote_triage_nurse", rateLimitPerMinute: 3 });
+      const token = (await tokenFor(c.clientId, c.clientSecret).expect(200)).body.access_token as string;
+      const other = await onboard({ decision: "approve", role: "remote_triage_nurse", rateLimitPerMinute: 50 });
+      const otherToken = (await tokenFor(other.clientId, other.clientSecret).expect(200)).body.access_token as string;
+      for (let i = 0; i < 3; i += 1) await request.get("/api/v1/queue").set("Authorization", `Bearer ${token}`).expect(200);
+      const limited = await request.get("/api/v1/queue").set("Authorization", `Bearer ${token}`).expect(429);
+      expect(Number(limited.headers["retry-after"])).toBeGreaterThanOrEqual(1);
+      expect(limited.body.code).toBe("RATE_LIMITED");
+      await request.get("/api/v1/queue").set("Authorization", `Bearer ${otherToken}`).expect(200); // another consumer is unaffected
+    });
+
+    it("lets an administrator suspend, reinstate and rotate, and refuses what is not allowed", async () => {
+      const request = api();
+      const c = await onboard();
+      const token = (await tokenFor(c.clientId, c.clientSecret).expect(200)).body.access_token as string;
+      await request.get("/api/v1/queue").set("Authorization", `Bearer ${token}`).expect(200);
+
+      await admin.post(`/api/v1/admin/integrations/api-consumers/${c.id}/suspend`).expect(200);
+      const { resetConsumerCacheForTests } = await import("../src/services/apiConsumers.js");
+      resetConsumerCacheForTests();
+      await request.get("/api/v1/queue").set("Authorization", `Bearer ${token}`).expect(403);
+      await tokenFor(c.clientId, c.clientSecret).expect(403);
+      await admin.post(`/api/v1/admin/integrations/api-consumers/${c.id}/reinstate`).expect(200);
+      resetConsumerCacheForTests();
+      await request.get("/api/v1/queue").set("Authorization", `Bearer ${token}`).expect(200);
+
+      const rotated = (await admin.post(`/api/v1/admin/integrations/api-consumers/${c.id}/rotate-secret`).expect(200)).body;
+      await tokenFor(c.clientId, c.clientSecret).expect(401);
+      await tokenFor(c.clientId, rotated.clientSecret).expect(200);
+
+      const registered = await request.post("/api/v1/developer/register").send(form).expect(201);
+      const id = registered.body.requestId;
+      const priv = await admin.post(`/api/v1/admin/integrations/api-consumers/${id}/decision`).send({ decision: "approve", role: "platform_super_administrator" }).expect(400);
+      expect(priv.body.code).toBe("CONSUMER_ROLE_PRIVILEGED");
+      await admin.post(`/api/v1/admin/integrations/api-consumers/${id}/decision`).send({ decision: "approve", role: "no_such_role" }).expect(400);
+      await admin.post(`/api/v1/admin/integrations/api-consumers/${id}/decision`).send({ decision: "reject", note: "Not now" }).expect(200);
+      await admin.post(`/api/v1/admin/integrations/api-consumers/${id}/decision`).send({ decision: "approve", role: "remote_triage_nurse" }).expect(409);
+      expect(await basePrisma.auditEvent.findFirst({ where: { action: "API_CONSUMER_APPROVED" } })).not.toBeNull();
+    });
+
+    it("limits a consumer to its approved networks", async () => {
+      const c = await onboard({ decision: "approve", role: "remote_triage_nurse", allowedIps: ["198.51.100.0/24"] });
+      const response = await tokenFor(c.clientId, c.clientSecret).expect(403);
+      expect(response.body.error_description).toMatch(/network/);
+    });
+  });
+
+  describe("NFR-004 shared rate-limit counters", () => {
+    it("counts in the database, so every instance sees the same total, and falls back to memory when the store fails", async () => {
+      process.env.RATE_LIMIT_STORE = "database";
+      const { checkBudget, rateLimitStoreName } = await import("../src/middleware/rateLimit.js");
+      expect(rateLimitStoreName()).toBe("database");
+      const key = `${run}-shared`;
+      const first = await checkBudget(key, 60_000, 2);
+      const second = await checkBudget(key, 60_000, 2);
+      const third = await checkBudget(key, 60_000, 2);
+      expect([first.count, second.count, third.count]).toEqual([1, 2, 3]);
+      expect([first.allowed, second.allowed, third.allowed]).toEqual([true, true, false]);
+      // Concurrent hits (as from several instances) are all counted.
+      await Promise.all(Array.from({ length: 10 }, () => checkBudget(`${run}-burst`, 60_000, 100)));
+      const row = await basePrisma.rateLimitBucket.findFirstOrThrow({ where: { key: `${run}-burst` } });
+      expect(row.count).toBe(10);
+      delete process.env.RATE_LIMIT_STORE;
     });
   });
 });

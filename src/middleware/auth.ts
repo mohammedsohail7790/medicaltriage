@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedSession } from "../types/security.js";
 import { runWithActor } from "../services/softDelete.js";
 import { requireSecret, secretVersions } from "../config/secrets.js";
+import { authenticateConsumerToken, looksLikeConsumerToken } from "../services/apiConsumers.js";
 import { authenticateOAuthBearer, looksLikeOAuthToken, OAuthBearerError } from "../services/oauthBearer.js";
 import { getSessionEndReason, getSessionFromStore, parseSessionCookie, recordSessionActivity, validateSessionContext } from "../services/securityAdmin.js";
 
@@ -98,6 +99,16 @@ async function sessionFromBearerToken(req: Request): Promise<AuthenticatedSessio
   const token = authorization.slice("Bearer ".length).trim();
   // AI-001 / NFR-028: a token signed by the identity provider (asymmetric algorithm) is an OAuth
   // access token for an approved API client; the application's own session tokens are HS256.
+  // NFR-003 / NFR-004: an access token issued to an onboarded API consumer.
+  if (looksLikeConsumerToken(token)) {
+    try {
+      return await authenticateConsumerToken(token, req.ip ?? "unknown");
+    } catch (error) {
+      if (error instanceof OAuthBearerError) (req as AuthenticatedRequest).oauthError = error;
+      else throw error;
+      return undefined;
+    }
+  }
   if (looksLikeOAuthToken(token)) {
     try {
       return await authenticateOAuthBearer(token, req.ip ?? "unknown");
@@ -150,6 +161,7 @@ export async function requireAuthenticatedSession(req: AuthenticatedRequest, res
     if (!session && req.oauthError) {
       const failure = req.oauthError;
       res.setHeader("WWW-Authenticate", `Bearer error="${failure.reason === "invalid_token" ? "invalid_token" : "insufficient_scope"}"`);
+      if (failure.retryAfterSeconds) res.setHeader("Retry-After", String(failure.retryAfterSeconds));
       return res.status(failure.status).json({ error: failure.message, code: failure.reason.toUpperCase() });
     }
     if (!session) {

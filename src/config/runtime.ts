@@ -127,6 +127,13 @@ export function getAllowedCorsOrigins(): string[] {
   return splitOrigins(process.env.CORS_ALLOWED_ORIGINS);
 }
 
+// Webhooks, the integration job queue, alert rules, API consumers and the interface log keep durable state. They
+// follow their own flag so a deployment that still runs in mock mode (the demo, the SOC2 service) can turn them on
+// without turning on live integrations. Defaults to on whenever the service runs in live mode.
+export function shouldPersistPlatformInDatabase(): boolean {
+  return envFlag("PLATFORM_DB_PERSISTENCE", !isMockMode());
+}
+
 export function shouldUseDatabasePersistence(): boolean {
   return !isMockMode();
 }
