@@ -1,3 +1,4 @@
+import { callExternal } from "../integration/externalClient.js";
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { matchesAllowlist, parseAllowlist } from "../middleware/ipAllowlist.js";
 import { requireSecret } from "../config/secrets.js";
@@ -135,7 +136,7 @@ export async function verifyCaptcha(token: string | undefined, ipAddress: string
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 5000);
   try {
-    const send = verifyFetch ?? ((target, init) => fetch(target, init) as unknown as ReturnType<VerifyFetch>);
+    const send = verifyFetch ?? ((target, init) => callExternal("captcha", target, init as RequestInit, { attempts: 1 }) as unknown as ReturnType<VerifyFetch>);
     const response = await send(url, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },

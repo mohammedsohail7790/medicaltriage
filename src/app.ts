@@ -1,3 +1,4 @@
+import { interfaceWatcher } from "./integration/interfaceLog.js";
 import { captchaProvider, validateCaptchaConfiguration, WIDGET_ORIGINS } from "./services/captcha.js";
 import { validateArchiveHandoffConfiguration } from "./services/archiveHandoff.js";
 import { validateLoginEncryptionConfiguration } from "./services/loginEncryption.js";
@@ -245,11 +246,12 @@ export function createApp() {
 
   app.use("/api/v1", defaultApiRateLimit);
   app.use("/api/v1/auth", createAuthRouter());
-  app.use("/api/v1/hrms", createHrmsRouter());
-  app.use("/api/v1/integrations/call-center", createCallCenterInboundRouter());
+  // NFR-096: inbound calls from other systems are logged before they are processed.
+  app.use("/api/v1/hrms", interfaceWatcher("hrms"), createHrmsRouter());
+  app.use("/api/v1/integrations/call-center", interfaceWatcher("call-center"), createCallCenterInboundRouter());
   app.use("/api/v1/admin", requireAuthenticatedSession, createAdminRouter());
   app.use("/api/v1/approval", requireAuthenticatedSession, createApprovalRouter());
-  app.use("/api/v1/ccp", requireAuthenticatedSession, createCcpRouter());
+  app.use("/api/v1/ccp", requireAuthenticatedSession, interfaceWatcher("ccp"), createCcpRouter());
   app.use("/api/v1/staff/validate", staffValidateRateLimit);
   app.use("/api/v1/staff", requireAuthenticatedSession, createStaffRouter());
   app.use("/api/v1/me", requireAuthenticatedSession, createMeRouter());
@@ -260,7 +262,7 @@ export function createApp() {
   app.use("/api/v1/simulation", requireAuthenticatedSession, createSimulationRouter());
   app.use("/api/v1/triage", requireAuthenticatedSession, createTriageRouter());
   app.use("/api/v1/voice-assessment", requireAuthenticatedSession, createVoiceAssessmentRouter());
-  app.use("/api/v1/emr", requireAuthenticatedSession, createEmrRouter());
+  app.use("/api/v1/emr", requireAuthenticatedSession, interfaceWatcher("emr"), createEmrRouter());
   // Closes NFR-011 (UX tab) - a real user-feedback capture mechanism.
   app.use("/api/v1/feedback", requireAuthenticatedSession, createFeedbackRouter());
   app.use("/api/v1/help", createHelpApiRouter());

@@ -1,3 +1,4 @@
+import { callExternal } from "../integration/externalClient.js";
 import { createHmac } from "node:crypto";
 import { requireSecret } from "../config/secrets.js";
 import type { AuditEvent } from "../types/security.js";
@@ -75,7 +76,7 @@ export function signAuditPayload(body: string, secret: string): string {
   return createHmac("sha256", secret).update(body).digest("hex");
 }
 
-export function createSink(config: AuditSinkConfig, fetchImpl: FetchLike = fetch as unknown as FetchLike): AuditSink {
+export function createSink(config: AuditSinkConfig, fetchImpl: FetchLike = (((url: string, init: unknown) => callExternal("audit-sink", url, init as RequestInit, { attempts: 1 })) as unknown as FetchLike)): AuditSink {
   if (config.type === "stdout") {
     return {
       name: config.name,

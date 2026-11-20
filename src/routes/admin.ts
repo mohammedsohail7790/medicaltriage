@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import { recentInterfaceEntries } from "../integration/interfaceLog.js";
 import { acknowledgeToken, datasetShape, ExtractionError, extractPage, listDatasets, storedToken, toCsv, toParquet } from "../services/dataExports.js";
 import { basePrisma } from "../db.js";
 import { RETENTION_TARGETS } from "../services/retentionEngine.js";
@@ -678,6 +679,22 @@ export function createAdminRouter(): Router {
         nextOffset: events.length === limit ? offset + limit : null,
         events: events.map((event) => ({ ...event, summary: traceSummary(event), change: (event.metadata as { change?: unknown } | undefined)?.change ?? null }))
       });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  // NFR-096: the interface watcher log, by integration or correlation identifier.
+  router.get("/interface-log", requirePermission("audit.events.view"), async (req, res, next) => {
+    try {
+      const integration = typeof req.query.integration === "string" ? req.query.integration : undefined;
+      const correlationId = typeof req.query.correlationId === "string" ? req.query.correlationId : undefined;
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
+      const persistent = (process.env.INTERFACE_LOG_DB_PERSISTENCE ?? (process.env.NODE_ENV === "production" ? "true" : "false")) === "true";
+      const entries = persistent
+        ? await basePrisma.interfaceLog.findMany({ where: { ...(integration ? { integration } : {}), ...(correlationId ? { correlationId } : {}) }, orderBy: { timestamp: "desc" }, take: limit })
+        : recentInterfaceEntries({ integration, correlationId, limit });
+      return res.json({ entries });
     } catch (error) {
       return next(error);
     }

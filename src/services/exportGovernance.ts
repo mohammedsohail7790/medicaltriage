@@ -1,3 +1,4 @@
+import { callExternal } from "../integration/externalClient.js";
 import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "../db.js";
 import { shouldUseDatabasePersistence } from "../config/runtime.js";
@@ -233,7 +234,7 @@ export async function inspectExportWithDlp(descriptor: ExportDescriptor, env: Re
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), Number(env.EXPORT_DLP_TIMEOUT_MS ?? "5000") || 5000);
   try {
-    const send = dlpFetch ?? ((target, init) => fetch(target, init) as unknown as ReturnType<DlpFetch>);
+    const send = dlpFetch ?? ((target, init) => callExternal("dlp", target, init as RequestInit, { attempts: 1 }) as unknown as ReturnType<DlpFetch>);
     const response = await send(url, {
       method: "POST",
       headers: { "content-type": "application/json", "x-dlp-signature": signAuditPayload(body, requireSecret("EXPORT_DLP_SECRET")) },

@@ -1952,3 +1952,25 @@ model ExtractionCursor {
   @@id([consumer, dataset])
   @@map("extraction_cursors")
 }
+
+// NFR-096: every inbound and outbound interface call, logged before it is processed.
+model InterfaceLog {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  direction     String
+  integration   String
+  sender        String
+  receiver      String
+  correlationId String   @map("correlation_id")
+  method        String
+  path          String
+  payload       Json?
+  status        Int?
+  durationMs    Int?     @map("duration_ms")
+  attempts      Int?
+  error         String?
+
+  @@index([integration, timestamp])
+  @@index([correlationId])
+  @@map("interface_logs")
+}

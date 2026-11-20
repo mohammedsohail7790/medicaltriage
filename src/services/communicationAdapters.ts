@@ -204,7 +204,8 @@ export class TwilioMessagingAdapter implements MessagingAdapter {
           "Content-Type": "application/x-www-form-urlencoded"
         },
         body: form
-      }
+      },
+      { integration: "twilio" }
     );
 
     const payload = (await response.json().catch(() => ({}))) as { sid?: string; message?: string; code?: number };
@@ -329,7 +330,8 @@ export class MicrosoftGraphEmailAdapter implements EmailAdapter {
           "Content-Type": "application/json"
         },
         body: JSON.stringify(payload)
-      }
+      },
+      { integration: "msgraph-mail" }
     );
 
     if (!response.ok) {
@@ -377,7 +379,7 @@ async function getGraphToken(config: GraphConfig): Promise<string> {
       "Content-Type": "application/x-www-form-urlencoded"
     },
     body
-  });
+  }, { integration: "msgraph-auth" });
 
   const payload = (await response.json()) as {
     access_token?: string;

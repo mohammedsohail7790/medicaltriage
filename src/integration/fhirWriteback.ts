@@ -1,3 +1,4 @@
+import { callExternal, integrationPolicy } from "./externalClient.js";
 import { runInTransaction } from "../services/dbTransaction.js";
 import type {
   AcuityDispositionCode,
@@ -348,14 +349,14 @@ export async function verifyPatientConsent(patientId: string, accessToken: strin
 
   const consentUrl = new URL("Consent", baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`);
   consentUrl.searchParams.set("patient", patientId);
-  const response = await fetch(consentUrl, {
+  const response = await callExternal("qhie", consentUrl, {
     method: "GET",
     headers: {
       accept: FHIR_JSON_CONTENT_TYPE,
       authorization: `Bearer ${accessToken}`,
       ...(requestId ? { "x-request-id": requestId } : {})
     }
-  });
+  }, { correlationId: requestId });
 
   if (!response.ok) {
     throw new Error(`QHIE consent check failed with HTTP ${response.status}.`);
@@ -587,8 +588,9 @@ function writebackMode(options: ExecuteWritebackOptions): "dry-run" | "live" {
   return (process.env.FHIR_WRITEBACK_MODE ?? "dry-run").toLowerCase() === "live" ? "live" : "dry-run";
 }
 
-const WRITEBACK_MAX_ATTEMPTS = 3;
-const WRITEBACK_RETRY_BASE_DELAY_MS = 250;
+// Attempts and back-off follow the integration policy (INTEGRATION_EMR_FHIR_RETRIES, _BACKOFF_MS).
+const WRITEBACK_MAX_ATTEMPTS = integrationPolicy("emr-fhir").maxAttempts;
+const WRITEBACK_RETRY_BASE_DELAY_MS = integrationPolicy("emr-fhir").baseDelayMs;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -599,7 +601,8 @@ function sleep(ms: number): Promise<void> {
 // Never retries a 4xx: a bad token or malformed payload will fail identically
 // on every attempt, so retrying it only delays surfacing a real error.
 async function postDocumentReferenceOnce(endpoint: string, token: string, payload: FhirDocumentReference, requestId?: string) {
-  const response = await fetch(endpoint, {
+  // This function is retried by postDocumentReference below, so each call here is a single attempt.
+  const response = await callExternal("emr-fhir", endpoint, {
     method: "POST",
     headers: {
       authorization: `Bearer ${token}`,
@@ -608,7 +611,7 @@ async function postDocumentReferenceOnce(endpoint: string, token: string, payloa
       ...(requestId ? { "x-request-id": requestId } : {})
     },
     body: JSON.stringify(payload)
-  });
+  }, { attempts: 1, correlationId: requestId });
   const body = (await response.text()).trim();
   if (!response.ok) {
     const error = new Error(`FHIR DocumentReference POST failed with HTTP ${response.status}: ${body}`) as Error & {

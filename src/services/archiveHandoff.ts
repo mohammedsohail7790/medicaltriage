@@ -1,3 +1,4 @@
+import { callExternal } from "../integration/externalClient.js";
 import { createHash } from "node:crypto";
 import { basePrisma } from "../db.js";
 import { requireSecret } from "../config/secrets.js";
@@ -63,7 +64,7 @@ export async function handOffArchive(options: { batchSize?: number } = {}): Prom
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 30_000);
       try {
-        const send = handoffFetch ?? ((target, init) => fetch(target, init) as unknown as ReturnType<HandoffFetch>);
+        const send = handoffFetch ?? ((target, init) => callExternal("archive-handoff", target, init as RequestInit, { attempts: 1 }) as unknown as ReturnType<HandoffFetch>);
         const response = await send(url, { method: "POST", headers: { "content-type": "application/json", "x-archive-signature": signAuditPayload(body, requireSecret("ARCHIVE_HANDOFF_SECRET")) }, body, signal: controller.signal });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         reference = ((await response.json().catch(() => ({}))) as { reference?: string }).reference;
