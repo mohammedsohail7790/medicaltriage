@@ -41,6 +41,9 @@ import { createJobStatusRouter, createOpsAdminRouter } from "./routes/opsAdmin.j
 import { createHandoffRouter } from "./routes/handoffRouter.js";
 import { createNoteTemplatesRouter } from "./routes/noteTemplates.js";
 import { createSafetyRouter } from "./routes/safetyRouter.js";
+import { metricsAuthorised, prometheusText } from "./observability/metrics.js";
+import { tracingMiddleware } from "./observability/tracing.js";
+import { requestCounter } from "./services/resourceGuard.js";
 import { apiAnalytics } from "./services/apiAnalytics.js";
 import { gatewayGuard } from "./middleware/gatewayGuard.js";
 import { apiVersioning, createVersionsRouter } from "./middleware/apiVersioning.js";
@@ -201,6 +204,8 @@ export function createApp() {
   app.use(compression());
   app.use(requestIdMiddleware());
   app.use(requestDurationLogger());
+  app.use(requestCounter());
+  app.use(tracingMiddleware());
   app.use(apiAnalytics());
   app.use(gatewayGuard());
   // Optional IP allowlisting (NFR-027) - a no-op unless IP_ALLOWLIST is set,
@@ -253,6 +258,17 @@ export function createApp() {
   });
 
   app.use(apiVersioning());
+  // NFR-131: metrics for a scraper, bearer-token protected, absent unless METRICS_TOKEN is set.
+  app.get("/metrics", async (req, res, next) => {
+    try {
+      const verdict = metricsAuthorised(req.get("authorization"));
+      if (verdict === "disabled") return res.status(404).json({ error: "Route not found" });
+      if (verdict === "denied") return res.status(401).json({ error: "Invalid metrics token" });
+      return res.type("text/plain; version=0.0.4").send(await prometheusText());
+    } catch (error) {
+      return next(error);
+    }
+  });
   app.get("/api/v1/runtime/environment", (_req, res) => {
     res.json(publicRuntimeEnvironment());
   });

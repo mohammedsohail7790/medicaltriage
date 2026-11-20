@@ -2,6 +2,7 @@ import { registerBrokerPublishing } from "../integration/messageBroker.js";
 import { getEmailAdapter } from "./communicationAdapters.js";
 import { registerRuleSubscriber } from "./eventRules.js";
 import { registerJobHandler, startJobWorker } from "./integrationQueue.js";
+import { startTraceExporter } from "../observability/tracing.js";
 import { startSchedulerWorker } from "./jobScheduler.js";
 import { registerSchedulerHandlers } from "./schedulerHandlers.js";
 import { registerWebhookSubscriber, startWebhookWorker } from "./webhooks.js";
@@ -39,4 +40,5 @@ export function startPlatformWorkers(): void {
   startWebhookWorker();
   startJobWorker();
   startSchedulerWorker();
+  startTraceExporter();
 }

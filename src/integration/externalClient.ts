@@ -1,3 +1,4 @@
+import { currentTraceparent, withSpan } from "../observability/tracing.js";
 import { randomUUID } from "node:crypto";
 import { startInterfaceLog } from "./interfaceLog.js";
 
@@ -119,7 +120,12 @@ export async function callExternal(integration: string, url: string | URL, init:
         const hasCorrelation = new Headers(given).has("x-correlation-id");
         const headers: HeadersInit | undefined =
           hasCorrelation ? given : given instanceof Headers ? (() => { const h = new Headers(given); h.set("x-correlation-id", correlationId); return h; })() : Array.isArray(given) ? [...given, ["x-correlation-id", correlationId]] : { ...(given as Record<string, string> | undefined), "x-correlation-id": correlationId };
-        const response = await (fetchImpl ?? ((u: string | URL, i: RequestInit) => fetch(u, i)))(url instanceof URL ? url : String(url), { ...init, headers, signal: init.signal ?? controller.signal });
+        // NFR-101: a call made while a trace is in progress is a span of it, and passes the trace on.
+        const response = await withSpan(`HTTP ${method} ${target.host}`, "client", { "http.method": method, "peer.service": integration, "net.peer.name": target.host }, async () => {
+          const tp = currentTraceparent();
+          const traced: HeadersInit | undefined = !tp ? headers : headers instanceof Headers ? (() => { const h = new Headers(headers); h.set("traceparent", tp); return h; })() : Array.isArray(headers) ? [...headers, ["traceparent", tp]] : { ...(headers as Record<string, string> | undefined), traceparent: tp };
+          return (fetchImpl ?? ((u: string | URL, i: RequestInit) => fetch(u, i)))(url instanceof URL ? url : String(url), { ...init, headers: traced, signal: init.signal ?? controller.signal });
+        });
         if (response.status < 500 || attempt === maxAttempts) {
           done({ status: response.status, attempts });
           return response;

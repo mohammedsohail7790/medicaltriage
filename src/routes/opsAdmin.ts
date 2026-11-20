@@ -6,11 +6,17 @@ import { buildAuditChange } from "../services/auditChange.js";
 import { requireElevatedPermission, requirePermission, canPerformAction, type AuthorizedRequest } from "../services/authorization.js";
 import { WorkError } from "../services/clinicalWork.js";
 import { ScheduleInput, cancelRun, cancelSchedule, createSchedule, getRun, listRuns, listSchedules, runNow, schedulerHandlerNames, setScheduleEnabled } from "../services/jobScheduler.js";
+import { collectMetrics } from "../observability/metrics.js";
+import { recentTraces, spansForTrace } from "../observability/tracing.js";
+import { Thresholds, evaluate, getThresholds, setThresholds } from "../services/performanceMonitor.js";
+import { runSyntheticChecks } from "../services/syntheticChecks.js";
+import { usageInsights } from "../services/usageInsights.js";
 import { resourceLimits, resourceStatus } from "../services/resourceGuard.js";
 import { recordAuditEvent } from "../services/securityAdmin.js";
 import type { AuthenticatedSession } from "../types/security.js";
 
 export const ScheduleInputSchema = ScheduleInput;
+export const ThresholdsSchema = Thresholds;
 
 /**
  * Job scheduling and monitoring (NFR-041, 042, 043, 046, 039) and the status of asynchronous work (NFR-126).
@@ -36,6 +42,61 @@ export function createOpsAdminRouter(): Router {
 
   router.get("/handlers", read, (_req, res) => res.json({ handlers: schedulerHandlerNames() }));
   router.get("/resources", read, (_req, res) => res.json({ ...resourceStatus(), limits: resourceLimits() }));
+
+  // ---- performance monitoring, thresholds, traces (NFR-131, 110, 132, 101) ----
+  router.get("/metrics", read, async (_req, res, next) => {
+    try {
+      return res.json(await collectMetrics());
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.get("/thresholds", read, async (_req, res, next) => {
+    try {
+      return res.json({ thresholds: await getThresholds(), findings: evaluate(await getThresholds()) });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.put("/thresholds", write, async (req: AuthorizedRequest, res, next) => {
+    try {
+      const parsed = ThresholdsSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid thresholds", details: parsed.error.flatten() });
+      const change = await setThresholds(parsed.data, req.securitySession!.user.id);
+      await audit(req.securitySession!, "PERFORMANCE_THRESHOLDS_CHANGED", "PerformanceThresholds", change.before, change.after);
+      return res.json({ thresholds: change.after });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.get("/traces", read, (req, res) => {
+    const id = typeof req.query.traceId === "string" ? req.query.traceId : undefined;
+    return res.json(id ? { traceId: id, spans: spansForTrace(id) } : { traces: recentTraces(Math.min(Number(req.query.limit) || 50, 200)) });
+  });
+
+  router.get("/usage-insights", read, async (req: AuthorizedRequest, res, next) => {
+    try {
+      const reveal = req.query.reveal === "true" && canPerformAction(req.securitySession, "privacy.reveal.approve");
+      const insights = await usageInsights({ sinceIso: typeof req.query.since === "string" ? req.query.since : undefined, untilIso: typeof req.query.until === "string" ? req.query.until : undefined, organization: req.securitySession!.user.organizationId ?? undefined, revealUsers: reveal });
+      if (reveal) await audit(req.securitySession!, "USAGE_INSIGHTS_IDENTITIES_VIEWED", "UsageInsights", null, null);
+      return res.json({ ...insights, usersMasked: !reveal });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.post("/synthetic", write, async (req: AuthorizedRequest, res, next) => {
+    try {
+      const outcome = await runSyntheticChecks();
+      await audit(req.securitySession!, "SYNTHETIC_CHECKS_RUN", "SyntheticChecks", null, { ok: outcome.ok, failed: outcome.results.filter((r) => !r.ok).length });
+      return res.json(outcome);
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
 
   router.get("/schedules", read, async (_req, res, next) => {
     try {

@@ -26,6 +26,7 @@ export function requestDurationLogger() {
     const criticalEndpoint = criticalEndpointLabel(req);
     res.on("finish", () => {
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+      const traceId = (res.getHeader("traceparent") as string | undefined)?.split("-")[1];
       console.log(
         JSON.stringify({
           type: "request_duration",
@@ -34,6 +35,7 @@ export function requestDurationLogger() {
           path: req.path,
           statusCode: res.statusCode,
           durationMs: Math.round(durationMs * 100) / 100,
+          ...(traceId ? { traceId } : {}),
           ...(criticalEndpoint ? { criticalEndpoint } : {})
         })
       );

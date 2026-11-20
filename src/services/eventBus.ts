@@ -40,7 +40,8 @@ const FRIENDLY: Record<string, string> = {
   FAILED_LOGIN: "auth.login_failed",
   PASSWORD_CHANGED: "auth.password_changed",
   RETENTION_PURGE_EXECUTED: "retention.purged",
-  ARCHIVE_HANDOFF_FAILED: "archive.handoff_failed"
+  ARCHIVE_HANDOFF_FAILED: "archive.handoff_failed",
+  PERFORMANCE_DEGRADED: "performance.degraded"
 };
 
 export function knownEventTypes(): string[] {
