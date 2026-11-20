@@ -388,7 +388,9 @@ describe("Enterprise queue orchestration", () => {
         matchedProtocolId: "sample-fever-child",
         calculatedSeverity: "EMERGENCY",
         dispositionCode: "SIDRA_PEDIATRIC_ED",
-        destinationName: "Sidra Medicine Emergency Department"
+        destinationName: "Sidra Medicine Emergency Department",
+        // The Initial Assessment is required before disposition (F-008).
+        initialAssessmentResponses: { "emergency-rule-out": "no" }
       })
       .expect(200);
 

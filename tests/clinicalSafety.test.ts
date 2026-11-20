@@ -150,3 +150,45 @@ describe("F-023 / F-019 safety dashboard", () => {
     expect(res.body.kpis).toBeUndefined();
   });
 });
+
+describe("F-008 Initial Assessment", () => {
+  const { detectRedFlags, resetInitialAssessmentPolicyForTests, initialAssessmentRequired } = jest.requireActual("../src/services/initialAssessment.js") as typeof import("../src/services/initialAssessment.js");
+
+  beforeEach(() => resetInitialAssessmentPolicyForTests());
+
+  it("finds red-flag phrases in English and Arabic, and adds a protocol's own emergency keywords", () => {
+    expect(detectRedFlags("He has severe chest pain and cannot breathe").map((m) => m.id)).toEqual(expect.arrayContaining(["chest_pain", "breathing"]));
+    expect(detectRedFlags("لديه ألم في الصدر وصعوبة في التنفس").map((m) => m.id)).toEqual(expect.arrayContaining(["chest_pain", "breathing"]));
+    expect(detectRedFlags("sprained ankle after football")).toEqual([]);
+    expect(detectRedFlags("tingling in the jaw", ["jaw"]).map((m) => m.id)).toEqual(["protocol_keyword"]);
+  });
+
+  it("is required by default, and an administrator can relax it only with a reason; the change is audited", async () => {
+    expect(await initialAssessmentRequired(0)).toBe(true);
+    const admin = await agentFor("rishma@irisstar.tech", "platform_super_administrator");
+    await admin.put("/api/v1/safety/initial-assessment-policy").send({ required: false }).expect(400);
+    await admin.put("/api/v1/safety/initial-assessment-policy").send({ required: false, reason: "Pilot with a clinical-lead decision" }).expect(200);
+    expect(await initialAssessmentRequired(0)).toBe(false);
+    expect((await admin.get("/api/v1/safety/initial-assessment-policy").expect(200)).body.required).toBe(false);
+    const nurse = await agentFor("layla@irisstar.tech", "remote_triage_nurse");
+    await nurse.put("/api/v1/safety/initial-assessment-policy").send({ required: true }).expect(403);
+  });
+
+  it("blocks a move to disposition until the Initial Assessment has an answer", async () => {
+    const nurse = await agentFor("layla@irisstar.tech", "remote_triage_nurse");
+    await nurse.post("/api/v1/queue/case-10002/claim").expect(200);
+    const ready = { vitals: { heartRate: 80, respiratoryRate: 16, spo2: 98, temperature: 36.8, consciousLevel: "alert" }, matchedProtocolId: "sample-fever-child", calculatedSeverity: "URGENT", dispositionCode: "HMC_URGENT_CARE", destinationName: "Urgent care" };
+    await nurse.patch("/api/v1/queue/case-10002/context").send(ready).expect(200);
+    const blocked = await nurse.post("/api/v1/queue/case-10002/move").send({ toStage: "DISPOSITION", toStatus: "IN_PROCESS", reason: "Done" }).expect(400);
+    expect(blocked.body.code).toBe("QUEUE_INITIAL_ASSESSMENT_REQUIRED");
+    await nurse.patch("/api/v1/queue/case-10002/context").send({ initialAssessmentResponses: { q1: "no" } }).expect(200);
+    await nurse.post("/api/v1/queue/case-10002/move").send({ toStage: "DISPOSITION", toStatus: "IN_PROCESS", reason: "Done" }).expect(200);
+  });
+
+  it("serves the red-flag check to a nurse", async () => {
+    const nurse = await agentFor("layla@irisstar.tech", "remote_triage_nurse");
+    const res = await nurse.post("/api/v1/safety/red-flags").send({ text: "he collapsed and is unresponsive" }).expect(200);
+    expect(res.body.escalateNowSuggested).toBe(true);
+    await nurse.post("/api/v1/safety/red-flags").send({ text: "" }).expect(400);
+  });
+});

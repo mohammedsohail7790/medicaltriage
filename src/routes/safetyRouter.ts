@@ -7,6 +7,7 @@ import { QueueOrchestrationError } from "../services/queueOrchestration.js";
 import {
   IncidentClosure, IncidentInput, QaReviewInput, SamplingInput, WorkError, closeIncident, getItem, listItems, listQaQueue, maskedReviewView, reportIncident, sampleCalls, submitQaReview, takeIncidentForReview, type WorkItem
 } from "../services/clinicalWork.js";
+import { InitialAssessmentPolicy, detectRedFlags, initialAssessmentRequired, setInitialAssessmentPolicy } from "../services/initialAssessment.js";
 import { recordAuditEvent } from "../services/securityAdmin.js";
 import type { AuthenticatedSession } from "../types/security.js";
 import { liveSafetyDashboard } from "./approvalRouter.js";
@@ -65,6 +66,37 @@ export function createSafetyRouter(): Router {
     } catch (error) {
       return fail(res, error, next);
     }
+  });
+
+  // ---- F-008 Initial Assessment policy and red-flag check ----
+  router.get("/initial-assessment-policy", requireAnyPermission("safety.dashboard.view", "admin.users.manage", "triage.workspace.view"), async (_req, res, next) => {
+    try {
+      return res.json({ required: await initialAssessmentRequired(0) });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.put("/initial-assessment-policy", requireAnyPermission("admin.users.manage"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      const parsed = InitialAssessmentPolicy.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid policy", details: parsed.error.flatten() });
+      // Switching the rule-out off is a clinical-risk decision and needs a stated reason.
+      if (!parsed.data.required && !parsed.data.reason) return res.status(400).json({ error: "A reason is required to make the Initial Assessment optional." });
+      const change = await setInitialAssessmentPolicy(parsed.data, req.securitySession!.user.id);
+      await audit(req.securitySession!, "INITIAL_ASSESSMENT_POLICY_CHANGED", "InitialAssessmentPolicy", { required: change.before }, { required: change.after, reason: parsed.data.reason ?? null });
+      return res.json({ required: change.after });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.post("/red-flags", requireAnyPermission("triage.workspace.view"), (req: AuthorizedRequest, res) => {
+    const text = typeof req.body?.text === "string" ? req.body.text : "";
+    if (!text.trim() || text.length > 5000) return res.status(400).json({ error: "Give the caller's words, up to 5000 characters." });
+    const extra = Array.isArray(req.body?.emergencyKeywords) ? req.body.emergencyKeywords.filter((k: unknown): k is string => typeof k === "string").slice(0, 50) : [];
+    const matches = detectRedFlags(text, extra);
+    return res.json({ matches, escalateNowSuggested: matches.length > 0, note: "A prompt for the nurse. It never sets or lowers a disposition." });
   });
 
   // ---- F-021 incidents ----

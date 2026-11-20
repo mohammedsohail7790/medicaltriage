@@ -1,3 +1,4 @@
+import { initialAssessmentRequired } from "./initialAssessment.js";
 import { runInTransaction } from "./dbTransaction.js";
 import { buildAuditChange, type AuditChange } from "./auditChange.js";
 import { randomUUID } from "node:crypto";
@@ -2434,6 +2435,15 @@ export async function moveQueueItem(
   }
   validateMovePermissions(record, session, request);
   validateClinicalSequence(record, request);
+  // F-008: the Initial Assessment (emergency rule-out) must have been answered before a disposition is reached.
+  if (
+    stageIndex(request.toStage) >= stageIndex("DISPOSITION") &&
+    stageIndex(request.toStage) > stageIndex(record.currentStage) &&
+    Object.keys(record.initialAssessmentResponses ?? {}).length === 0 &&
+    (await initialAssessmentRequired())
+  ) {
+    throw new QueueOrchestrationError(400, "The Initial Assessment must be completed before disposition.", "QUEUE_INITIAL_ASSESSMENT_REQUIRED");
+  }
 
   const previous = { status: record.status, currentStage: record.currentStage };
   const beforeSnapshot = queueAuditSnapshot(record);
