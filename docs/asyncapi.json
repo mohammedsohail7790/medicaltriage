@@ -1,0 +1,196 @@
+{
+  "asyncapi": "2.6.0",
+  "info": {
+    "title": "IST Health Tele-Triage events",
+    "version": "1.0.0",
+    "description": "Event types carry the prefix com.irisstar.aimltriage.. Payloads hold references and changed field names, never record contents."
+  },
+  "channels": {
+    "approval.recorded": {
+      "description": "Published when approval.recorded occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "archive.handoff_failed": {
+      "description": "Published when archive.handoff_failed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "auth.login_failed": {
+      "description": "Published when auth.login_failed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "auth.password_changed": {
+      "description": "Published when auth.password_changed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "export.completed": {
+      "description": "Published when export.completed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "export.denied": {
+      "description": "Published when export.denied occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "integrity.failed": {
+      "description": "Published when integrity.failed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "queue.item.claimed": {
+      "description": "Published when queue.item.claimed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "queue.item.completed": {
+      "description": "Published when queue.item.completed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "queue.item.created": {
+      "description": "Published when queue.item.created occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "queue.item.deleted": {
+      "description": "Published when queue.item.deleted occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "queue.item.moved": {
+      "description": "Published when queue.item.moved occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "queue.item.updated": {
+      "description": "Published when queue.item.updated occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "retention.purged": {
+      "description": "Published when retention.purged occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "security.anomaly": {
+      "description": "Published when security.anomaly occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "security.session_mismatch": {
+      "description": "Published when security.session_mismatch occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "audit.{action}": {
+      "description": "Any other audited action is published as audit.<action in lower case>.",
+      "parameters": {
+        "action": {
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "PlatformEvent": {
+        "contentType": "application/cloudevents+json",
+        "payload": {
+          "type": "object",
+          "required": [
+            "specversion",
+            "id",
+            "source",
+            "type",
+            "time"
+          ],
+          "properties": {
+            "specversion": {
+              "type": "string",
+              "const": "1.0"
+            },
+            "id": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "time": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "subject": {
+              "type": "string"
+            },
+            "data": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

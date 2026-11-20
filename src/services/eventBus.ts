@@ -20,7 +20,7 @@ export type PlatformEvent = {
   data: Record<string, unknown>;
 };
 
-const TYPE_PREFIX = "com.irisstar.aimltriage.";
+export const TYPE_PREFIX = "com.irisstar.aimltriage.";
 
 // Friendly names for the events subscribers most often want; every other audit action is published as
 // audit.<action in lower case>.
@@ -42,6 +42,10 @@ const FRIENDLY: Record<string, string> = {
   RETENTION_PURGE_EXECUTED: "retention.purged",
   ARCHIVE_HANDOFF_FAILED: "archive.handoff_failed"
 };
+
+export function knownEventTypes(): string[] {
+  return Object.values(FRIENDLY).sort();
+}
 
 export function eventTypeFor(action: string): string {
   return FRIENDLY[action] ?? `audit.${action.toLowerCase()}`;

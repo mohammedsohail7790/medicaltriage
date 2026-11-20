@@ -37,6 +37,8 @@ import { createCcpRouter } from "./routes/ccp.js";
 import { createEmrRouter } from "./routes/emr.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createHelpApiRouter, createHelpPageRouter } from "./routes/helpRouter.js";
+import { apiAnalytics } from "./services/apiAnalytics.js";
+import { gatewayGuard } from "./middleware/gatewayGuard.js";
 import { apiVersioning, createVersionsRouter } from "./middleware/apiVersioning.js";
 import { createApiDocsRouter } from "./routes/apiDocsRouter.js";
 import { createMeRouter } from "./routes/meRouter.js";
@@ -195,6 +197,8 @@ export function createApp() {
   app.use(compression());
   app.use(requestIdMiddleware());
   app.use(requestDurationLogger());
+  app.use(apiAnalytics());
+  app.use(gatewayGuard());
   // Optional IP allowlisting (NFR-027) - a no-op unless IP_ALLOWLIST is set,
   // so it never affects an existing deployment that hasn't opted in.
   app.use(ipAllowlist(process.env.IP_ALLOWLIST));

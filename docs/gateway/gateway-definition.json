@@ -1,0 +1,1028 @@
+{
+  "backend": {
+    "address": "https://<backend-service-url>",
+    "forwardedHeaders": {
+      "x-gateway-secret": "<GATEWAY_SHARED_SECRET>"
+    },
+    "pathTranslation": "APPEND_PATH_TO_ADDRESS"
+  },
+  "authentication": {
+    "consumerTokens": "OAuth 2.0 client_credentials at POST /api/v1/oauth/token",
+    "userSessions": "Bearer JWT issued by POST /api/v1/auth/login"
+  },
+  "policies": {
+    "rateLimiting": "Enforced by the application per consumer; the gateway may add a coarser per-key quota in front of it.",
+    "versioning": "/api/v1 and /api/v2 are routed to the same backend; deprecation is signalled with Deprecation and Sunset headers.",
+    "directAccess": "Refused by the application when GATEWAY_REQUIRED=true."
+  },
+  "operations": [
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/access-entitlement-reviews/{id}/acknowledge",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/access-entitlement-reviews",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/access-revocation-metrics",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/audit-events/integrity",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/audit-events/resource/{resource}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/audit-events",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/audit-policy",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/audit-trace",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/control-modules",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/data-catalogue",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/de-elevate",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/elevate",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/elevation/{elevationId}/audit-trail",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/elevation/status",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/encryption-policies",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/export-requests/{id}/decision",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/extract/{dataset}/ack",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/extract/{dataset}/requests",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/extract/{dataset}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/extract",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/feedback-summary",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/feedback-trend",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/governance",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrations/api-analytics",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/api-consumers/{id}/decision",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/api-consumers/{id}/reinstate",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/api-consumers/{id}/rotate-secret",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/api-consumers/{id}/suspend",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrations/api-consumers",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/admin/integrations/event-rules/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/admin/integrations/event-rules/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/event-rules/test-event",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrations/event-rules",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/event-rules",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/jobs/{id}/replay",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/jobs/run",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrations/jobs",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/registry/{name}/test",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrations/registry",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/webhooks/{id}/replay-dead",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/webhooks/{id}/test",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/admin/integrations/webhooks/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/integrations/webhooks/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/webhooks/deliveries/{id}/replay",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrations/webhooks/deliveries",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/webhooks/run",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrations/webhooks",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrations/webhooks",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrations",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/integrity-checks/last",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/integrity-checks/run",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/interface-log",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/organizations/{orgId}/export-requests",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/organizations/{orgId}/export",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/password-policy",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/admin/password-policy",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/permissions",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/protocol-library",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reports",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/responsibilities",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/admin/retention-policies/{code}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/retention-policies",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reveal-directory",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reveal/{id}/decision",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reveal/{id}/value",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reveal/pending",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reveal/request",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/admin/roles/{code}/permissions/{permissionCode}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/roles/{code}/permissions",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/roles",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/roles",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/scheduled-jobs/{name}/pause",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/scheduled-jobs/{name}/resume",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/scheduled-jobs/{name}/run",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/scheduled-jobs",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/security-thresholds/{key}",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/security-thresholds",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/admin/sessions/{sessionId}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/sso-providers",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/summary",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/support",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/users/{id}/mfa-reset",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/users/{id}/sessions",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/admin/users/{id}/status",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/users/{id}/temporary-credential",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/users",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/users",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/approval/dashboard",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/approval/queue",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/approval/reviews/{encounterId}",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/activity",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/captcha/challenge",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/connected-apps",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/launch/{appId}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/login-config",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/mfa/enroll/confirm",
+      "authenticated": false,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/mfa/enroll",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/mfa/verify",
+      "authenticated": false,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password/change",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/password/policy",
+      "authenticated": false,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/sso/{providerId}/callback",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/sso/{providerId}/login",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/sso/test",
+      "authenticated": false,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/call-center/queue/{queueItemId}/command",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/call-center/sessions",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/call-center/status",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ccp/communication/status",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ccp/employee/{istStaffId}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ccp/messages/{draftId}/approve-send",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ccp/messages/draft",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ccp/messages/drafts",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ccp/webhooks/inbound-records",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ccp/webhooks/twilio",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/developer/register",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/emr/writeback/{encounterId}",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/feedback",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/help/restricted-access/verify",
+      "authenticated": false,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/help/restricted-vault",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/hrms/sync-users",
+      "authenticated": false,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integrations/call-center/events",
+      "authenticated": false,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/export",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/oauth/token",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/{protocolId}/care-advice",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/{protocolId}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/releases/current",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/search",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/{id}/claim",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/queue/{id}/context",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/{id}/escalate",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/{id}/heartbeat",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/{id}/move",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/{id}/reason-audio",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/{id}/release",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/queue/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/queue/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/manual/resolve-patient",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/manual",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/next-best-call",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue/simulate",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/queue/stats/completions",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/queue",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/queue",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runtime/environment",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/search",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/simulation/generated",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulation/run/{scenarioId}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulation/run",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/simulation/scenarios",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/simulation/suite",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/simulation/training-set",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/validate",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/triage/calculate-score",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/triage/complete",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/triage/encounters/evaluate",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/triage/fit-to-fly-preview",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/triage/preview",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/triage/start",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/versions",
+      "authenticated": false,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/voice-assessment/sessions/{sessionId}/responses",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/voice-assessment/sessions/{sessionId}/takeover",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/voice-assessment/sessions/{sessionId}/training-examples",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/voice-assessment/sessions/{sessionId}/turns/{turnId}/validate",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/voice-assessment/sessions/{sessionId}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/voice-assessment/sessions",
+      "authenticated": true,
+      "hasRequestSchema": true
+    }
+  ]
+}

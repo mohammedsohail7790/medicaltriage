@@ -1,10 +1,11 @@
+import { connectedApps, rememberReturn, sanitizeReturnTo, takeReturn } from "../services/ssoLinks.js";
 import { Router, type NextFunction, type Response } from "express";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { decryptLoginPayload, loginEncryptionContext, loginEncryptionMode, LoginEncryptionError, loginPathSegment } from "../services/loginEncryption.js";
 import { captchaFailsClosed, captchaProvider, captchaRequirement, issueSelfChallenge, verifyCaptcha } from "../services/captcha.js";
 import { currentPasswordPolicy } from "../services/passwordPolicy.js";
-import { readAuthenticatedSession, signSessionJwt, type AuthenticatedRequest } from "../middleware/auth.js";
+import { readAuthenticatedSession, requireAuthenticatedSession, signSessionJwt, type AuthenticatedRequest } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 import {
   authenticateLocal,
@@ -49,7 +50,7 @@ const controlCenterRoles = new Set(["platform_super_administrator", "triage_serv
 // Shared by /login and /mfa/verify - both end a real authentication attempt
 // by issuing the same session cookie, JWT, and redirect target. Extracted
 // so MFA doesn't duplicate this logic.
-function finalizeLoginResponse(req: AuthenticatedRequest, res: Response, session: AuthenticatedSession, rememberMe: boolean) {
+function finalizeLoginResponse(req: AuthenticatedRequest, res: Response, session: AuthenticatedSession, rememberMe: boolean, returnTo?: string) {
   const secureCookie = req.secure || req.headers["x-forwarded-proto"] === "https";
   res.setHeader("Set-Cookie", sessionCookie(session.sessionId, rememberMe, secureCookie));
   enforceSessionContextOnToken(session.sessionId);
@@ -57,7 +58,8 @@ function finalizeLoginResponse(req: AuthenticatedRequest, res: Response, session
     authenticated: true,
     session,
     accessToken: signSessionJwt(session),
-    redirectTo: controlCenterRoles.has(session.activeRole) ? "admin" : "workspace"
+    redirectTo: controlCenterRoles.has(session.activeRole) ? "admin" : "workspace",
+    ...(returnTo ? { returnTo } : {})
   });
 }
 
@@ -405,10 +407,23 @@ export function createAuthRouter(): Router {
     maxRequests: 20
   });
 
+  // NFR-019: applications connected to the same identity provider, and a one-click transition to each.
+  router.get("/connected-apps", requireAuthenticatedSession, (_req, res) => {
+    res.json({ apps: connectedApps().map((app) => ({ id: app.id, name: app.name, launchPath: `/api/v1/auth/launch/${encodeURIComponent(app.id)}` })) });
+  });
+
+  router.get("/launch/:appId", requireAuthenticatedSession, (req, res) => {
+    const target = connectedApps().find((app) => app.id === req.params.appId);
+    if (!target) return res.status(404).json({ error: "Unknown connected application" });
+    return res.redirect(target.launchUrl);
+  });
+
   router.get("/sso/:providerId/login", async (req, res, next) => {
     try {
       const redirectUri = `${req.protocol}://${req.get("host")}/api/v1/auth/sso/${req.params.providerId}/callback`;
       const authorizationUrl = await buildSsoAuthorizationUrl(req.params.providerId, redirectUri);
+      // NFR-019: remember a validated deep link to return to after sign-in.
+      rememberReturn(new URL(authorizationUrl).searchParams.get("state"), sanitizeReturnTo(req.query.returnTo));
       return res.redirect(authorizationUrl);
     } catch (error) {
       if (error instanceof SsoProviderNotConfiguredError) {
@@ -430,7 +445,8 @@ export function createAuthRouter(): Router {
       if (!result.ok) {
         return res.status(401).json({ error: "SSO login failed", message: result.message });
       }
-      return finalizeLoginResponse(req, res, result.session, false);
+      const returnTo = takeReturn(callbackUrl.searchParams.get("state"));
+      return finalizeLoginResponse(req, res, result.session, false, returnTo);
     } catch (error) {
       if (error instanceof SsoProviderNotConfiguredError) {
         return res.status(404).json({ error: error.message });

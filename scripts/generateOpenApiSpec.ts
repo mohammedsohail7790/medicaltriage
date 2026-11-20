@@ -3,6 +3,8 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { createApp } from "../src/app.js";
+import { mkdirSync } from "node:fs";
+import { buildAsyncApi, buildGatewayDefinition } from "../src/services/gatewayDefinition.js";
 import { generateOpenApiFromApp } from "../src/services/openApiGenerator.js";
 import { loadSchemaRegistry } from "../src/services/schemaRegistry.js";
 
@@ -18,3 +20,8 @@ const { spec, stats } = generateOpenApiFromApp(createApp(), srcDir, await loadSc
 const outPath = path.resolve(process.cwd(), "docs", "openapi.json");
 writeFileSync(outPath, JSON.stringify(spec, null, 2) + "\n", "utf8");
 console.log(`Wrote ${outPath}: ${stats.operations} operations, ${stats.withRequestSchema} with request schemas, unresolved: ${stats.unresolvedSchemas.join(", ") || "none"}.`);
+
+mkdirSync(path.resolve(process.cwd(), "docs", "gateway"), { recursive: true });
+writeFileSync(path.resolve(process.cwd(), "docs", "gateway", "gateway-definition.json"), JSON.stringify(buildGatewayDefinition(spec as never, "https://<backend-service-url>"), null, 2) + "\n", "utf8");
+writeFileSync(path.resolve(process.cwd(), "docs", "asyncapi.json"), JSON.stringify(buildAsyncApi("1.0.0"), null, 2) + "\n", "utf8");
+console.log("Wrote docs/gateway/gateway-definition.json and docs/asyncapi.json.");

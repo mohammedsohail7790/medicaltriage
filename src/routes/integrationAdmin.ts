@@ -5,6 +5,8 @@ import { prisma } from "../db.js";
 import { requireElevatedPermission, requirePermission, type AuthorizedRequest } from "../services/authorization.js";
 import { buildAuditChange } from "../services/auditChange.js";
 import { ConsumerError, DecisionInput, decide as decideConsumer, rotateSecret as rotateConsumerSecret, setStatus as setConsumerStatus } from "../services/apiConsumers.js";
+import { apiAnalyticsReport } from "../services/apiAnalytics.js";
+import { integrationRegistry, probeIntegration } from "../services/integrationRegistry.js";
 import { RuleError, RuleInput, createRule, deleteRule, getRule, listRules, updateRule } from "../services/eventRules.js";
 import { publishEvent } from "../services/eventBus.js";
 import { jobHandlerTypes, processJobs, replayJobs } from "../services/integrationQueue.js";
@@ -272,6 +274,27 @@ export function createIntegrationAdminRouter(): Router {
       return res.json({ replayed: count });
     } catch (error) {
       return fail(res, error, next);
+    }
+  });
+
+  // ---- NFR-008: API consumption analytics ----
+  router.get("/api-analytics", read, (req, res) => {
+    const consumer = typeof req.query.consumer === "string" ? req.query.consumer : undefined;
+    const route = typeof req.query.route === "string" ? req.query.route : undefined;
+    return res.json({ scope: "this instance, recent window", ...apiAnalyticsReport({ consumer, route }) });
+  });
+
+  // ---- NFR-090: integration readiness ----
+  router.get("/registry", read, (_req, res) => res.json({ integrations: integrationRegistry() }));
+
+  router.post("/registry/:name/test", write, async (req: AuthorizedRequest, res, next) => {
+    try {
+      const result = await probeIntegration(String(req.params.name));
+      await audit(req.securitySession!, "INTEGRATION_CONNECTIVITY_TESTED", `Integration:${req.params.name}`, null, { reachable: result.reachable, httpStatus: result.httpStatus ?? null });
+      return res.json(result);
+    } catch (error) {
+      if (error instanceof Error && /Unknown integration|not configured/.test(error.message)) return res.status(400).json({ error: error.message });
+      return next(error);
     }
   });
 

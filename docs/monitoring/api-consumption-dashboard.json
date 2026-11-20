@@ -1,0 +1,12 @@
+{
+  "displayName": "AiMlTriage API consumption",
+  "note": "Import with: gcloud monitoring dashboards create --config-from-file=api-consumption-dashboard.json. Uses the request_duration log lines the application already writes; create the log-based metrics api_requests (counter) and api_latency_ms (distribution on jsonPayload.durationMs) first, filtered on jsonPayload.type=\"request_duration\".",
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      { "width": 6, "height": 4, "widget": { "title": "Requests per minute", "xyChart": { "dataSets": [{ "timeSeriesQuery": { "timeSeriesFilter": { "filter": "metric.type=\"logging.googleapis.com/user/api_requests\"", "aggregation": { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_RATE" } } } }] } } },
+      { "xPos": 6, "width": 6, "height": 4, "widget": { "title": "Server errors (5xx) per minute", "xyChart": { "dataSets": [{ "timeSeriesQuery": { "timeSeriesFilter": { "filter": "metric.type=\"logging.googleapis.com/user/api_requests\" AND metric.label.status_class=\"5xx\"", "aggregation": { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_RATE" } } } }] } } },
+      { "yPos": 4, "width": 12, "height": 4, "widget": { "title": "Latency p95 (ms)", "xyChart": { "dataSets": [{ "timeSeriesQuery": { "timeSeriesFilter": { "filter": "metric.type=\"logging.googleapis.com/user/api_latency_ms\"", "aggregation": { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_PERCENTILE_95" } } } }] } } }
+    ]
+  }
+}
