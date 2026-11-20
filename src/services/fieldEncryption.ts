@@ -96,6 +96,7 @@ export const ENCRYPTED_FIELDS: Record<string, Record<string, FieldKind>> = {
   AviationTriageEncounter: { transcriptText: "text", audioRecordingUrl: "text", clipboardPayload: "json" },
   SafetyAuditDeviationLog: { nurseOverrideRationale: "text" },
   Dependent: { fullName: "text" },
+  WebhookSubscription: { secret: "text" },
   VoiceAssessmentTurn: {
     transcriptText: "text",
     validationComment: "text",

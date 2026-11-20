@@ -69,6 +69,13 @@ const OVERRIDES: Record<string, DataClass> = {
   "UserSession.sessionPayload": "credential",
   "PasswordHistory.passwordHash": "credential",
   "LoginNonce.nonce": "security",
+  "WebhookSubscription.name": "operational",
+  "EventRule.name": "operational",
+  "WebhookSubscription.url": "operational",
+  "IntegrationJob.payload": "operational",
+  "WebhookDelivery.payload": "operational",
+  "EventRule.condition": "operational",
+  "InterfaceLog.payload": "operational",
   // Reviewed: names of configuration objects and schema elements, not data about a person.
   "Organization.name": "operational",
   "CallCenterSession.queueName": "operational",

@@ -1974,3 +1974,83 @@ model InterfaceLog {
   @@index([correlationId])
   @@map("interface_logs")
 }
+
+// NFR-166: outbound webhooks. A subscriber receives signed CloudEvents for the event types it chose.
+model WebhookSubscription {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  // HMAC-SHA256 signing secret, encrypted at rest.
+  secret      String
+  events      Json
+  status      String   @default("active")
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deliveries  WebhookDelivery[]
+
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id             String              @id @default(cuid())
+  subscriptionId String              @map("subscription_id")
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  eventId        String              @map("event_id")
+  eventType      String              @map("event_type")
+  payload        Json
+  // pending, succeeded or dead (the dead-letter queue)
+  status         String              @default("pending")
+  attempts       Int                 @default(0)
+  nextAttemptAt  DateTime            @default(now()) @map("next_attempt_at")
+  lockedUntil    DateTime?           @map("locked_until")
+  lastStatus     Int?                @map("last_status")
+  lastError      String?             @map("last_error")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  deliveredAt    DateTime?           @map("delivered_at")
+
+  @@index([status, nextAttemptAt])
+  @@index([subscriptionId, createdAt])
+  @@map("webhook_deliveries")
+}
+
+// NFR-092: event and alert rules an administrator configures without a code change.
+model EventRule {
+  id              String   @id @default(cuid())
+  name            String
+  enabled         Boolean  @default(true)
+  eventPattern    String   @map("event_pattern")
+  minRisk         String?  @map("min_risk")
+  condition       Json?
+  channel         String
+  recipients      Json
+  cooldownSeconds Int      @default(300) @map("cooldown_seconds")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  lastFiredAt     DateTime? @map("last_fired_at")
+
+  @@map("event_rules")
+}
+
+// NFR-094: durable, queue-based processing of work for other systems, with retries and a dead-letter state.
+model IntegrationJob {
+  id            String    @id @default(cuid())
+  type          String
+  payload       Json
+  // pending, succeeded or dead
+  status        String    @default("pending")
+  attempts      Int       @default(0)
+  maxAttempts   Int       @default(6) @map("max_attempts")
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  lockedUntil   DateTime? @map("locked_until")
+  lastError     String?   @map("last_error")
+  correlationId String    @map("correlation_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  completedAt   DateTime? @map("completed_at")
+
+  @@index([status, nextAttemptAt])
+  @@index([type, status])
+  @@map("integration_jobs")
+}

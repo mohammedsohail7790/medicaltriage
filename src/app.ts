@@ -1,3 +1,5 @@
+import { createIntegrationAdminRouter } from "./routes/integrationAdmin.js";
+import { registerPlatformSubscribers } from "./services/platformEvents.js";
 import { interfaceWatcher } from "./integration/interfaceLog.js";
 import { captchaProvider, validateCaptchaConfiguration, WIDGET_ORIGINS } from "./services/captcha.js";
 import { validateArchiveHandoffConfiguration } from "./services/archiveHandoff.js";
@@ -244,12 +246,15 @@ export function createApp() {
     res.json(publicRuntimeEnvironment());
   });
 
+  // NFR-166 / NFR-092 / NFR-093: webhooks, alert rules and the message broker listen to platform events.
+  registerPlatformSubscribers();
   app.use("/api/v1", defaultApiRateLimit);
   app.use("/api/v1/auth", createAuthRouter());
   // NFR-096: inbound calls from other systems are logged before they are processed.
   app.use("/api/v1/hrms", interfaceWatcher("hrms"), createHrmsRouter());
   app.use("/api/v1/integrations/call-center", interfaceWatcher("call-center"), createCallCenterInboundRouter());
   app.use("/api/v1/admin", requireAuthenticatedSession, createAdminRouter());
+  app.use("/api/v1/admin/integrations", requireAuthenticatedSession, createIntegrationAdminRouter());
   app.use("/api/v1/approval", requireAuthenticatedSession, createApprovalRouter());
   app.use("/api/v1/ccp", requireAuthenticatedSession, interfaceWatcher("ccp"), createCcpRouter());
   app.use("/api/v1/staff/validate", staffValidateRateLimit);

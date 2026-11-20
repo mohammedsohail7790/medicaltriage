@@ -1,3 +1,4 @@
+import { publishAuditEvent } from "./eventBus.js";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import type { IncomingHttpHeaders } from "node:http";
 import { sanitizeForLog } from "../utils/logSanitizer.js";
@@ -1864,6 +1865,8 @@ export function getAccessRevocationMetricsReport(params: {
 
 export async function recordAuditEvent(event: AuditEvent): Promise<void> {
   auditEvents.push(event);
+  // NFR-166 / NFR-092: everything audited can be subscribed to (webhooks, alert rules, the message broker).
+  publishAuditEvent(event);
   // A failure to persist the audit record (DB outage, network blip, a
   // misconfigured DATABASE_URL) must never block the primary action this
   // event describes (e.g. authentication) - audit logging is best-effort,

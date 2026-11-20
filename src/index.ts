@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { contentPackageReady } from "./services/clinicalContent.js";
 import { startIncomingCallSimulator } from "./services/callSimulator.js";
+import { startPlatformWorkers } from "./services/platformEvents.js";
 import { recordAuditConfigurationState } from "./services/auditPolicy.js";
 import { hydrateRolePermissionOverridesFromDatabase, startRoleCatalogRefresh } from "./services/securityAdmin.js";
 
@@ -18,6 +19,7 @@ await contentPackageReady;
 await hydrateRolePermissionOverridesFromDatabase();
 startRoleCatalogRefresh();
 const app = createApp();
+startPlatformWorkers();
 // NFR-011: the audit configuration in force is written to the ledger at every start.
 await recordAuditConfigurationState().catch((error) => console.error("Could not record the audit configuration:", error instanceof Error ? error.name : "error"));
 
