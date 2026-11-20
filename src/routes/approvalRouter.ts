@@ -506,7 +506,7 @@ function trendBuckets(encounters: Array<{ createdAt: Date; safetyLog: { override
     });
 }
 
-async function liveSafetyDashboard(session: AuthenticatedSession | undefined) {
+export async function liveSafetyDashboard(session: AuthenticatedSession | undefined) {
   // Tenant scoping applied to every query in the dashboard; the
   // SafetyAuditDeviationLog has no org column of its own - it inherits
   // tenancy through its parent encounter relation.

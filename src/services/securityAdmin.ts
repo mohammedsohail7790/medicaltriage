@@ -235,6 +235,34 @@ function organizationByCode(code?: string): OrganizationDirectoryRecord {
 
 const permissions: Permission[] = [
   {
+    code: "safety.dashboard.view",
+    module: "Clinical safety",
+    action: "view",
+    description: "View the clinical safety dashboard: counts, trends and the explainability log, from live data.",
+    risk: "high"
+  },
+  {
+    code: "safety.incidents.manage",
+    module: "Clinical safety",
+    action: "update",
+    description: "Review and close clinical incident and near-miss reports.",
+    risk: "high"
+  },
+  {
+    code: "qa.review.perform",
+    module: "Quality assurance",
+    action: "create",
+    description: "Review sampled calls in the read-only board and masked call drawer.",
+    risk: "high"
+  },
+  {
+    code: "teleconsult.case.review",
+    module: "Tele-triage",
+    action: "update",
+    description: "Accept and answer cases handed over by a triage nurse.",
+    risk: "high"
+  },
+  {
     code: "triage.workspace.view",
     module: "Tele-triage",
     action: "view",
@@ -758,6 +786,45 @@ const roles: Role[] = [
     dataScopes: ["assigned_queue"],
     clinicalScopes: ["adult", "pediatric", "aviation"],
     integrationScopes: ["hrms.read", "insurance.read"],
+    status: "active",
+    requiresApproval: true,
+    system: true
+  },
+  {
+    code: "clinical_safety_officer",
+    name: "Clinical Safety Officer",
+    description: "Oversees clinical safety: the safety dashboard, incident and near-miss reports, and quality-review sampling.",
+    permissions: ["safety.dashboard.view", "safety.incidents.manage", "triage.recommendation.view", "reports.view", "audit.events.view"],
+    responsibilities: ["view_operational_reports"],
+    dataScopes: ["all_encounters", "operational_dashboards"],
+    clinicalScopes: ["adult", "pediatric", "aviation", "quality_review"],
+    integrationScopes: ["audit"],
+    status: "active",
+    requiresApproval: true,
+    system: true
+  },
+  {
+    code: "qa_reviewer",
+    name: "Quality Reviewer",
+    description: "Reviews randomly sampled completed calls through the read-only board and masked call drawer. Cannot review their own calls.",
+    permissions: ["qa.review.perform", "reports.view"],
+    responsibilities: [],
+    dataScopes: ["sampled_encounters"],
+    clinicalScopes: ["quality_review"],
+    integrationScopes: [],
+    status: "active",
+    requiresApproval: true,
+    system: true
+  },
+  {
+    code: "teleconsultant_physician",
+    name: "Teleconsultant Physician",
+    description: "Receives cases escalated by a triage nurse and records the physician's advice.",
+    permissions: ["teleconsult.case.review", "triage.teleconsult.manage", "triage.recommendation.view"],
+    responsibilities: ["approve_physician_escalation"],
+    dataScopes: ["escalated_encounters"],
+    clinicalScopes: ["adult", "pediatric", "aviation"],
+    integrationScopes: [],
     status: "active",
     requiresApproval: true,
     system: true

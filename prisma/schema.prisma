@@ -2090,3 +2090,23 @@ model ApiConsumer {
   @@index([status])
   @@map("api_consumers")
 }
+
+// Sprint 5: clinical work items that follow a case but are not part of the encounter itself:
+// incident reports (F-021), quality-review samples (F-020), teleconsultant handoffs (F-016) and referral
+// letters (F-017). The payload holds the clinical narrative and is encrypted at rest.
+model ClinicalWorkItem {
+  id             String   @id @default(cuid())
+  kind           String
+  status         String
+  caseRef        String?  @map("case_ref")
+  organizationId String?  @map("organization_id")
+  createdBy      String   @map("created_by")
+  assignee       String?
+  payload        Json
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([kind, status])
+  @@index([caseRef])
+  @@map("clinical_work_items")
+}

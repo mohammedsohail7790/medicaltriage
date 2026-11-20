@@ -169,7 +169,13 @@ export const TriageCompleteRequestSchema = z
     routing_destination: z.string().min(1).max(240),
     safety_rationale: z.string().max(2000).optional(),
     vitals: TriageCalculateScoreRequestSchema.optional(),
-    custom_aviation_tags: z.array(z.string().min(1).max(80)).default([])
+    custom_aviation_tags: z.array(z.string().min(1).max(80)).default([]),
+    // F-004 / F-011: whether the care advice was read to the caller now or sent later.
+    advice_delivery: z.enum(["give_now", "send_later"]).optional(),
+    // F-018: where the patient is being sent, so the handover note can name and contact it.
+    destination_contact: z
+      .object({ name: z.string().max(160), phone: z.string().max(40).optional(), hours: z.string().max(120).optional(), address: z.string().max(300).optional() })
+      .optional()
   })
   .transform((value) => ({
     encounterId: value.encounter_id,
@@ -188,7 +194,9 @@ export const TriageCompleteRequestSchema = z
     routingDestination: value.routing_destination,
     safetyRationale: value.safety_rationale,
     vitals: value.vitals,
-    customAviationTags: value.custom_aviation_tags
+    customAviationTags: value.custom_aviation_tags,
+    ...(value.advice_delivery ? { adviceDelivery: value.advice_delivery } : {}),
+    ...(value.destination_contact ? { destinationContact: value.destination_contact } : {})
   }));
 export type TriageCompleteRequest = z.infer<typeof TriageCompleteRequestSchema>;
 

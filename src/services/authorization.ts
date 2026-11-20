@@ -65,6 +65,24 @@ export function requirePermission(permission: string) {
   };
 }
 
+/** Passes when the signed-in user's role holds at least one of the permissions. */
+export function requireAnyPermission(...permissions: string[]) {
+  return async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
+    try {
+      const session = await getRequestSession(req);
+      if (!session) {
+        if (rejectIfOAuthError(req, res)) return undefined;
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      if (!permissions.some((permission) => canPerformAction(session, permission))) return res.status(403).json({ error: "Access denied" });
+      req.securitySession = session;
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  };
+}
+
 // Closes NFR-180's JIT-elevation gap - a second, time-boxed layer on top of
 // requirePermission() for the highest-risk mutation permissions (see
 // PRIVILEGED_PERMISSIONS in securityAdmin.ts). Non-privileged permissions

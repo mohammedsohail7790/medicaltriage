@@ -1906,6 +1906,22 @@ export async function backfillPreparedProtocolCache(): Promise<{ processed: numb
   return { processed: records.length, recomputed };
 }
 
+/**
+ * Completed calls a quality reviewer or safety officer may sample from (F-020). These roles have no queue
+ * access, so this returns a narrow, read-only projection of completed calls the caller's organisation may see.
+ */
+export async function listCompletedCallsForReview(session: AuthenticatedSession): Promise<Array<{ id: string; assignedNurseId?: string; completedAtIso?: string; severity?: string; dispositionCode?: string; department?: string; organizationId?: string }>> {
+  if (!session.permissions.includes("qa.review.perform") && !session.permissions.includes("safety.incidents.manage")) {
+    throw new QueueOrchestrationError(403, "Sampling needs the quality reviewer or safety officer role.", "QA_ACCESS_DENIED");
+  }
+  const records = shouldPersistQueueInDatabase() ? await listDbRecords({}, session) : sorted(Array.from(store().values()));
+  return records
+    .filter((record) => canSeeTenant(record, session))
+    .map(toDto)
+    .filter((item) => item.status === "COMPLETED")
+    .map((item) => ({ id: item.id, assignedNurseId: item.assignedNurseId, completedAtIso: item.completedAtIso, severity: item.calculatedSeverity, dispositionCode: item.dispositionCode, department: item.department, organizationId: item.organizationId }));
+}
+
 export async function getQueueItem(session: AuthenticatedSession, id: string): Promise<QueueItemDto> {
   requireQueueAccess(session);
   const record = await getRecord(id, session);

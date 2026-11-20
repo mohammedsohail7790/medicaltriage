@@ -204,14 +204,16 @@ export function createTriageRouter(): Router {
           dependentId: undefined
         })
       : undefined;
-    const completionData =
-      ageResolution?.ok === true
-        ? { ...parsed.data, patientAgeYears: ageResolution.ageYears }
-        : parsed.data;
-    const note = compileBilingualSoapSbarMarkdown(completionData);
     // Tenant attribution: the encounter row belongs to the acting user's
     // organization (session is guaranteed by the app-wide auth middleware).
     const session = await getRequestSession(req);
+    // F-015: the nurse is the signed-in user, taken from the session and never from the request body, so a
+    // note cannot be completed in someone else's name.
+    const completionData = {
+      ...(ageResolution?.ok === true ? { ...parsed.data, patientAgeYears: ageResolution.ageYears } : parsed.data),
+      ...(session ? { nurseId: session.user.id, nurseName: session.user.fullName } : {})
+    };
+    const note = compileBilingualSoapSbarMarkdown(completionData);
     const persistence = await persistCompletedTriageNote(
       completionData,
       note,

@@ -97,6 +97,7 @@ export const ENCRYPTED_FIELDS: Record<string, Record<string, FieldKind>> = {
   SafetyAuditDeviationLog: { nurseOverrideRationale: "text" },
   Dependent: { fullName: "text" },
   WebhookSubscription: { secret: "text" },
+  ClinicalWorkItem: { payload: "json" },
   VoiceAssessmentTurn: {
     transcriptText: "text",
     validationComment: "text",
