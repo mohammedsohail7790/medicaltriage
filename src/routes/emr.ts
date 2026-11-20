@@ -5,7 +5,7 @@ import { executeWriteback } from "../integration/fhirWriteback.js";
 import { requirePermission, type AuthorizedRequest } from "../services/authorization.js";
 import type { RequestWithId } from "../middleware/requestId.js";
 
-const ExecuteWritebackRequestSchema = z
+export const ExecuteWritebackRequestSchema = z
   .object({
     isDraft: z.boolean().optional(),
     dryRun: z.boolean().optional(),

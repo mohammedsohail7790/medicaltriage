@@ -36,7 +36,7 @@ function parseCookie(cookieHeader: string | undefined, name: string): string | u
   return match?.slice(name.length + 1);
 }
 
-const VerifyRequestSchema = z.object({
+export const VerifyRequestSchema = z.object({
   password: z.string().min(1).max(256)
 });
 

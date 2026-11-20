@@ -68,7 +68,7 @@ function deriveCompletionFitToFlyStatus(args: {
   return "CLEARED";
 }
 
-const FitToFlyPreviewRequestSchema = z.object({
+export const FitToFlyPreviewRequestSchema = z.object({
   jobTitle: z.string().optional(),
   finalDispositionCode: z.string(),
   customAviationTags: z.array(z.string()).default([]),

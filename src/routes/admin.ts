@@ -111,7 +111,7 @@ import {
 import { AccountStatusSchema, RevealRequestSchema } from "../types/security.js";
 import { z } from "zod";
 
-const UpdateUserStatusRequestSchema = z.object({
+export const UpdateUserStatusRequestSchema = z.object({
   status: AccountStatusSchema,
   reason: z.string().min(1).max(500)
 });
@@ -122,7 +122,7 @@ const UpdateUserStatusRequestSchema = z.object({
 // account.
 const ORGANIZATION_EMAIL_DOMAIN = "@irisstar.tech";
 
-const CreateUserRequestSchema = z.object({
+export const CreateUserRequestSchema = z.object({
   fullName: z.string().min(1).max(200),
   email: z
     .string()
@@ -139,7 +139,7 @@ const CreateUserRequestSchema = z.object({
   reason: z.string().min(1).max(500)
 });
 
-const CreateRoleRequestSchema = z.object({
+export const CreateRoleRequestSchema = z.object({
   code: z.string().min(3).max(64).regex(/^[a-z][a-z0-9_]*$/),
   name: z.string().min(1).max(120),
   description: z.string().min(1).max(500),
@@ -154,7 +154,15 @@ const CreateRoleRequestSchema = z.object({
 
 // Same opt-in limit/offset convention as QueueListQuerySchema (NFR-144) -
 // omitted entirely returns the full list exactly as before.
-const PaginationQuerySchema = z.object({
+export const MfaResetRequestSchema = z.object({ reason: z.string().min(1).max(500) });
+export const CredentialProvisionRequestSchema = z.object({ reason: z.string().min(1).max(500) });
+export const RolePermissionMutationRequestSchema = z.object({
+  permissionCode: z.string().min(1),
+  reason: z.string().min(1).max(500)
+});
+export const SecurityThresholdUpdateRequestSchema = z.object({ value: z.number().int().positive() });
+
+export const PaginationQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).optional(),
   offset: z.coerce.number().int().min(0).optional()
 });
@@ -460,7 +468,6 @@ export function createAdminRouter(): Router {
   // PAM-elevated (same as the status/role-permission mutations above) since
   // this is one of the highest-risk actions in the app - it strips a
   // user's second factor and forces re-enrollment.
-  const MfaResetRequestSchema = z.object({ reason: z.string().min(1).max(500) });
   router.post(
     "/users/:id/mfa-reset",
     requireElevatedPermission("admin.users.manage"),
@@ -537,7 +544,6 @@ export function createAdminRouter(): Router {
     }
   );
 
-  const CredentialProvisionRequestSchema = z.object({ reason: z.string().min(1).max(500) });
   router.post(
     "/users/:id/temporary-credential",
     requireElevatedPermission("admin.users.manage"),
@@ -561,10 +567,6 @@ export function createAdminRouter(): Router {
   // mutation, no source change or redeploy required. Mirrors the PATCH
   // /users/:id/status endpoint's shape (dedicated error classes, rate
   // limiting, audit trail).
-  const RolePermissionMutationRequestSchema = z.object({
-    permissionCode: z.string().min(1),
-    reason: z.string().min(1).max(500)
-  });
 
   router.post(
     "/roles/:code/permissions",
@@ -1102,7 +1104,6 @@ export function createAdminRouter(): Router {
 
   // Closes NFR-119 - a real, QR-facing capability to view/configure the
   // app's own security anomaly-detection thresholds without a redeploy.
-  const SecurityThresholdUpdateRequestSchema = z.object({ value: z.number().int().positive() });
   router.get("/security-thresholds", requirePermission("admin.roles.manage"), async (_req, res) => {
     return res.json({ thresholds: listSecurityThresholds() });
   });

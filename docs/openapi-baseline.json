@@ -483,30 +483,6 @@
         }
       }
     },
-    "/api/v1/admin/reveal": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Request a controlled reveal of masked sensitive data.",
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "400": {
-            "description": "Invalid request payload"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    },
     "/api/v1/approval/queue": {
       "get": {
         "tags": [
@@ -1223,30 +1199,6 @@
         }
       }
     },
-    "/api/v1/call-center/events": {
-      "post": {
-        "tags": [
-          "Call Center"
-        ],
-        "summary": "Record a call-center event (signature-verified).",
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "400": {
-            "description": "Invalid request payload"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    },
     "/api/v1/call-center/status": {
       "get": {
         "tags": [
@@ -1771,23 +1723,6 @@
           },
           "401": {
             "description": "Authentication required"
-          }
-        }
-      }
-    },
-    "/api/v1/help/help": {
-      "get": {
-        "tags": [
-          "Help"
-        ],
-        "summary": "Serve the standalone help page.",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "400": {
-            "description": "Invalid request payload"
           }
         }
       }

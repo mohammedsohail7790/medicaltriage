@@ -85,7 +85,7 @@ async function listGeneratedRuns(generatedDir: string): Promise<GeneratedRunSumm
   return runs.sort((left, right) => right.lastModifiedIso.localeCompare(left.lastModifiedIso));
 }
 
-const SimulationPayloadSchema = z.object({
+export const SimulationPayloadSchema = z.object({
   scenarioId: z.string().max(120).optional(),
   name: z.string().max(240).optional(),
   istStaffId: z.string().min(3).max(64),

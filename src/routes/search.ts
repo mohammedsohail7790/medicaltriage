@@ -3,7 +3,7 @@ import { z } from "zod";
 import { searchGlobal } from "../services/globalSearch.js";
 import type { AuthorizedRequest } from "../services/authorization.js";
 
-const SearchQuerySchema = z.object({
+export const SearchQuerySchema = z.object({
   q: z.string().min(1).max(240),
   limit: z.coerce.number().int().min(1).max(20).default(8)
 });

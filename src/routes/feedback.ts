@@ -4,7 +4,7 @@ import { prisma } from "../db.js";
 import { shouldUseDatabasePersistence } from "../config/runtime.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
 
-const SubmitFeedbackRequestSchema = z.object({
+export const SubmitFeedbackRequestSchema = z.object({
   context: z.string().min(1).max(100),
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(2000).optional()

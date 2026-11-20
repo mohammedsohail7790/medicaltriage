@@ -17,7 +17,7 @@ import {
   ValidateVoiceTurnSchema
 } from "../types/voiceAssessment.js";
 
-const TakeoverSchema = z.object({ reason: z.string().min(3).max(1000) }).strict();
+export const TakeoverSchema = z.object({ reason: z.string().min(3).max(1000) }).strict();
 
 function actorFrom(req: AuthorizedRequest) {
   const actor = req.securitySession;

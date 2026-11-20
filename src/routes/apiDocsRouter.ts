@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { Router } from "express";
+import { requireAuthenticatedSession } from "../middleware/auth.js";
 
 // Closes NFR-002 (API Management: API Discovery) - a real, self-hosted
 // discovery portal reading the existing, real, machine-generated
@@ -27,76 +28,91 @@ function loadSpec(): OpenApiSpec | undefined {
   }
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const VIEWER_SCRIPT = `
+(function () {
+  var KEY = "ist_triage_access_token";
+  var status = document.getElementById("status");
+  var table = document.getElementById("rows");
+  var tokenInput = document.getElementById("token");
+  var tryItEnabled = document.body.getAttribute("data-try-it") === "true";
+  function token() { try { return tokenInput.value.trim() || sessionStorage.getItem(KEY) || ""; } catch (e) { return tokenInput.value.trim(); } }
+  function esc(v) { return String(v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function load() {
+    status.textContent = "Loading...";
+    fetch("/api-docs/openapi.json", { headers: { authorization: "Bearer " + token() } }).then(function (r) {
+      if (r.status === 401) { status.textContent = "Sign in required: paste an access token (or open this page from a signed-in session)."; table.innerHTML = ""; return null; }
+      if (!r.ok) { status.textContent = "Could not load the specification (" + r.status + ")."; return null; }
+      return r.json();
+    }).then(function (spec) {
+      if (!spec) return;
+      status.textContent = (spec.info.title || "API") + " - version " + spec.info.version;
+      var rows = [];
+      Object.keys(spec.paths).sort().forEach(function (p) { Object.keys(spec.paths[p]).forEach(function (m) {
+        var op = spec.paths[p][m];
+        rows.push("<tr><td class='method method-" + esc(m) + "'>" + esc(m.toUpperCase()) + "</td><td><code>" + esc(p) + "</code></td><td>" + esc(op.summary || "") + (op.requestBody ? " <em>(body schema)</em>" : "") + "</td></tr>");
+      }); });
+      table.innerHTML = rows.join("");
+    });
+  }
+  document.getElementById("load").addEventListener("click", load);
+  if (tryItEnabled) {
+    document.getElementById("send").addEventListener("click", function () {
+      var out = document.getElementById("out");
+      var body = document.getElementById("body").value;
+      fetch(document.getElementById("tpath").value, { method: document.getElementById("tmethod").value, headers: { authorization: "Bearer " + token(), "content-type": "application/json" }, body: body && document.getElementById("tmethod").value !== "GET" ? body : undefined })
+        .then(function (r) { return r.text().then(function (t) { out.textContent = r.status + "\\n" + t; }); });
+    });
+  }
+  load();
+})();
+`;
+
+function renderViewerShell(tryItEnabled: boolean): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>API reference</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 32px; background: #fff; color: #1f2933; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  #status { color: #52606d; font-size: 0.9rem; margin-bottom: 16px; }
+  table { border-collapse: collapse; width: 100%; border: 1px solid #e4e7eb; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #eef0f3; font-size: 0.85rem; }
+  th { background: #f5f7fa; }
+  .method { font-weight: 700; } .method-get { color: #1e7a3d; } .method-post { color: #b06a00; } .method-put, .method-patch { color: #5b3fc4; } .method-delete { color: #c0392b; }
+  input, textarea, select, button { font: inherit; padding: 6px 8px; } input#token { width: 420px; max-width: 100%; }
+  .bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  pre { background: #f5f7fa; padding: 12px; overflow: auto; }
+</style></head>
+<body data-try-it="${tryItEnabled}">
+  <h1>API reference</h1>
+  <div id="status"></div>
+  <div class="bar"><input id="token" type="password" placeholder="Access token (optional if signed in)" autocomplete="off" /><button id="load">Load</button></div>
+  <table><thead><tr><th>Method</th><th>Path</th><th>Summary</th></tr></thead><tbody id="rows"></tbody></table>
+  ${tryItEnabled ? `<h2>Try it (non-production only)</h2>
+  <div class="bar"><select id="tmethod"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select><input id="tpath" value="/api/v1/runtime/environment" size="50" /><button id="send">Send</button></div>
+  <textarea id="body" rows="5" cols="80" placeholder="JSON body"></textarea><pre id="out"></pre>` : ""}
+  <script src="/api-docs/viewer.js"></script>
+</body></html>`;
 }
 
-function renderDiscoveryHtml(spec: OpenApiSpec): string {
-  const paths = spec.paths ?? {};
-  const rows = Object.entries(paths)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .flatMap(([routePath, operations]) =>
-      Object.entries(operations).map(
-        ([method, operation]) =>
-          `<tr><td class="method method-${escapeHtml(method)}">${escapeHtml(method.toUpperCase())}</td>` +
-          `<td class="path"><code>${escapeHtml(routePath)}</code></td>` +
-          `<td class="summary">${escapeHtml(operation.summary ?? operation.description ?? "")}</td></tr>`
-      )
-    )
-    .join("\n");
-
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>${escapeHtml(spec.info?.title ?? "API Discovery")}</title>
-<style>
-  body { font-family: system-ui, sans-serif; margin: 0; padding: 32px; background: #f7f6f3; color: #1f1e1c; }
-  h1 { margin: 0 0 4px; font-size: 1.4rem; }
-  .version { color: #6b6a66; font-size: 0.85rem; margin-bottom: 16px; }
-  .description { max-width: 760px; color: #4a4945; margin-bottom: 24px; font-size: 0.9rem; }
-  table { border-collapse: collapse; width: 100%; background: #fff; border: 1px solid #e0dfd9; }
-  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #eceae4; font-size: 0.85rem; vertical-align: top; }
-  th { background: #f1efe9; }
-  .method { font-weight: 700; white-space: nowrap; }
-  .method-get { color: #1e7a3d; }
-  .method-post { color: #b06a00; }
-  .method-patch { color: #7a4de0; }
-  .method-delete { color: #c0392b; }
-  code { font-size: 0.85em; }
-  .spec-link { font-size: 0.85rem; margin-bottom: 20px; display: inline-block; }
-</style>
-</head>
-<body>
-  <h1>${escapeHtml(spec.info?.title ?? "API Discovery")}</h1>
-  <div class="version">Version ${escapeHtml(spec.info?.version ?? "unknown")}</div>
-  <div class="description">${escapeHtml(spec.info?.description ?? "")}</div>
-  <a class="spec-link" href="/api-docs/openapi.json">Download the raw OpenAPI 3.0 spec (openapi.json)</a>
-  <table>
-    <thead><tr><th>Method</th><th>Path</th><th>Summary</th></tr></thead>
-    <tbody>
-${rows}
-    </tbody>
-  </table>
-</body>
-</html>`;
+// NFR-001 / NFR-002: the reference and specification are not public. The page is a shell with no API
+// content; the specification itself requires an authenticated session or a consumer access token.
+export function tryItConsoleEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.NODE_ENV !== "production" && env.API_TRY_IT_ENABLED !== "false";
 }
 
 export function createApiDocsRouter(): Router {
   const router = Router();
 
   router.get("/api-docs", (_req, res) => {
-    const spec = loadSpec();
-    if (!spec) {
-      return res
-        .status(503)
-        .type("html")
-        .send("<!doctype html><title>API docs unavailable</title><body>docs/openapi.json has not been generated yet - run scripts/generateOpenApiSpec.ts.</body>");
-    }
-    return res.type("html").send(renderDiscoveryHtml(spec));
+    res.type("html").send(renderViewerShell(tryItConsoleEnabled()));
   });
 
-  router.get("/api-docs/openapi.json", (_req, res) => {
+  router.get("/api-docs/viewer.js", (_req, res) => {
+    res.type("application/javascript").send(VIEWER_SCRIPT);
+  });
+
+  router.get("/api-docs/openapi.json", requireAuthenticatedSession, (_req, res) => {
     const spec = loadSpec();
     if (!spec) {
       return res.status(503).json({ error: "docs/openapi.json has not been generated yet" });

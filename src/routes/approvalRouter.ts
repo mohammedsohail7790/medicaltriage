@@ -24,7 +24,7 @@ const OverrideReasonCodeSchema = z.enum([
   "OTHER"
 ]);
 
-const ClinicalApprovalRequestSchema = z
+export const ClinicalApprovalRequestSchema = z
   .object({
     decision: ApprovalDecisionSchema,
     reviewedReasoningFeatureIds: z.array(z.string().min(1).max(120)).min(2),
