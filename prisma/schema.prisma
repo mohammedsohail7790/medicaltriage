@@ -414,6 +414,8 @@ model TriageQueueItem {
   @@index([assignedNurseId, status])
   @@index([lockedBy, lockExpiresAt])
   @@index([organizationId, status])
+  // NFR-129: the completed-cases page sorts by last update, so this index serves it without sorting a growing set.
+  @@index([organizationId, status, updatedAt(sort: Desc)], map: "triage_queue_items_org_status_updated_idx")
   @@index([targetOrganizationId, status])
   @@index([istStaffId, createdAt])
   @@index([deletedAt])

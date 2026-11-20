@@ -342,6 +342,12 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/admin/ops/interfaces",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/admin/ops/metrics",
       "authenticated": true,
       "hasRequestSchema": false
@@ -457,6 +463,12 @@
     {
       "method": "GET",
       "path": "/api/v1/admin/ops/usage-insights",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/volume",
       "authenticated": true,
       "hasRequestSchema": false
     },

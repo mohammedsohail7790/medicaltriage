@@ -38,6 +38,14 @@
         }
       }
     },
+    "business.volume_dip": {
+      "description": "Published when business.volume_dip occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
     "export.completed": {
       "description": "Published when export.completed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
       "subscribe": {
@@ -56,6 +64,22 @@
     },
     "integrity.failed": {
       "description": "Published when integrity.failed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "interface.degraded": {
+      "description": "Published when interface.degraded occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "job.failed": {
+      "description": "Published when job.failed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
       "subscribe": {
         "message": {
           "$ref": "#/components/messages/PlatformEvent"
@@ -120,6 +144,14 @@
     },
     "retention.purged": {
       "description": "Published when retention.purged occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
+    "secret.rotation_overdue": {
+      "description": "Published when secret.rotation_overdue occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
       "subscribe": {
         "message": {
           "$ref": "#/components/messages/PlatformEvent"

@@ -1,0 +1,7 @@
+{
+  "grandfathered": [
+    "20260728120000_drop_old_stcc_content_domain",
+    "20260817190000_add_append_only_audit_chain",
+    "20260819090000_serialize_legal_hold_mutations"
+  ]
+}

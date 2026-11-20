@@ -13,6 +13,9 @@ output "residency_inventory" {
     central_logs           = var.region
     siem_topic_policy      = var.approved_regions
     disaster_recovery      = var.dr_region == null ? "not configured: agree with Qatar Airways IT" : var.dr_region
+    log_archive            = var.region
+    cost_export            = var.region
+    environment_databases  = { for k, m in module.environment : k => var.region }
     edge_load_balancer     = "global anycast address; the application and its data stay in ${var.region}"
   }
 }
@@ -27,4 +30,8 @@ output "runtime_service_account" {
 
 output "database_connection_name" {
   value = google_sql_database_instance.primary.connection_name
+}
+
+output "recovery_tier" {
+  value = var.recovery_tier
 }
