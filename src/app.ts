@@ -327,7 +327,11 @@ export function createApp() {
 
   app.use((req, res) => {
     // Unmatched requests are logged (path only, no query) so a misrouted client or a missing route shows up in operations.
-    console.warn(JSON.stringify({ type: "route_not_found", method: req.method, path: req.path, requestId: res.getHeader("x-request-id") ?? null }));
+    // The stack size and the number of sign-in routes help tell a missing route from a router that was built differently.
+    const layers = (req.app as unknown as { _router?: { stack: Array<{ name?: string; regexp?: RegExp; handle?: { stack?: Array<{ route?: { path?: unknown } }> } }> } })._router?.stack ?? [];
+    const authRouter = layers.find((l) => l.name === "router" && /\\\/api\\\/v1\\\/auth/.test(l.regexp?.source ?? ""));
+    const loginRoutes = (authRouter?.handle?.stack ?? []).filter((l) => typeof l.route?.path === "string" && /^\/login/.test(String(l.route.path))).length;
+    console.warn(JSON.stringify({ type: "route_not_found", method: req.method, path: req.path, requestId: res.getHeader("x-request-id") ?? null, layers: layers.length, loginRoutes, bodyKeys: req.body && typeof req.body === "object" ? Object.keys(req.body).slice(0, 8) : null }));
     res.status(404).json({ error: "Route not found" });
   });
   app.use(globalErrorHandler);

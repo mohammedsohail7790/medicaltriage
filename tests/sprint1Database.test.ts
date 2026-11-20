@@ -68,7 +68,9 @@ describeDb("Sprint 1 database-backed behaviour", () => {
       const raw = await basePrisma.triageQueueItem.findUniqueOrThrow({ where: { id: item.id } });
       expect(isEncryptedValue(raw.summary)).toBe(true);
       expect(typeof raw.vitals).toBe("string");
-      expect(JSON.stringify(raw)).not.toMatch(/chest pain|private story|131/);
+      // The digits are looked for as the value of the field, not as a bare "131", which random ciphertext characters can contain.
+      expect(JSON.stringify(raw)).not.toMatch(/chest pain|private story|heartRate/);
+      expect(raw.vitals).not.toContain("131,");
 
       const read = await encrypted.triageQueueItem.findUniqueOrThrow({ where: { id: item.id }, include: { staffMember: { include: { dependents: true } } } });
       expect(read.summary).toBe("crushing chest pain");
