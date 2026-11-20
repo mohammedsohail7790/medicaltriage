@@ -3,6 +3,7 @@ import { useQueue, type QueueItem } from "../../QueueContext";
 import { splitBilingualSbarNote } from "../../utils/splitBilingualSbarNote";
 import { compileTriageCompletion, previewTriageCompletion } from "../api/triageCompletion";
 import { FeedbackWidget } from "../FeedbackWidget";
+import { ClinicalActionsPanel } from "../ClinicalActionsPanel";
 
 type CompletionStageProps = {
   item: QueueItem;
@@ -197,6 +198,10 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
           </div>
         )}
       </div>
+
+      <ClinicalActionsPanel
+        c={{ caseRef: item.id, istStaffId: item.istStaffId, reason: item.reasonNarrative ?? item.summary, protocolId: item.matchedProtocolId, disposition: item.dispositionCode, destination: item.destinationName }}
+      />
 
       {completed && <FeedbackWidget context="cockpit-completion" />}
     </section>

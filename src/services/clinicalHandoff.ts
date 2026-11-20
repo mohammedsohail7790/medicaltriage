@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 import { z } from "zod";
+import { prisma } from "../db.js";
 import { callExternal } from "../integration/externalClient.js";
 import { getEmailAdapter } from "./communicationAdapters.js";
 import { WorkError, createItem, getItem, updateItem, type WorkItem } from "./clinicalWork.js";
@@ -16,7 +17,15 @@ import type { AuthenticatedSession } from "../types/security.js";
 // ---- shared ---------------------------------------------------------------------------------------
 
 /** True when a nurse has recorded a signed clinical approval for the encounter (the human-review checkpoint). */
-export async function hasSignedClinicalApproval(encounterId: string): Promise<boolean> {
+export async function hasSignedClinicalApproval(caseRef: string): Promise<boolean> {
+  // The screen links work to the queue item; the approval is recorded against the encounter made from it.
+  let encounterId = caseRef;
+  try {
+    const encounter = await prisma.aviationTriageEncounter.findUnique({ where: { sourceQueueItemId: caseRef }, select: { id: true } });
+    if (encounter) encounterId = encounter.id;
+  } catch {
+    // No database: the case reference is used as given.
+  }
   const resource = `AviationTriageEncounter:${encounterId}`;
   const memoryHit = listAuditEvents({ action: "CLINICAL_APPROVAL_REVIEW" }).some((event) => event.resource === resource && event.success);
   if (memoryHit) return true;

@@ -23,11 +23,12 @@ import TriageWorkspace from "./TriageWorkspace";
 import NurseWorkspaceRedesign from "./components/Triage/NurseWorkspaceRedesign";
 import { LabeledIconButton, WorkspaceModeSwitch } from "./components/ui/NavigationControls";
 import { CockpitApp } from "./cockpit/CockpitApp";
-import { canAccessNurseCockpit, canAccessServiceManagerBoard } from "./cockpit/roles";
+import { canAccessClinicalWorkspace, canAccessNurseCockpit, canAccessServiceManagerBoard } from "./cockpit/roles";
+import { ClinicalWorkspace } from "./clinical/ClinicalWorkspace";
 import { TriageServiceManagerBoard } from "./serviceManagerBoard/TriageServiceManagerBoard";
 import { formatRole } from "./admin/shared/roleLabels";
 
-type ViewKey = "workspace" | "cockpitV2" | "cockpit" | "kanban" | "ccp" | "help" | "admin" | "serviceManagerBoard";
+type ViewKey = "workspace" | "cockpitV2" | "cockpit" | "kanban" | "ccp" | "help" | "admin" | "serviceManagerBoard" | "clinical";
 type ThemeMode = "light" | "dark";
 type EnvironmentTone = "simulation" | "demo" | "uat" | "production";
 
@@ -113,7 +114,9 @@ export default function App() {
         if (!cancelled) {
           setSession(payload.session);
           setActiveView(
-            canAccessServiceManagerBoard(payload.session.activeRole)
+            canAccessClinicalWorkspace(payload.session.activeRole)
+              ? "clinical"
+              : canAccessServiceManagerBoard(payload.session.activeRole)
               ? "serviceManagerBoard"
               : canAccessNurseCockpit(payload.session.activeRole)
                 ? "cockpit"
@@ -209,7 +212,8 @@ export default function App() {
     ccp: "CCP",
     help: "Help",
     admin: "Admin",
-    serviceManagerBoard: "Service Manager Board"
+    serviceManagerBoard: "Service Manager Board",
+    clinical: "Clinical workspace"
   };
   const activeViewLabel = viewLabels[activeView];
 
@@ -222,7 +226,8 @@ export default function App() {
       ccp: "#/ccp",
       help: "#/help",
       admin: "#/admin",
-      serviceManagerBoard: "#/service-manager-board"
+      serviceManagerBoard: "#/service-manager-board",
+      clinical: "#/clinical"
     };
     setActiveView(view);
     if (window.location.hash !== nextHashByView[view]) {
@@ -312,14 +317,18 @@ export default function App() {
         <LoginCard
           onAuthenticated={(nextSession, redirectTo) => {
             setSession(nextSession);
-            const nextView: ViewKey = canAccessServiceManagerBoard(nextSession.activeRole)
+            const nextView: ViewKey = canAccessClinicalWorkspace(nextSession.activeRole)
+              ? "clinical"
+              : canAccessServiceManagerBoard(nextSession.activeRole)
               ? "serviceManagerBoard"
               : canAccessNurseCockpit(nextSession.activeRole)
                 ? "cockpit"
                 : redirectTo;
             setActiveView(nextView);
             window.location.hash =
-              nextView === "serviceManagerBoard"
+              nextView === "clinical"
+                ? "#/clinical"
+                : nextView === "serviceManagerBoard"
                 ? "#/service-manager-board"
                 : nextView === "cockpit"
                   ? "#/cockpit"
@@ -356,6 +365,18 @@ export default function App() {
         />
       </QueueProvider>
     );
+  }
+
+  // F-016, F-019, F-020, F-021, F-023: the clinical oversight roles have their own workspace.
+  if (activeView === "clinical") {
+    if (!canAccessClinicalWorkspace(session.activeRole)) {
+      return (
+        <div className="minimal-boundary">
+          <AccessDenied onLogout={logout} workspaceLabel="Clinical workspace" />
+        </div>
+      );
+    }
+    return <ClinicalWorkspace session={session} onLogout={logout} />;
   }
 
   // The Triage Service Manager Board is a second, distinct route that also

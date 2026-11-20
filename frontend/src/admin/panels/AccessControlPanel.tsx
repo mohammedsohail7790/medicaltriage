@@ -3,6 +3,7 @@ import { ElevationModal } from "../shared/ElevationModal";
 import { useElevatedAction } from "../shared/useElevatedAction";
 import { fetchJson, postJson } from "../shared/adminApi";
 import { AlertRulesCard } from "./AlertRulesCard";
+import { InitialAssessmentPolicyCard, NoteTemplatesCard } from "./ClinicalSettingsCards";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
@@ -54,6 +55,8 @@ export function AccessControlPanel({ permissions }: AccessControlPanelProps) {
       )}
       {hasPermission("audit.events.view") && <RevocationMetricsCard />}
       {hasPermission("audit.events.view") && <AlertRulesCard runElevated={elevation.runElevated} />}
+      {hasPermission("admin.users.manage") && <InitialAssessmentPolicyCard />}
+      {hasPermission("protocol.library.manage") && <NoteTemplatesCard canApprove={hasPermission("clinical.governance.approve")} />}
       <ElevationModal
         open={elevation.modalOpen}
         error={elevation.modalError}

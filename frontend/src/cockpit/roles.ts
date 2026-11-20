@@ -37,3 +37,8 @@ export function canAccessNurseCockpit(activeRole: string | undefined | null): bo
 export function canAccessServiceManagerBoard(activeRole: string | undefined | null): boolean {
   return activeRole === "triage_service_manager";
 }
+
+/** The Clinical Safety Officer, Quality Reviewer and Teleconsultant Physician share the Clinical workspace. */
+export function canAccessClinicalWorkspace(activeRole: string | undefined | null): boolean {
+  return activeRole === "clinical_safety_officer" || activeRole === "qa_reviewer" || activeRole === "teleconsultant_physician";
+}
