@@ -14,7 +14,7 @@ import { listCompletedCallsForReview } from "./queueOrchestration.js";
  * Items live in the database when platform persistence is on, and in memory otherwise.
  */
 
-export type WorkKind = "incident" | "qa_review" | "teleconsult" | "referral" | "setting";
+export type WorkKind = "incident" | "qa_review" | "teleconsult" | "referral" | "setting" | "branch_rule";
 
 export type WorkItem = {
   id: string;

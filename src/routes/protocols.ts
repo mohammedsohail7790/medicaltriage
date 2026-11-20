@@ -1,4 +1,10 @@
-import { Router } from "express";
+import { randomUUID } from "node:crypto";
+import { Router, type Response } from "express";
+import { requireAnyPermission, requirePermission, type AuthorizedRequest } from "../services/authorization.js";
+import { buildAuditChange } from "../services/auditChange.js";
+import { BranchRuleInput, draftRule, listRules, nextQuestion, retireRule, signOffRule } from "../services/adaptiveQuestions.js";
+import { WorkError } from "../services/clinicalWork.js";
+import { recordAuditEvent } from "../services/securityAdmin.js";
 import {
   getCareAdviceForProtocol,
   getClinicalProtocolById,
@@ -20,6 +26,19 @@ function parsePositiveQuestionIds(value: unknown): string[] {
   }
 
   return [];
+}
+
+async function auditRule(req: AuthorizedRequest, action: string, resource: string, before: Record<string, unknown> | null, after: Record<string, unknown> | null) {
+  const session = req.securitySession!;
+  await recordAuditEvent({
+    id: randomUUID(), timestampIso: new Date().toISOString(), userId: session.user.id, activeRole: session.activeRole, organization: session.user.organizationId ?? "", facility: "", department: "",
+    action, module: "ClinicalContent", resource, ipAddress: "", device: "", success: true, risk: "high", metadata: { change: buildAuditChange(before, after) }
+  });
+}
+
+function ruleFail(res: Response, error: unknown, next: (e?: unknown) => void) {
+  if (error instanceof WorkError) return res.status(error.status).json({ error: error.message, code: error.code });
+  return next(error);
 }
 
 export function createProtocolsRouter(): Router {
@@ -76,6 +95,60 @@ export function createProtocolsRouter(): Router {
       protocols,
       totalCount: all.length
     });
+  });
+
+  // F-007: adaptive question layer. Only signed-off branches are used; the reasoning is returned with each question.
+  router.get("/:protocolId/next-question", async (req, res, next) => {
+    try {
+      const answers = String(req.query.answers ?? "").split(",").map((p) => p.trim()).filter(Boolean).map((pair) => {
+        const [questionId, answer] = pair.split(":");
+        return { questionId, answer: answer === "yes" ? ("yes" as const) : answer === "no" ? ("no" as const) : undefined };
+      });
+      if (answers.some((a) => !a.questionId || !a.answer)) return res.status(400).json({ error: "answers must look like questionId:yes,questionId:no" });
+      return res.json(await nextQuestion(req.params.protocolId, answers as Array<{ questionId: string; answer: "yes" | "no" }>));
+    } catch (error) {
+      return ruleFail(res, error, next);
+    }
+  });
+
+  router.get("/:protocolId/branch-rules", requireAnyPermission("protocol.library.manage", "clinical.governance.approve"), async (req, res, next) => {
+    try {
+      return res.json({ rules: await listRules(req.params.protocolId) });
+    } catch (error) {
+      return ruleFail(res, error, next);
+    }
+  });
+
+  router.post("/:protocolId/branch-rules", requirePermission("protocol.library.manage"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      const parsed = BranchRuleInput.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid branch rule", details: parsed.error.flatten() });
+      const rule = await draftRule(req.params.protocolId, parsed.data, req.securitySession!.user.id);
+      await auditRule(req, "BRANCH_RULE_DRAFTED", `BranchRule:${rule.id}`, null, { protocolId: rule.protocolId, from: rule.fromQuestionId, answer: rule.answer, next: rule.nextQuestionId });
+      return res.status(201).json({ rule });
+    } catch (error) {
+      return ruleFail(res, error, next);
+    }
+  });
+
+  router.post("/branch-rules/:ruleId/sign-off", requirePermission("clinical.governance.approve"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      const rule = await signOffRule(req.params.ruleId, req.securitySession!.user.id);
+      await auditRule(req, "BRANCH_RULE_SIGNED_OFF", `BranchRule:${rule.id}`, { status: "draft" }, { status: "signed_off" });
+      return res.json({ rule });
+    } catch (error) {
+      return ruleFail(res, error, next);
+    }
+  });
+
+  router.delete("/branch-rules/:ruleId", requirePermission("protocol.library.manage"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      await retireRule(req.params.ruleId);
+      await auditRule(req, "BRANCH_RULE_RETIRED", `BranchRule:${req.params.ruleId}`, { status: "active" }, { status: "retired" });
+      return res.json({ retired: true });
+    } catch (error) {
+      return ruleFail(res, error, next);
+    }
   });
 
   // F-006: where a protocol's content comes from and who reviewed it.
