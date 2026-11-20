@@ -35,13 +35,16 @@ describe("PR-004/PR-005 governed role catalog", () => {
     resetRateLimitBucketsForTests();
   });
 
-  it("exposes exactly three protected system roles", async () => {
+  it("exposes exactly the six protected system roles", async () => {
     const admin = await login("rishma@irisstar.tech", "platform_super_administrator");
     const response = await admin.get("/api/v1/admin/roles").expect(200);
     const systemRoles = response.body.roles.filter((role: { system: boolean }) => role.system);
     expect(systemRoles.map((role: { code: string }) => role.code).sort()).toEqual([
+      "clinical_safety_officer",
       "platform_super_administrator",
+      "qa_reviewer",
       "remote_triage_nurse",
+      "teleconsultant_physician",
       "triage_service_manager"
     ]);
   });
