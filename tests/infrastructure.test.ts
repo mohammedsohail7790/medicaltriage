@@ -153,3 +153,21 @@ describe("Qatar Airways tenant infrastructure as code", () => {
     expect(all).not.toMatch(/-----BEGIN/);
   });
 });
+
+import { estimate, DEFAULT_PROJECTION } from "../src/utils/networkEstimate.js";
+
+describe("network requirements per user (NFR-154)", () => {
+  const measured = { queueListBytes: 12_000, caseBytes: 2_500, noteBytes: 850, sessionBytes: 800 };
+
+  it("scales with users and with how often a screen polls, and always includes headroom", () => {
+    const base = estimate(measured, DEFAULT_PROJECTION);
+    expect(base.peakMbps).toBeCloseTo(base.totalMbps * DEFAULT_PROJECTION.headroom, 2);
+    expect(estimate(measured, { ...DEFAULT_PROJECTION, concurrentNurses: 100 }).totalMbps).toBeGreaterThan(base.totalMbps * 1.7);
+    expect(estimate(measured, { ...DEFAULT_PROJECTION, pollSeconds: 5 }).perNurseKbps).toBeGreaterThan(base.perNurseKbps * 2);
+    expect(base.perNurseKbps).toBeGreaterThan(0);
+  });
+
+  it("is smaller on a slow-connection list", () => {
+    expect(estimate({ ...measured, queueListBytes: 5_000 }).perNurseKbps).toBeLessThan(estimate(measured).perNurseKbps);
+  });
+});

@@ -330,6 +330,12 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/admin/ops/database-role",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/admin/ops/handlers",
       "authenticated": true,
       "hasRequestSchema": false
@@ -417,6 +423,12 @@
       "path": "/api/v1/admin/ops/schedules",
       "authenticated": true,
       "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/secrets-rotation",
+      "authenticated": true,
+      "hasRequestSchema": false
     },
     {
       "method": "POST",
