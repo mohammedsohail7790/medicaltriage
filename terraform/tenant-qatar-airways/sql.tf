@@ -21,6 +21,7 @@ resource "google_sql_database_instance" "primary" {
 
     backup_configuration {
       enabled                        = true
+      start_time                     = var.backup_start_time
       point_in_time_recovery_enabled = true
       location                       = var.region
       transaction_log_retention_days = 7

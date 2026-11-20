@@ -13,6 +13,12 @@ resource "google_cloud_run_v2_service" "app" {
   template {
     service_account = google_service_account.runtime.email
 
+    # NFR-034: more than one instance, spread over zones by the platform, so no single instance is a point of failure.
+    scaling {
+      min_instance_count = 2
+      max_instance_count = 20
+    }
+
     vpc_access {
       connector = google_vpc_access_connector.runtime.id
       egress    = "ALL_TRAFFIC"
@@ -49,6 +55,32 @@ resource "google_cloud_run_v2_service" "app" {
           }
         }
       }
+    }
+  }
+
+  # NFR-073 / NFR-137 / NFR-139: traffic can be split between a stable and a canary revision, and rolled back by
+  # setting the canary share to 0. With no stable revision named, all traffic follows the latest revision.
+  dynamic "traffic" {
+    for_each = var.stable_revision == "" ? [1] : []
+    content {
+      type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+      percent = 100
+    }
+  }
+  dynamic "traffic" {
+    for_each = var.stable_revision != "" ? [1] : []
+    content {
+      type     = "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION"
+      revision = var.stable_revision
+      percent  = var.canary_revision == "" ? 100 : 100 - var.canary_percent
+    }
+  }
+  dynamic "traffic" {
+    for_each = var.stable_revision != "" && var.canary_revision != "" && var.canary_percent > 0 ? [1] : []
+    content {
+      type     = "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION"
+      revision = var.canary_revision
+      percent  = var.canary_percent
     }
   }
 

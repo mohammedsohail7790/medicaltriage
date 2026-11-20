@@ -1,3 +1,5 @@
+import { publishEvent } from "./eventBus.js";
+import { diagnoseFailure } from "./failureDiagnosis.js";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../db.js";
 import { shouldPersistPlatformInDatabase } from "../config/runtime.js";
@@ -70,6 +72,9 @@ export async function processJobs(options: { limit?: number; now?: Date; types?:
       if (attempt >= job.maxAttempts) {
         await prisma.integrationJob.update({ where: { id: job.id }, data: { status: "dead", attempts: attempt, lastError: message, lockedUntil: null } });
         result.dead += 1;
+        // NFR-045: the alert says why it failed and what to check first.
+        const diagnosis = diagnoseFailure(message);
+        await publishEvent({ id: `job-dead-${job.id}`, type: "job.failed", occurredAtIso: now.toISOString(), subject: job.type, risk: "medium", success: false, data: { job: job.type, handler: job.type, jobId: job.id, attempts: attempt, reason: message, category: diagnosis.category, likelyCause: diagnosis.likelyCause, firstCheck: diagnosis.firstCheck } }).catch(() => undefined);
       } else {
         await prisma.integrationJob.update({ where: { id: job.id }, data: { attempts: attempt, lastError: message, nextAttemptAt: new Date(now.getTime() + backoffMs(attempt, policy())), lockedUntil: null } });
         result.retried += 1;

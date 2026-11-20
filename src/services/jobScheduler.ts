@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { WorkError, createItem, getItem, listItems, updateItem, type WorkItem } from "./clinicalWork.js";
+import { diagnoseFailure, type Diagnosis } from "./failureDiagnosis.js";
+import { publishEvent } from "./eventBus.js";
 import { isConstrained, resourceStatus } from "./resourceGuard.js";
 
 /**
@@ -158,8 +160,8 @@ export async function cancelSchedule(id: string): Promise<Schedule> {
 
 // ---- runs ------------------------------------------------------------------------------------------------
 
-export type Run = { id: string; scheduleId: string; status: string; trigger: string; startedAtIso: string; endedAtIso: string | null; durationMs: number | null; attempts: number; maxAttempts: number; error: string | null; result: unknown };
-const toRun = (item: WorkItem): Run => ({ id: item.id, scheduleId: String(item.caseRef), status: item.status, trigger: String(item.payload.trigger), startedAtIso: String(item.payload.startedAtIso), endedAtIso: (item.payload.endedAtIso as string | null) ?? null, durationMs: (item.payload.durationMs as number | null) ?? null, attempts: Number(item.payload.attempts ?? 0), maxAttempts: Number(item.payload.maxAttempts ?? 1), error: (item.payload.error as string | null) ?? null, result: item.payload.result ?? null });
+export type Run = { id: string; scheduleId: string; status: string; trigger: string; startedAtIso: string; endedAtIso: string | null; durationMs: number | null; attempts: number; maxAttempts: number; error: string | null; result: unknown; diagnosis: Diagnosis | null };
+const toRun = (item: WorkItem): Run => ({ id: item.id, scheduleId: String(item.caseRef), status: item.status, trigger: String(item.payload.trigger), startedAtIso: String(item.payload.startedAtIso), endedAtIso: (item.payload.endedAtIso as string | null) ?? null, durationMs: (item.payload.durationMs as number | null) ?? null, attempts: Number(item.payload.attempts ?? 0), maxAttempts: Number(item.payload.maxAttempts ?? 1), error: (item.payload.error as string | null) ?? null, result: item.payload.result ?? null, diagnosis: (item.payload.diagnosis as Diagnosis | undefined) ?? null });
 
 export async function listRuns(scheduleId?: string, limit = 100): Promise<Run[]> {
   return (await listItems({ kind: "job_run", caseRef: scheduleId, limit })).map(toRun);
@@ -206,7 +208,15 @@ async function execute(schedule: Schedule, run: WorkItem, now: Date): Promise<Ru
   }
   const cancelled = controller.signal.aborted;
   const ended = Date.now();
-  const final = await updateItem(run.id, { status: cancelled ? "cancelled" : error ? "failed" : "succeeded", payload: { endedAtIso: new Date(ended).toISOString(), durationMs: ended - startedAt, attempts: Math.min(attempts, schedule.maxAttempts), error: cancelled ? "Cancelled." : error, result: result ?? null } });
+  // NFR-045: a failed run carries the reason and the likely cause, in the record and in the alert.
+  const diagnosis = error && !cancelled ? diagnoseFailure(error) : undefined;
+  const final = await updateItem(run.id, { status: cancelled ? "cancelled" : error ? "failed" : "succeeded", payload: { endedAtIso: new Date(ended).toISOString(), durationMs: ended - startedAt, attempts: Math.min(attempts, schedule.maxAttempts), error: cancelled ? "Cancelled." : error, result: result ?? null, ...(diagnosis ? { diagnosis } : {}) } });
+  if (diagnosis) {
+    await publishEvent({
+      id: `job-failed-${run.id}`, type: "job.failed", occurredAtIso: new Date(ended).toISOString(), subject: schedule.handler, risk: "medium", success: false,
+      data: { job: schedule.name, handler: schedule.handler, runId: run.id, attempts: Math.min(attempts, schedule.maxAttempts), reason: error, category: diagnosis.category, likelyCause: diagnosis.likelyCause, firstCheck: diagnosis.firstCheck }
+    }).catch(() => undefined);
+  }
   return toRun(final);
 }
 

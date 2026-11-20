@@ -1,3 +1,4 @@
+import { recordInterfaceCall } from "./interfaceStats.js";
 import { currentTraceparent, withSpan } from "../observability/tracing.js";
 import { randomUUID } from "node:crypto";
 import { startInterfaceLog } from "./interfaceLog.js";
@@ -104,7 +105,13 @@ export async function callExternal(integration: string, url: string | URL, init:
       logged = undefined;
     }
   }
-  const done = startInterfaceLog({ direction: "outbound", integration, receiver: target.host, correlationId, method, path: target.pathname, payload: logged });
+  const callStarted = Date.now();
+  const logDone = startInterfaceLog({ direction: "outbound", integration, receiver: target.host, correlationId, method, path: target.pathname, payload: logged });
+  // NFR-111: each call also feeds the per-interface statistics used for slow and failing alerts.
+  const done = (info: Parameters<typeof logDone>[0]) => {
+    logDone(info);
+    recordInterfaceCall(integration, Date.now() - callStarted, !info.error && (info.status ?? 200) < 500);
+  };
   let release: (() => void) | undefined;
   let attempts = 0;
   try {

@@ -65,7 +65,8 @@
     "test:coverage": "jest --maxWorkers=1 --coverage",
     "quality:gate": "node scripts/qualityGate.mjs",
     "errors:catalogue": "tsx scripts/generateErrorCatalogue.ts",
-    "network:estimate": "tsx scripts/measureNetwork.ts"
+    "network:estimate": "tsx scripts/measureNetwork.ts",
+    "runbooks:generate": "tsx scripts/generateJobRunbooks.ts"
   },
   "dependencies": {
     "@fontsource/noto-naskh-arabic": "5.1.0",

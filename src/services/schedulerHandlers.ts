@@ -54,4 +54,16 @@ export function registerSchedulerHandlers(): void {
     if (!result.ok) throw new Error(`Overdue for rotation: ${result.overdue.join(", ")}`);
     return { overdue: 0, unknown: result.unknown.length };
   });
+
+  registerSchedulerHandler("interface.check", async () => {
+    const { checkInterfaces } = await import("../integration/interfaceStats.js");
+    const result = await checkInterfaces();
+    return { ok: result.ok, findings: result.findings.length };
+  });
+
+  registerSchedulerHandler("business.volume_check", async () => {
+    const { checkCallVolume } = await import("./businessMetrics.js");
+    const result = await checkCallVolume();
+    return { status: result.status, observed: result.observed, baseline: result.baseline };
+  });
 }

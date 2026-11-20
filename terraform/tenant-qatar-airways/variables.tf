@@ -147,3 +147,117 @@ variable "integration_egress_cidrs" {
   type        = list(string)
   default     = []
 }
+
+# ---- Sprint 8: availability, environments, monitoring, release ----
+
+variable "recovery_tier" {
+  description = "The resilience tier Qatar Airways assigns the application. It sets the targets the recovery rehearsal is measured against (M-013, M-014)."
+  type = object({
+    name        = string
+    rpo_minutes = number
+    rto_minutes = number
+  })
+  default = {
+    name        = "not yet agreed"
+    rpo_minutes = 15
+    rto_minutes = 240
+  }
+}
+
+variable "backup_start_time" {
+  description = "UTC start of the daily backup window, outside peak hours (NFR-037). 22:00 UTC is 01:00 in Doha."
+  type        = string
+  default     = "22:00"
+}
+
+variable "environments" {
+  description = "Non-production environments (NFR-068, NFR-069), each with its own database. Add an entry to provision another (NFR, training, performance)."
+  type = map(object({
+    database_tier = string
+    min_instances = number
+  }))
+  default = {
+    sit   = { database_tier = "db-custom-1-3840", min_instances = 0 }
+    uat   = { database_tier = "db-custom-1-3840", min_instances = 0 }
+    stage = { database_tier = "db-custom-2-7680", min_instances = 1 }
+  }
+}
+
+variable "stable_revision" {
+  description = "The Cloud Run revision that serves normal traffic. Leave empty to follow the latest revision."
+  type        = string
+  default     = ""
+}
+
+variable "canary_revision" {
+  description = "A new revision to receive a share of traffic first (NFR-073, NFR-137). Empty means no canary."
+  type        = string
+  default     = ""
+}
+
+variable "canary_percent" {
+  description = "Share of traffic sent to the canary revision. Set to 0 (or empty the canary) to roll back instantly (NFR-139)."
+  type        = number
+  default     = 5
+  validation {
+    condition     = var.canary_percent >= 0 && var.canary_percent <= 100
+    error_message = "canary_percent must be between 0 and 100."
+  }
+}
+
+variable "alert_emails" {
+  type    = list(string)
+  default = []
+}
+
+variable "alert_push_url" {
+  description = "Qatar Airways HTTPS endpoint that receives alerts in real time (NFR-102). Must be https."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.alert_push_url == null || startswith(var.alert_push_url, "https://")
+    error_message = "The alert endpoint must use https."
+  }
+}
+
+variable "alert_push_token" {
+  description = "Bearer token Qatar Airways' endpoint expects. Supplied at apply time, never stored in the repository."
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "dashboard_viewers" {
+  description = "Groups given read-only access to the monitoring dashboards (NFR-104)."
+  type        = list(string)
+  default     = []
+}
+
+variable "billing_account" {
+  description = "Billing account for the budget and cost export (NFR-116, AI-018). Null skips the budget."
+  type        = string
+  default     = null
+}
+
+variable "monthly_budget" {
+  description = "Monthly spend that raises cost alerts, in the billing currency."
+  type        = number
+  default     = 5000
+}
+
+variable "finops_group" {
+  description = "Group given read access to cost data for this tenant."
+  type        = string
+  default     = null
+}
+
+variable "log_archive_days" {
+  description = "Days after which archived logs are deleted (NFR-108, NFR-109): set to Qatar Airways' rule."
+  type        = number
+  default     = 1095
+}
+
+variable "disk_alert_percent" {
+  type    = number
+  default = 80
+}

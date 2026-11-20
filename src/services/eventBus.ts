@@ -41,7 +41,11 @@ const FRIENDLY: Record<string, string> = {
   PASSWORD_CHANGED: "auth.password_changed",
   RETENTION_PURGE_EXECUTED: "retention.purged",
   ARCHIVE_HANDOFF_FAILED: "archive.handoff_failed",
-  PERFORMANCE_DEGRADED: "performance.degraded"
+  PERFORMANCE_DEGRADED: "performance.degraded",
+  JOB_FAILED: "job.failed",
+  INTERFACE_DEGRADED: "interface.degraded",
+  BUSINESS_VOLUME_DIP: "business.volume_dip",
+  SECRET_ROTATION_OVERDUE: "secret.rotation_overdue"
 };
 
 export function knownEventTypes(): string[] {

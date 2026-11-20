@@ -37,6 +37,8 @@ export const RETENTION_TARGETS: RetentionTarget[] = [
   { code: "CCP_WEBHOOK_DELETED", name: "Deleted inbound messages", model: "CcpWebhookRecord", dateField: "deletedAt", where: { deletedAt: { not: null } }, archivable: true },
   { code: "CCP_WEBHOOK_RECORD", name: "Inbound message records", model: "CcpWebhookRecord", dateField: "persistedAt", archivable: true },
   { code: "INTEGRATION_INBOUND_LOG", name: "Integration inbound logs", model: "IntegrationInboundLog", dateField: "receivedAt", archivable: true },
+  // NFR-108 / NFR-109: the interface log (every call to and from another system) is purged on the agreed rule, archived first.
+  { code: "INTERFACE_LOG", name: "Interface logs", model: "InterfaceLog", dateField: "timestamp", archivable: true },
   { code: "USER_SESSION_EXPIRED", name: "Expired sessions", model: "UserSession", dateField: "expiresAt", archivable: false },
   { code: "LOGIN_NONCE", name: "Used sign-in nonces", model: "LoginNonce", dateField: "expiresAt", archivable: false },
   { code: "EXPORT_APPROVAL", name: "Export approvals", model: "ExportApproval", dateField: "requestedAt", archivable: false }

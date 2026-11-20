@@ -9,6 +9,9 @@ import { ScheduleInput, cancelRun, cancelSchedule, createSchedule, getRun, listR
 import { listRules, ruleHistory, setRule } from "../services/businessRules.js";
 import { databaseRoleReport } from "../services/databaseRole.js";
 import { rotationReport } from "../services/secretRotation.js";
+import { evaluateInterfaces, interfaceStats } from "../integration/interfaceStats.js";
+import { callCreationTimes, volumeDip } from "../services/businessMetrics.js";
+import { runbookFor } from "../services/jobRunbooks.js";
 import { collectMetrics } from "../observability/metrics.js";
 import { recentTraces, spansForTrace } from "../observability/tracing.js";
 import { Thresholds, evaluate, getThresholds, setThresholds } from "../services/performanceMonitor.js";
@@ -43,7 +46,19 @@ export function createOpsAdminRouter(): Router {
   const read = requirePermission("audit.events.view");
   const write = requireElevatedPermission("admin.users.manage");
 
-  router.get("/handlers", read, (_req, res) => res.json({ handlers: schedulerHandlerNames() }));
+  router.get("/handlers", read, (_req, res) => res.json({ handlers: schedulerHandlerNames(), runbooks: Object.fromEntries(schedulerHandlerNames().map((n) => [n, runbookFor(n) ?? null])) }));
+
+  // NFR-111 interface monitoring, NFR-107 business volume
+  router.get("/interfaces", read, (_req, res) => res.json({ interfaces: interfaceStats(), outsideThresholds: evaluateInterfaces() }));
+  router.get("/volume", read, async (_req, res, next) => {
+    try {
+      // Reading the figure never raises an alert; the scheduled check does that.
+      const now = new Date();
+      return res.json(volumeDip(await callCreationTimes(new Date(now.getTime() - 29 * 86_400_000).toISOString()), now));
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
   router.get("/resources", read, (_req, res) => res.json({ ...resourceStatus(), limits: resourceLimits() }));
 
   // ---- performance monitoring, thresholds, traces (NFR-131, 110, 132, 101) ----
