@@ -16,7 +16,7 @@ export async function fetchJson<T>(path: string): Promise<T> {
   return payload as T;
 }
 
-async function sendJson<T>(method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
+async function sendJson<T>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {
     method,
     credentials: "include",
@@ -32,6 +32,10 @@ async function sendJson<T>(method: "POST" | "PATCH" | "DELETE", path: string, bo
 
 export function postJson<T>(path: string, body?: unknown): Promise<T> {
   return sendJson<T>("POST", path, body);
+}
+
+export function putJson<T>(path: string, body: unknown): Promise<T> {
+  return sendJson<T>("PUT", path, body);
 }
 
 export function patchJson<T>(path: string, body: unknown): Promise<T> {

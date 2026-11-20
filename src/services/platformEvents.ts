@@ -9,6 +9,22 @@ export function registerPlatformSubscribers(): void {
   registerWebhookSubscriber();
   registerRuleSubscriber();
   registerBrokerPublishing();
+  // NFR-094: the EMR write-back, done by a worker with the tenant of the nurse who asked for it.
+  registerJobHandler("emr.writeback", async (payload, job) => {
+    const { executeWriteback } = await import("../integration/fhirWriteback.js");
+    const organizationId = (payload.organizationId as string | null) ?? undefined;
+    const session = {
+      sessionId: `job:${job.id}`,
+      user: { id: "system:integration-worker", organizationId, accountStatus: "active", roles: ["system"] },
+      activeRole: "system",
+      permissions: [],
+      responsibilities: [],
+      expiresAtIso: new Date(Date.now() + 600_000).toISOString(),
+      authMethod: "local",
+      mfaVerified: false
+    } as unknown as import("../types/security.js").AuthenticatedSession;
+    await executeWriteback(String(payload.encounterId), { ...(payload.options as object), requestId: job.correlationId }, session);
+  });
   registerJobHandler("email.send", async (payload) => {
     const result = await getEmailAdapter().send({ to: String(payload.to), subject: String(payload.subject), body: String(payload.body) });
     if (!result.ok) throw new Error(result.error ?? "Email could not be sent.");

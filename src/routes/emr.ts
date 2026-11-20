@@ -1,3 +1,4 @@
+import { enqueueJob } from "../services/integrationQueue.js";
 import { Router } from "express";
 import { z } from "zod";
 import { executeWriteback } from "../integration/fhirWriteback.js";
@@ -23,6 +24,17 @@ export function createEmrRouter(): Router {
         return res.status(400).json({ error: "Invalid EMR/FHIR writeback payload", details: parsed.error.flatten() });
       }
 
+      // NFR-094: with ?async=true (or EMR_WRITEBACK_ASYNC=true) the write-back is queued and done by a worker, so an
+      // unavailable EMR never holds up the nurse. The job is retried and dead-lettered like any integration job.
+      const asynchronous = req.query.async === "true" || (req.query.async === undefined && process.env.EMR_WRITEBACK_ASYNC === "true");
+      if (asynchronous) {
+        const jobId = await enqueueJob({
+          type: "emr.writeback",
+          payload: { encounterId: req.params.encounterId, organizationId: req.securitySession?.user.organizationId ?? null, options: { isDraft: parsed.data.isDraft, dryRun: parsed.data.dryRun, patientId: parsed.data.patientId, practitionerId: parsed.data.practitionerId } },
+          correlationId: (req as AuthorizedRequest & RequestWithId).requestId
+        });
+        return res.status(202).json({ queued: true, jobId });
+      }
       const result = await executeWriteback(
         req.params.encounterId,
         {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ElevationModal } from "../shared/ElevationModal";
 import { useElevatedAction } from "../shared/useElevatedAction";
 import { fetchJson, postJson } from "../shared/adminApi";
+import { AlertRulesCard } from "./AlertRulesCard";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
@@ -52,6 +53,7 @@ export function AccessControlPanel({ permissions }: AccessControlPanelProps) {
         <RevealWorkflowCard canRequest={hasPermission("privacy.reveal.request")} canApprove={hasPermission("privacy.reveal.approve")} />
       )}
       {hasPermission("audit.events.view") && <RevocationMetricsCard />}
+      {hasPermission("audit.events.view") && <AlertRulesCard runElevated={elevation.runElevated} />}
       <ElevationModal
         open={elevation.modalOpen}
         error={elevation.modalError}
