@@ -1,0 +1,5 @@
+{
+  "note": "Enforced by `pnpm quality:gate`. Raise these as coverage improves; they must never be lowered without the security owner's sign-off.",
+  "coverage": { "lines": 0, "statements": 0, "functions": 0, "branches": 0 },
+  "performance": { "p95Ms": 2000, "errorRate": 0.01 }
+}

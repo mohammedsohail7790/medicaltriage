@@ -41,6 +41,7 @@ import { createJobStatusRouter, createOpsAdminRouter } from "./routes/opsAdmin.j
 import { createHandoffRouter } from "./routes/handoffRouter.js";
 import { createNoteTemplatesRouter } from "./routes/noteTemplates.js";
 import { createSafetyRouter } from "./routes/safetyRouter.js";
+import { lowBandwidthMiddleware } from "./middleware/lowBandwidth.js";
 import { metricsAuthorised, prometheusText } from "./observability/metrics.js";
 import { tracingMiddleware } from "./observability/tracing.js";
 import { requestCounter } from "./services/resourceGuard.js";
@@ -206,6 +207,7 @@ export function createApp() {
   app.use(requestDurationLogger());
   app.use(requestCounter());
   app.use(tracingMiddleware());
+  app.use(lowBandwidthMiddleware());
   app.use(apiAnalytics());
   app.use(gatewayGuard());
   // Optional IP allowlisting (NFR-027) - a no-op unless IP_ALLOWLIST is set,

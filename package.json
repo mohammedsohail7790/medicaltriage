@@ -59,7 +59,12 @@
     "test:synthetic-data": "node scripts/runPython.mjs python/test_synthetic_pdp_generator.py",
     "test:clinical-sim": "node scripts/runPython.mjs python/test_clinical_simulation_engine.py",
     "test:bulk-sim": "node scripts/runPython.mjs python/test_bulk_clinical_simulation.py",
-    "test:ai-scorecard": "node scripts/runPython.mjs python/test_triage_safety_scorecard.py"
+    "test:ai-scorecard": "node scripts/runPython.mjs python/test_triage_safety_scorecard.py",
+    "sbom": "node scripts/generateSbom.mjs",
+    "inventory": "node scripts/componentInventory.mjs",
+    "test:coverage": "jest --maxWorkers=1 --coverage",
+    "quality:gate": "node scripts/qualityGate.mjs",
+    "errors:catalogue": "tsx scripts/generateErrorCatalogue.ts"
   },
   "dependencies": {
     "@fontsource/noto-naskh-arabic": "5.1.0",
@@ -143,5 +148,8 @@
       "undici": ">=7.29.0",
       "@vercel/blob": "-"
     }
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

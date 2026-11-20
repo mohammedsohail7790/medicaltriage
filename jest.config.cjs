@@ -7,6 +7,9 @@ module.exports = {
   // suite in one process, as --runInBand does, used to end with "JavaScript heap out of memory"
   // once the suite grew past about 60 files.
   workerIdleMemoryLimit: "1500MB",
+  // Coverage is collected only with --coverage (pnpm test:coverage); scripts/qualityGate.mjs enforces the thresholds.
+  collectCoverageFrom: ["src/**/*.ts", "!src/scripts/**", "!src/**/*.d.ts"],
+  coverageReporters: ["text-summary", "json-summary"],
   testMatch: ["**/tests/**/*.test.ts"],
   setupFiles: ["<rootDir>/tests/jest.setup.ts"],
   extensionsToTreatAsEsm: [".ts"],

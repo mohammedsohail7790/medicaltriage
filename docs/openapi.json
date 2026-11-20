@@ -81,6 +81,108 @@
         },
         "additionalProperties": false
       },
+      "ScheduleInputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "handler": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cron",
+              "once",
+              "times",
+              "manual"
+            ]
+          },
+          "cron": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "runAtIso": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "times": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "timezone": {
+            "type": "string",
+            "enum": [
+              "UTC",
+              "Asia/Qatar"
+            ],
+            "default": "UTC"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "non_critical"
+            ],
+            "default": "non_critical"
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 3
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {},
+            "default": {}
+          }
+        },
+        "required": [
+          "name",
+          "handler",
+          "mode"
+        ],
+        "additionalProperties": false
+      },
+      "ThresholdsSchema": {
+        "type": "object",
+        "properties": {
+          "p95Ms": {
+            "type": "integer",
+            "minimum": 50,
+            "maximum": 60000
+          },
+          "errorRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "eventLoopLagMs": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 10000
+          },
+          "minRequests": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          }
+        },
+        "required": [
+          "p95Ms",
+          "errorRate",
+          "eventLoopLagMs",
+          "minRequests"
+        ],
+        "additionalProperties": false
+      },
       "PasswordPolicySchema": {
         "type": "object",
         "properties": {
@@ -5390,6 +5492,1002 @@
         }
       }
     },
+    "/api/v1/admin/ops/handlers": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/handlers",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/metrics": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/metrics",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/resources": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/resources",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/rules/{key}/history": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/rules/{key}/history",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/rules/{key}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "PUT /api/v1/admin/ops/rules/{key}",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/rules": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/rules",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/runs/{id}/cancel": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "POST /api/v1/admin/ops/runs/{id}/cancel",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/runs/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/runs/{id}",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/runs": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/runs",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/schedules/{id}/disable": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "POST /api/v1/admin/ops/schedules/{id}/disable",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/schedules/{id}/enable": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "POST /api/v1/admin/ops/schedules/{id}/enable",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/schedules/{id}/run": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "POST /api/v1/admin/ops/schedules/{id}/run",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/schedules/{id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "DELETE /api/v1/admin/ops/schedules/{id}",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/schedules": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/schedules",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "POST /api/v1/admin/ops/schedules",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleInputSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/synthetic": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "POST /api/v1/admin/ops/synthetic",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/thresholds": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/thresholds",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "PUT /api/v1/admin/ops/thresholds",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThresholdsSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/traces": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/traces",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/usage-insights": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/usage-insights",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
     "/api/v1/admin/organizations/{orgId}/export-requests": {
       "post": {
         "tags": [
@@ -9377,6 +10475,61 @@
                 "$ref": "#/components/schemas/CallCenterEventSchema"
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "GET /api/v1/jobs/{id}",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
           }
         }
       }

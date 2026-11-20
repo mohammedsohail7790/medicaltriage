@@ -329,6 +329,126 @@
       "hasRequestSchema": false
     },
     {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/handlers",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/metrics",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/resources",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/rules/{key}/history",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/admin/ops/rules/{key}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/rules",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/ops/runs/{id}/cancel",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/runs/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/runs",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/ops/schedules/{id}/disable",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/ops/schedules/{id}/enable",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/ops/schedules/{id}/run",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/admin/ops/schedules/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/schedules",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/ops/schedules",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/ops/synthetic",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/thresholds",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/admin/ops/thresholds",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/traces",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/usage-insights",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
       "method": "POST",
       "path": "/api/v1/admin/organizations/{orgId}/export-requests",
       "authenticated": true,
@@ -813,6 +933,12 @@
       "path": "/api/v1/integrations/call-center/events",
       "authenticated": false,
       "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/jobs/{id}",
+      "authenticated": true,
+      "hasRequestSchema": false
     },
     {
       "method": "GET",

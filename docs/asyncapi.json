@@ -62,6 +62,14 @@
         }
       }
     },
+    "performance.degraded": {
+      "description": "Published when performance.degraded occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/PlatformEvent"
+        }
+      }
+    },
     "queue.item.claimed": {
       "description": "Published when queue.item.claimed occurs. Delivered as a CloudEvents 1.0 envelope to webhooks, rules and the message broker.",
       "subscribe": {

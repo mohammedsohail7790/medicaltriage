@@ -10,7 +10,9 @@ export function useAction() {
     try {
       return await action();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The action could not be completed.");
+      // A failed fetch means the connection dropped, not that the request was refused: say so, and say the text is kept.
+      const offline = caught instanceof TypeError || (typeof navigator !== "undefined" && navigator.onLine === false);
+      setError(offline ? "The connection was lost. What you typed is kept on this screen; try again when you are back online." : caught instanceof Error ? caught.message : "The action could not be completed.");
       return undefined;
     } finally {
       setBusy(false);

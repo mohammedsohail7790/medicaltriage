@@ -1,3 +1,4 @@
+import { isLowBandwidth } from "./lowBandwidth";
 const STORAGE_KEY = "ist_triage_access_token";
 
 let currentToken: string | undefined = sessionStorage.getItem(STORAGE_KEY) ?? undefined;
@@ -36,6 +37,10 @@ export function installBearerTokenFetch(): void {
     // context check. It is not a credential and is never used on its own to reject a request.
     if (!headers.has("X-Client-Viewport")) {
       headers.set("X-Client-Viewport", `${window.innerWidth}x${window.innerHeight}`);
+    }
+    // NFR-122: on a slow connection, ask the server for lists without the bulky parts.
+    if (isLowBandwidth() && !headers.has("X-Low-Bandwidth")) {
+      headers.set("X-Low-Bandwidth", "1");
     }
     if (token && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${token}`);

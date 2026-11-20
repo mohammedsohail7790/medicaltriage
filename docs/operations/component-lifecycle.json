@@ -1,0 +1,16 @@
+{
+  "reviewedOn": "2026-11-20",
+  "verifiedAgainstVendorPages": false,
+  "note": "Lifecycle statements below come from the team's knowledge at the review date and must be checked against each vendor's published lifecycle page at every review and before go-live.",
+  "components": [
+    { "name": "node", "kind": "runtime", "track": "24", "status": "long-term-support", "supportedUntil": "2028-04", "action": "None. Container image, CI and local development all use Node 24." },
+    { "name": "postgresql", "kind": "database", "track": "16", "status": "supported", "supportedUntil": "2028-11", "action": "Plan the move to a newer major with Qatar Airways' database team." },
+    { "name": "express", "kind": "package", "track": "4", "status": "maintenance", "supportedUntil": "review", "action": "Review the Express 5 migration before go-live; regression-test every route." },
+    { "name": "prisma", "kind": "package", "track": "5", "status": "superseded-major", "supportedUntil": "review", "action": "Review the next Prisma major before go-live; the migration needs the full database test run." },
+    { "name": "typescript", "kind": "package", "track": "5", "status": "supported", "supportedUntil": "n/a", "action": "Keep to the current 5.x." },
+    { "name": "zod", "kind": "package", "track": "3", "status": "supported", "supportedUntil": "n/a", "action": "Zod 4 exists; the OpenAPI generator depends on zod-to-json-schema for Zod 3, so move both together." },
+    { "name": "react", "kind": "package", "track": "19", "status": "supported", "supportedUntil": "review", "action": "Keep to the current 19.x." },
+    { "name": "vite", "kind": "package", "track": "6", "status": "supported", "supportedUntil": "review", "action": "Review at each release." },
+    { "name": "pdfkit", "kind": "package", "track": "0", "status": "supported", "supportedUntil": "n/a", "action": "Its Arabic shaping fails on some marks; the code strips them. Re-test on upgrade." }
+  ]
+}

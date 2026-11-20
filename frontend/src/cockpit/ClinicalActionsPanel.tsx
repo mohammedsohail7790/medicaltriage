@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiBase, fetchJson, postJson } from "../admin/shared/adminApi";
 import { useAction } from "../clinical/useAction";
+import { useDraft, useLowBandwidth } from "../lowBandwidth";
 import "../clinical/clinical.css";
 
 // What a triage nurse can do about the open call beyond the note (F-016, F-017, F-021, F-022, F-008):
@@ -38,7 +39,7 @@ export function RedFlagAndExplain({ c }: { c: CaseFields }) {
 export function IncidentForm({ c }: { c: CaseFields }) {
   const [type, setType] = useState("near_miss");
   const [severity, setSeverity] = useState("low");
-  const [description, setDescription] = useState("");
+  const [description, setDescription, clearDescription] = useDraft(`incident:${c.caseRef}`);
   const [done, setDone] = useState("");
   const { busy, error, run } = useAction();
   return (
@@ -49,7 +50,7 @@ export function IncidentForm({ c }: { c: CaseFields }) {
         <select aria-label="Severity" value={severity} onChange={(e) => setSeverity(e.target.value)}><option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High</option><option value="critical">Critical</option></select>
       </div>
       <div className="clinical-row"><textarea aria-label="What happened" placeholder="What happened (no patient names needed; it is linked to this call)" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-      <button className="clinical-btn" disabled={busy || description.trim().length < 10} onClick={async () => { const r = await run(() => postJson("/api/v1/safety/incidents", { type, severity, caseRef: c.caseRef, description })); if (r) { setDone("Reported to the Clinical Safety Officer."); setDescription(""); } }}>Report</button>
+      <button className="clinical-btn" disabled={busy || description.trim().length < 10} onClick={async () => { const r = await run(() => postJson("/api/v1/safety/incidents", { type, severity, caseRef: c.caseRef, description })); if (r) { setDone("Reported to the Clinical Safety Officer."); clearDescription(); } }}>Report</button>
       {done && <p role="status">{done}</p>}
       {error && <p className="clinical-error" role="alert">{error}</p>}
     </div>
@@ -61,9 +62,9 @@ type Referral = { id: string; status: string; reference: string };
 export function ReferralLetter({ c }: { c: CaseFields }) {
   const [destination, setDestination] = useState(c.destination ?? "");
   const [phone, setPhone] = useState("");
-  const [reason, setReason] = useState(c.reason ?? "");
-  const [assessment, setAssessment] = useState(c.disposition ?? "");
-  const [recommendation, setRecommendation] = useState(c.destination ? `Review at ${c.destination}` : "");
+  const [reason, setReason] = useDraft(`referral-reason:${c.caseRef}`, c.reason ?? "");
+  const [assessment, setAssessment] = useDraft(`referral-assessment:${c.caseRef}`, c.disposition ?? "");
+  const [recommendation, setRecommendation] = useDraft(`referral-recommendation:${c.caseRef}`, c.destination ? `Review at ${c.destination}` : "");
   const [to, setTo] = useState("");
   const [referral, setReferral] = useState<Referral | undefined>();
   const { busy, error, run } = useAction();
@@ -109,8 +110,8 @@ type Handoff = { id: string; status: string; response?: { advice: string; outcom
 
 export function TeleconsultEscalation({ c }: { c: CaseFields }) {
   const [urgency, setUrgency] = useState("urgent");
-  const [question, setQuestion] = useState("");
-  const [summary, setSummary] = useState(c.reason ?? "");
+  const [question, setQuestion] = useDraft(`escalation-question:${c.caseRef}`);
+  const [summary, setSummary] = useDraft(`escalation-summary:${c.caseRef}`, c.reason ?? "");
   const [handoff, setHandoff] = useState<Handoff | undefined>();
   const { busy, error, run } = useAction();
   const refresh = () => run(async () => setHandoff((await fetchJson<{ handoff: Handoff }>(`/api/v1/handoff/teleconsult/${handoff!.id}`)).handoff));
@@ -171,9 +172,11 @@ export function TemplatePicker({ c }: { c: CaseFields }) {
 }
 
 export function ClinicalActionsPanel({ c }: { c: CaseFields }) {
+  const low = useLowBandwidth();
   return (
     <details className="clinical-actions">
       <summary>More clinical actions for this call</summary>
+      {low && <div className="clinical-note" role="status">Low-bandwidth mode: lists load with less detail, and what you type here is saved on this device until it is sent.</div>}
       <RedFlagAndExplain c={c} />
       <TemplatePicker c={c} />
       <TeleconsultEscalation c={c} />

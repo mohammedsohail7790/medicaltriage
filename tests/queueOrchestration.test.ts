@@ -709,3 +709,28 @@ describe("Enterprise queue orchestration", () => {
     });
   });
 });
+
+describe("NFR-122 low-bandwidth lists", () => {
+  beforeEach(() => {
+    resetQueueStoreForTests();
+    resetSecurityStoreForTests();
+    resetRateLimitBucketsForTests();
+  });
+
+  it("leaves the bulky parts out of the list for a client that asks for less, and keeps the full case one request away", async () => {
+    const nurse = await agentFor("layla@irisstar.tech", "remote_triage_nurse");
+    const full = await nurse.get("/api/v1/queue").expect(200);
+    const slim = await nurse.get("/api/v1/queue").set("Save-Data", "on").expect(200);
+    expect(slim.body.lowBandwidth).toBe(true);
+    expect(slim.headers["x-low-bandwidth-applied"]).toBe("1");
+    expect(slim.body.count).toBe(full.body.count);
+    expect(JSON.stringify(slim.body).length).toBeLessThan(JSON.stringify(full.body).length);
+    expect(slim.body.queue[0].transitionLogs).toBeUndefined();
+    expect(slim.body.queue[0].slim).toBe(true);
+    expect(slim.body.queue[0].id).toBe(full.body.queue[0].id);
+    const one = await nurse.get(`/api/v1/queue/${full.body.queue[0].id}`).set("Save-Data", "on").expect(200);
+    expect(one.body.item.slim).toBeUndefined();
+    expect((await nurse.get("/api/v1/queue").set("ECT", "2g").expect(200)).body.lowBandwidth).toBe(true);
+    expect((await nurse.get("/api/v1/queue").set("ECT", "4g").expect(200)).body.lowBandwidth).toBeUndefined();
+  });
+});

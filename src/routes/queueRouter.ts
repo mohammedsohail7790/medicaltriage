@@ -1,3 +1,4 @@
+import { slimQueueItem, type LowBandwidthRequest } from "../middleware/lowBandwidth.js";
 import { auditRead } from "../middleware/readAudit.js";
 import { Router } from "express";
 import { requireAnyPermission } from "../middleware/rbac.js";
@@ -85,8 +86,10 @@ export function createQueueRouter(): Router {
         return res.status(400).json({ error: "Invalid queue filters", details: parsed.error.flatten() });
       }
       const { items, totalCount } = await listQueueItems(sessionFrom(req), parsed.data);
+      const slim = (req as LowBandwidthRequest).lowBandwidth === true;
       return res.json({
-        queue: items,
+        queue: slim ? items.map(slimQueueItem) : items,
+        ...(slim ? { lowBandwidth: true } : {}),
         count: items.length,
         totalCount,
         source: "unified-queue-orchestration"
