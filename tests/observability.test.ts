@@ -194,3 +194,48 @@ describe("admin monitoring routes", () => {
     await nurse.get("/api/v1/admin/ops/usage-insights").expect(403);
   });
 });
+
+import { LogStreamer, classify, parseLogSinks } from "../src/observability/logStream.js";
+
+describe("NFR-167 log streaming to a SIEM", () => {
+  const sink = { name: "siem", url: "https://siem.example/ingest" };
+  const secret = () => "log-secret-for-tests";
+
+  it("classes lines as security or application, and only accepts https collectors", () => {
+    expect(classify({ type: "failed_login" })).toBe("security");
+    expect(classify({ type: "request_duration" })).toBe("application");
+    expect(parseLogSinks(undefined)).toEqual([]);
+    expect(() => parseLogSinks('[{"name":"x","url":"http://insecure"}]')).toThrow(/https/);
+    expect(() => parseLogSinks("{}")).toThrow(/array/);
+  });
+
+  it("sends signed batches of structured lines and counts them", async () => {
+    const received: Array<{ body: string; signature: string }> = [];
+    const streamer = new LogStreamer([sink], async (_s, body, signature) => { received.push({ body, signature }); return true; }, { batchSize: 2, secret });
+    for (const type of ["request_duration", "failed_login", "route_not_found"]) streamer.push({ type });
+    await streamer.flush();
+    expect(received).toHaveLength(2);
+    expect(JSON.parse(received[0].body).events.map((e: { stream: string }) => e.stream)).toEqual(["application", "security"]);
+    expect(received[0].signature).toMatch(/^[0-9a-f]{64}$/);
+    expect(streamer.statistics()).toMatchObject({ sent: 3, failed: 0, buffered: 0 });
+  });
+
+  it("keeps lines for another try when a collector is down, and never grows without bound", async () => {
+    let up = false;
+    const streamer = new LogStreamer([sink], async () => up, { maxBuffer: 5, secret });
+    for (let i = 0; i < 9; i += 1) streamer.push({ type: "x", i });
+    expect(streamer.statistics()).toMatchObject({ buffered: 5, dropped: 4 });
+    await streamer.flush();
+    expect(streamer.statistics()).toMatchObject({ failed: 5, buffered: 5 });
+    up = true;
+    await streamer.flush();
+    expect(streamer.statistics()).toMatchObject({ sent: 5, buffered: 0 });
+  });
+
+  it("does nothing with no collector configured", () => {
+    const streamer = new LogStreamer([], async () => true);
+    streamer.push({ type: "x" });
+    expect(streamer.enabled).toBe(false);
+    expect(streamer.buffered).toBe(0);
+  });
+});

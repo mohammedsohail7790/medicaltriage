@@ -1,3 +1,4 @@
+import { installLogStream } from "./observability/logStream.js";
 import { createApp } from "./app.js";
 import { contentPackageReady } from "./services/clinicalContent.js";
 import { startIncomingCallSimulator } from "./services/callSimulator.js";
@@ -5,6 +6,8 @@ import { startPlatformWorkers } from "./services/platformEvents.js";
 import { recordAuditConfigurationState } from "./services/auditPolicy.js";
 import { hydrateRolePermissionOverridesFromDatabase, startRoleCatalogRefresh } from "./services/securityAdmin.js";
 
+// NFR-167: structured logs also stream to the SIEM collectors in LOG_FORWARD_SINKS.
+installLogStream();
 const port = Number(process.env.PORT ?? 8080);
 
 await contentPackageReady;
