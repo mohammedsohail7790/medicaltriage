@@ -3,7 +3,7 @@ import { getEmailAdapter } from "./communicationAdapters.js";
 import { registerRuleSubscriber } from "./eventRules.js";
 import { registerJobHandler, startJobWorker } from "./integrationQueue.js";
 import { startTraceExporter } from "../observability/tracing.js";
-import { startSchedulerWorker } from "./jobScheduler.js";
+import { schedulerRunsInProcess, startSchedulerWorker } from "./jobScheduler.js";
 import { registerSchedulerHandlers } from "./schedulerHandlers.js";
 import { registerWebhookSubscriber, startWebhookWorker } from "./webhooks.js";
 
@@ -39,6 +39,6 @@ export function registerPlatformSubscribers(): void {
 export function startPlatformWorkers(): void {
   startWebhookWorker();
   startJobWorker();
-  startSchedulerWorker();
+  if (schedulerRunsInProcess()) startSchedulerWorker();
   startTraceExporter();
 }

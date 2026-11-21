@@ -1,0 +1,1040 @@
+[
+ {
+  "id": "F-001",
+  "position": "Comply",
+  "evidence": "Licensed STCC release record; clinical sign-off record; demonstration of a full triage call",
+  "todo": "Load the licensed STCC release, confirm the licence covers the named users, and obtain Qatar Airways' clinical sign-off before go-live."
+ },
+ {
+  "id": "F-007",
+  "position": "Comply",
+  "evidence": "Branch-rule configuration; clinical sign-off record; scripted call demonstration",
+  "todo": "Add an adaptive question layer: branch rules per protocol (next question chosen from previous answers) in the STCC engine, with nurse-visible reasoning and clinical sign-off of each branch. Clinical content must be licensed and reviewed. Proof: scripted call showing different next questions for different answers."
+ },
+ {
+  "id": "F-015",
+  "position": "Comply",
+  "evidence": "Note and encounter record showing nurse identity; audit extract",
+  "todo": "Take the nurse identity from the authenticated session and carry it into the note and the encounter record."
+ },
+ {
+  "id": "F-017",
+  "position": "Comply",
+  "evidence": "Referral letter sample; send log; approval record; UAT test report",
+  "todo": "Referral letter as PDF (English and Arabic) for nurse review, sent by email through a Qatar Airways-approved service; nothing is sent without nurse approval and, in production, a signed clinical approval."
+ },
+ {
+  "id": "F-023",
+  "position": "Comply",
+  "evidence": "Dashboard demonstration; role permission matrix; UAT test report",
+  "todo": "Mount the dashboard, add the role and view, and show live data only."
+ },
+ {
+  "id": "F-016",
+  "position": "Comply",
+  "evidence": "Teleconsultant handoff demonstration; adapter configuration; audit extract",
+  "todo": "Build a teleconsultant handoff (adapter, one-click action, physician role and queue) as an integration with Qatar Airways' teleconsultant service; the nurse approves before anything is sent."
+ },
+ {
+  "id": "F-020",
+  "position": "Comply",
+  "evidence": "Sampling log; QA queue demonstration; role permission matrix",
+  "todo": "Random sampling over eligible completed calls with a recorded selection, plus a QA review queue; a reviewer cannot review their own calls. The QA reviewer role uses the read-only board and masked call drawer."
+ },
+ {
+  "id": "F-021",
+  "position": "Comply",
+  "evidence": "Incident form and register; workflow demonstration",
+  "todo": "Add a clinical incident and near-miss form linked to the call, managed by the Clinical Safety Officer."
+ },
+ {
+  "id": "F-006",
+  "position": "Comply",
+  "evidence": "Protocol source and review metadata; clinical mapping record",
+  "todo": "Show source references and review information with each outcome. WHO, NICE or CDC mappings will be added only where Qatar Airways' clinical team confirms them."
+ },
+ {
+  "id": "F-009",
+  "position": "Comply",
+  "evidence": "Protocol finder and possible-conditions view; clinical review record",
+  "todo": "Provide a possible-conditions view beside the candidates, built from the protocol content, after Qatar Airways' clinical and regulatory review of how it is presented."
+ },
+ {
+  "id": "F-018",
+  "position": "Comply",
+  "evidence": "Handover note sample; EMR integration test record",
+  "todo": "Add destination contact details to the note and write the note to the patient record through the EMR integration."
+ },
+ {
+  "id": "F-022",
+  "position": "Comply",
+  "evidence": "Explainability view; audit trace extract",
+  "todo": "Show the reasons behind each candidate (see F-009)."
+ },
+ {
+  "id": "F-004",
+  "position": "Comply",
+  "evidence": "Disposition screen and note; UAT test report",
+  "todo": "Record the Give Now or Send Later choice and carry it into the note."
+ },
+ {
+  "id": "F-005",
+  "position": "Comply",
+  "evidence": "Note template set; copy-note demonstration; UAT test report",
+  "todo": "Add a copy action and clinician-editable templates; AI-generated summaries are not offered in the base solution."
+ },
+ {
+  "id": "F-008",
+  "position": "Comply",
+  "evidence": "Initial Assessment configuration; escalate-now demonstration; red-flag rule set",
+  "todo": "Require the Initial Assessment by default (configurable by an administrator), enable the escalate-now action for the nurse role, and add red-flag phrase detection."
+ },
+ {
+  "id": "F-011",
+  "position": "Comply",
+  "evidence": "Safety-netting screen and note; UAT test report",
+  "todo": "Record the choice (see F-004)."
+ },
+ {
+  "id": "F-019",
+  "position": "Comply",
+  "evidence": "Dashboard demonstration; monthly report sample; role configuration",
+  "todo": "Mount the dashboard for a Clinical Safety Officer role and calculate figures from live data only."
+ },
+ {
+  "id": "AI-009",
+  "position": "Comply",
+  "evidence": "Secret access policy; alert policy",
+  "todo": "Apply the equivalent secret-deletion controls (access restrictions and alerts) in the Qatar Airways tenant."
+ },
+ {
+  "id": "AI-010",
+  "position": "Comply",
+  "evidence": "IAM policy; network access configuration",
+  "todo": "Restrict secret access to approved identities and networks in the Qatar Airways tenant."
+ },
+ {
+  "id": "AI-011",
+  "position": "Comply",
+  "evidence": "Security Command Center configuration",
+  "todo": "Enable it in the Qatar Airways deployment."
+ },
+ {
+  "id": "M-040",
+  "position": "Comply",
+  "evidence": "Threat-detection and binary authorisation configuration; findings register and remediation SLA; CI scan results",
+  "todo": "Enable threat detection and binary authorisation in the Qatar Airways deployment and agree a remediation SLA (Critical within 30 calendar days of awareness; High to be agreed)."
+ },
+ {
+  "id": "NFR-151",
+  "position": "Comply",
+  "evidence": "SSO configuration; account inventory",
+  "todo": "Disable local sign-in for Qatar Airways users once SSO is live and keep named accounts only."
+ },
+ {
+  "id": "NFR-153",
+  "position": "Comply",
+  "evidence": "Database role definitions; connection configuration",
+  "todo": "Confirm and, if needed, separate runtime and migration roles."
+ },
+ {
+  "id": "NFR-158",
+  "position": "Comply",
+  "evidence": "Signing procedure; binary authorisation policy",
+  "todo": "Enable enforcement of signed images in the Qatar Airways deployment."
+ },
+ {
+  "id": "NFR-159",
+  "position": "Comply",
+  "evidence": "Privileged access policy; elevation audit log",
+  "todo": "Move cloud administration to organisation-managed accounts with just-in-time elevation in the Qatar Airways tenant."
+ },
+ {
+  "id": "NFR-161",
+  "position": "Comply",
+  "evidence": "Rotation schedule; rotation log",
+  "todo": "Rotate secrets and keys on a Qatar Airways-defined schedule."
+ },
+ {
+  "id": "AI-002",
+  "position": "Comply",
+  "evidence": "scripts/dastProbe.mjs; .github/workflows/zap-baseline.yml; probe report",
+  "todo": "Authenticated dynamic testing as part of the penetration test."
+ },
+ {
+  "id": "AI-041",
+  "position": "Comply",
+  "evidence": "src/routes/approvalRouter.ts; approval demonstration; audit extract",
+  "todo": "Connect the cockpit approval to the signed clinical approval service before any record write or patient message."
+ },
+ {
+  "id": "M-017",
+  "position": "Comply",
+  "evidence": "OWASP Top 10 and ASVS mapping; CodeQL and ZAP workflow runs; penetration test executive summary",
+  "todo": "Produce an OWASP Top 10 and ASVS mapping and include it in the penetration-test scope (M-006)."
+ },
+ {
+  "id": "NFR-146",
+  "position": "Comply",
+  "evidence": "Login protection design; captured-traffic test record",
+  "todo": "Add request-body encryption for login (JWE or a signed, nonce-based payload), rotate the login path per environment, and add replay protection (nonce, timestamp). Proof: captured login traffic not readable or replayable."
+ },
+ {
+  "id": "NFR-147",
+  "position": "Comply",
+  "evidence": "Build configuration; built bundle inspection",
+  "todo": "Add JS minification and obfuscation to the production build of the web client (terser plus an obfuscator on the login bundle). Proof: built bundle inspection."
+ },
+ {
+  "id": "NFR-148",
+  "position": "Comply",
+  "evidence": "Session binding configuration; stolen-token test record",
+  "todo": "Bind session to user id, IP range and user agent and validate on every request; add optional viewport check as a signal only. Alert on mismatches. Proof: a stolen token used from another context is rejected."
+ },
+ {
+  "id": "NFR-152",
+  "position": "Comply",
+  "evidence": "Response header capture; CSP directive list",
+  "todo": "Provide the exact directives to Qatar Airways."
+ },
+ {
+  "id": "NFR-157",
+  "position": "Comply",
+  "evidence": "Patch policy; dependency audit results",
+  "todo": "Adopt a patch SLA (Critical within 30 calendar days of awareness; High and exceptions to be agreed) and publish it."
+ },
+ {
+  "id": "NFR-160",
+  "position": "Comply",
+  "evidence": "Zero-trust alignment document",
+  "todo": "Provide a zero-trust alignment description."
+ },
+ {
+  "id": "NFR-162",
+  "position": "Comply",
+  "evidence": "Public policy URL; SECURITY.md",
+  "todo": "Publish a vulnerability disclosure policy at a public URL."
+ },
+ {
+  "id": "AI-001",
+  "position": "Comply",
+  "evidence": "src/middleware/auth.ts; src/middleware/rbac.ts; OAuth configuration",
+  "todo": "Support OAuth bearer tokens from the Qatar Airways identity provider for approved API clients (see NFR-028)."
+ },
+ {
+  "id": "M-021",
+  "position": "Comply",
+  "evidence": "Export and approval workflow; audit log extract of exports; DLP integration notes",
+  "todo": "Log every export, require approval for administrator exports, allow exports to be disabled by configuration, and integrate with Qatar Airways DLP tooling under an agreed scope."
+ },
+ {
+  "id": "M-039",
+  "position": "Comply",
+  "evidence": "Secret inventory; rotation schedule and logs; repository secret scan results",
+  "todo": "Remove the development fallbacks, integrate the Qatar Airways vault, and rotate secrets on a Qatar Airways-defined schedule."
+ },
+ {
+  "id": "NFR-016",
+  "position": "Comply",
+  "evidence": "Password policy settings screen; lockout test record",
+  "todo": "Add an administrator-configurable password policy for local accounts (length, complexity, history, expiry, lockout). Qatar Airways users sign in through SSO."
+ },
+ {
+  "id": "NFR-020",
+  "position": "Comply",
+  "evidence": "CAPTCHA configuration; sign-in test record",
+  "todo": "Add CAPTCHA for sign-in from outside approved networks or after repeated failures, using a method approved by Qatar Airways."
+ },
+ {
+  "id": "NFR-028",
+  "position": "Comply",
+  "evidence": "OAuth configuration; API client token test record",
+  "todo": "Support OAuth bearer tokens from the Qatar Airways identity provider for approved API clients."
+ },
+ {
+  "id": "NFR-145",
+  "position": "Comply",
+  "evidence": "Session configuration; inactivity-logout test record",
+  "todo": "Configurable inactivity timeout (default 15 minutes) with re-authentication."
+ },
+ {
+  "id": "AI-012",
+  "position": "Comply",
+  "evidence": "Key-management configuration; encryption design",
+  "todo": "Customer-managed keys (BYOK) held by Qatar Airways, no later than 2027-08-01 (see M-019)."
+ },
+ {
+  "id": "M-019",
+  "position": "Comply",
+  "evidence": "Encryption design document; key-management configuration; encrypted-field and key-rotation demonstration; UAT test report",
+  "todo": "Implement field-level encryption of personal and clinical data, protection of data in use under a design agreed with Qatar Airways IT, and customer-managed keys (BYOK) held by Qatar Airways. Contractual outer date for BYOK: 2027-08-01 (six months following go-live)."
+ },
+ {
+  "id": "M-020",
+  "position": "Comply",
+  "evidence": "Log sanitiser; field-encryption configuration; sample redacted log extract; UAT test report",
+  "todo": "Encrypt personal data fields using keys from the Qatar Airways vault as part of M-019."
+ },
+ {
+  "id": "AI-005",
+  "position": "Comply",
+  "evidence": "infra-drift-detection workflow; tenant policy configuration",
+  "todo": "Apply cloud policy frameworks in the Qatar Airways tenant."
+ },
+ {
+  "id": "AI-006",
+  "position": "Comply",
+  "evidence": "Network design; connectivity test report",
+  "todo": "Private connectivity for the Qatar Airways deployment where approved by Qatar Airways IT."
+ },
+ {
+  "id": "AI-007",
+  "position": "Comply",
+  "evidence": "Ingress configuration; external reachability test",
+  "todo": "As AI-006."
+ },
+ {
+  "id": "AI-008",
+  "position": "Comply",
+  "evidence": "WAF configuration; firewall rule set",
+  "todo": "Place a web application firewall in front of the Qatar Airways deployment and restrict exposure to approved networks."
+ },
+ {
+  "id": "AI-013",
+  "position": "Comply",
+  "evidence": "Database network and SSL configuration; firewall rule set",
+  "todo": "In the Qatar Airways deployment use private IP, enforce SSL, enable the password policy and apply firewall rules."
+ },
+ {
+  "id": "AI-015",
+  "position": "Comply",
+  "evidence": "Log router configuration; connector test",
+  "todo": "Forward logs to Qatar Airways' platform (see NFR-167)."
+ },
+ {
+  "id": "M-018",
+  "position": "Comply",
+  "evidence": "TLS and database SSL configuration; data handoff design; UAT test report",
+  "todo": "For any agreed data handoff, encrypt in transit (TLS 1.2 or higher) and, for the Qatar Airways deployment, enforce SSL on the database."
+ },
+ {
+  "id": "M-028",
+  "position": "Comply",
+  "evidence": "Data residency inventory; terraform location settings; log router and bucket configuration",
+  "todo": "Design the Qatar Airways deployment so storage, transfer and backups, including logs, secrets and edge services, stay in Qatar Airways-approved locations, and provide a residency inventory for approval."
+ },
+ {
+  "id": "M-038",
+  "position": "Comply",
+  "evidence": "Network design; Cloud Armor and firewall configuration; connectivity test report",
+  "todo": "In the Qatar Airways tenant, apply firewall rules, approved IP ranges, private ingress and DDoS protection (for example Cloud Armor), under the design approved by Qatar Airways IT."
+ },
+ {
+  "id": "NFR-063",
+  "position": "Comply",
+  "evidence": "Residency inventory; terraform location settings",
+  "todo": "Provide a residency inventory and design for approval, with storage, transfer and backups in Qatar Airways-approved locations."
+ },
+ {
+  "id": "NFR-087",
+  "position": "Comply",
+  "evidence": "Hosting inventory; terraform location settings",
+  "todo": "Provide a final inventory of services, logs, backups and DR locations for approval."
+ },
+ {
+  "id": "NFR-088",
+  "position": "Comply",
+  "evidence": "Hosting inventory; Google Cloud region documentation",
+  "todo": "As NFR-087."
+ },
+ {
+  "id": "NFR-089",
+  "position": "Comply",
+  "evidence": "DR location agreement; replication configuration",
+  "todo": "Agree DR location and replication pairs with Qatar Airways IT, in Qatar Airways-approved locations only, with no overseas replication."
+ },
+ {
+  "id": "NFR-154",
+  "position": "Comply",
+  "evidence": "Network requirements document",
+  "todo": "Provide per-user network requirements after workload is specified."
+ },
+ {
+  "id": "M-014",
+  "position": "Comply",
+  "evidence": "Backup and replication configuration; recovery test report; docs/restore-drill-2026-08-04.md",
+  "todo": "Design replication and recovery to the agreed tier's RPO in Qatar Airways-approved locations, pin backups to those locations, and measure lag and recovery point in the recovery test."
+ },
+ {
+  "id": "M-015",
+  "position": "Comply",
+  "evidence": "Architecture and DR design document; failover test report; terraform definitions",
+  "todo": "For the Qatar Airways deployment: zone-redundant database and application tiers, disaster recovery in Qatar Airways-approved locations, and a recovery test before go-live."
+ },
+ {
+  "id": "M-027",
+  "position": "Comply",
+  "evidence": "Load-test report; sizing document; terraform definitions",
+  "todo": "Size the application and a dedicated database for the Qatar Airways peak load once specified, and run a load test before go-live."
+ },
+ {
+  "id": "NFR-032",
+  "position": "Comply",
+  "evidence": "DR architecture document; mode-switch test report",
+  "todo": "For the Qatar Airways deployment, design production and DR with matching functional capability and capacity, to the agreed tier, with production-only, DR-only or combined operation tested."
+ },
+ {
+  "id": "NFR-033",
+  "position": "Comply",
+  "evidence": "Release runbook; upgrade test record",
+  "todo": "Define upgrade windows and zero-downtime steps for the agreed application scenarios; database and platform maintenance follow separate plans."
+ },
+ {
+  "id": "NFR-034",
+  "position": "Comply",
+  "evidence": "Architecture document; failover test report",
+  "todo": "For the Qatar Airways deployment, use a zone-redundant database and application layers."
+ },
+ {
+  "id": "NFR-035",
+  "position": "Comply",
+  "evidence": "Environment topology; terraform definitions",
+  "todo": "Use separate database instances per environment and isolate services in the Qatar Airways deployment."
+ },
+ {
+  "id": "NFR-036",
+  "position": "Comply",
+  "evidence": "Replication configuration; lag measurement report",
+  "todo": "Replication in Qatar Airways-approved locations to the agreed tier's RPO, with measured lag."
+ },
+ {
+  "id": "NFR-037",
+  "position": "Comply",
+  "evidence": "Backup configuration; load-test report",
+  "todo": "Measure backup impact in the load test and schedule backups outside peak hours."
+ },
+ {
+  "id": "NFR-120",
+  "position": "Comply",
+  "evidence": "Performance test report; monitoring dashboards",
+  "todo": "Run a performance test against the agreed workload before go-live and report the result."
+ },
+ {
+  "id": "NFR-129",
+  "position": "Comply",
+  "evidence": "Data-growth test report; retention configuration",
+  "todo": "Test performance at an agreed data volume before go-live."
+ },
+ {
+  "id": "NFR-135",
+  "position": "Comply",
+  "evidence": "Sizing document; load-test report",
+  "todo": "Size the database tier for the agreed load."
+ },
+ {
+  "id": "NFR-136",
+  "position": "Comply",
+  "evidence": "Release runbook; migration test record",
+  "todo": "Plan database changes with backward-compatible steps for agreed scenarios."
+ },
+ {
+  "id": "NFR-137",
+  "position": "Comply",
+  "evidence": "Canary release script; traffic-split demonstration",
+  "todo": "See NFR-073."
+ },
+ {
+  "id": "NFR-139",
+  "position": "Comply",
+  "evidence": "Rollback runbook; rollback test record",
+  "todo": "See NFR-074."
+ },
+ {
+  "id": "NFR-140",
+  "position": "Comply",
+  "evidence": "Release calendar; release notes",
+  "todo": "Agree a release calendar with Qatar Airways."
+ },
+ {
+  "id": "AI-027",
+  "position": "Comply",
+  "evidence": "Load-test report; sizing document",
+  "todo": "Size and load-test for the specified peak (see M-027)."
+ },
+ {
+  "id": "NFR-121",
+  "position": "Comply",
+  "evidence": "Caching design note; cache configuration",
+  "todo": "Document cache freshness and access-revocation controls."
+ },
+ {
+  "id": "NFR-122",
+  "position": "Comply",
+  "evidence": "Throttled-network test results; degraded-mode description",
+  "todo": "Define a low-bandwidth mode: compressed responses, lazy loading, a text-first call view, retry and offline-safe draft saving. Test on throttled networks and document the fallback. Proof: throttled-network test video."
+ },
+ {
+  "id": "NFR-126",
+  "position": "Comply",
+  "evidence": "Queue configuration; job-status demonstration",
+  "todo": "Move non-interactive work (notifications, exports, report generation) to a queue with a job-status API and retry. Proof: a long job started asynchronously and its status polled."
+ },
+ {
+  "id": "NFR-130",
+  "position": "Comply",
+  "evidence": "terraform definitions; architecture document",
+  "todo": "Use a dedicated database for the Qatar Airways deployment."
+ },
+ {
+  "id": "NFR-133",
+  "position": "Comply",
+  "evidence": "terraform/main.tf; load-test report",
+  "todo": "Size the database as per M-027."
+ },
+ {
+  "id": "NFR-132",
+  "position": "Comply",
+  "evidence": "Alert policy definitions; threshold register",
+  "todo": "Agree thresholds with Qatar Airways and apply them on request."
+ },
+ {
+  "id": "AI-021",
+  "position": "Comply",
+  "evidence": "docs/restore-drill-2026-08-04.md; recovery rehearsal report",
+  "todo": "Run a recovery rehearsal before go-live (see M-013)."
+ },
+ {
+  "id": "M-013",
+  "position": "Comply",
+  "evidence": "Disaster-recovery plan; recovery test report with measured RTO; Terraform infrastructure definitions; restore drill record",
+  "todo": "After Qatar Airways names the application tier: design high availability and disaster recovery in Qatar Airways-approved locations to that tier's RTO, run an end-to-end recovery test and share the measured result."
+ },
+ {
+  "id": "NFR-131",
+  "position": "Comply",
+  "evidence": "Monitoring and tracing dashboards",
+  "todo": "See NFR-101."
+ },
+ {
+  "id": "M-024",
+  "position": "Comply",
+  "evidence": "Alert policy definitions; threshold register agreed with Qatar Airways; alert test log",
+  "todo": "Agree thresholds with Qatar Airways, apply them on request, and add database availability, backup-failure and disk alerts."
+ },
+ {
+  "id": "NFR-045",
+  "position": "Comply",
+  "evidence": "Alert policy; sample alert",
+  "todo": "Include the failure reason and likely cause in job-failure alerts."
+ },
+ {
+  "id": "NFR-102",
+  "position": "Comply",
+  "evidence": "Notification channel configuration; test alert record",
+  "todo": "Push alerts to a Qatar Airways HTTPS endpoint through a secure channel."
+ },
+ {
+  "id": "NFR-104",
+  "position": "Comply",
+  "evidence": "Dashboard access list; dashboard screenshots",
+  "todo": "Grant Qatar Airways read access to the dashboards."
+ },
+ {
+  "id": "NFR-107",
+  "position": "Comply",
+  "evidence": "Alert policy; KPI baseline record",
+  "todo": "Add volume-dip alerts with baselines agreed with Qatar Airways after two weeks of live traffic."
+ },
+ {
+  "id": "NFR-108",
+  "position": "Comply",
+  "evidence": "Log retention configuration; agreed purge rules",
+  "todo": "Apply log purge rules agreed with Qatar Airways."
+ },
+ {
+  "id": "NFR-109",
+  "position": "Comply",
+  "evidence": "Log sink and bucket configuration",
+  "todo": "Apply archive rules and locations agreed with Qatar Airways."
+ },
+ {
+  "id": "NFR-111",
+  "position": "Comply",
+  "evidence": "Interface alert policies; alert test record",
+  "todo": "Add interface-level alerts for live integrations."
+ },
+ {
+  "id": "NFR-112",
+  "position": "Comply",
+  "evidence": "Alert policy; job runbooks",
+  "todo": "Provide a runbook for each job failure."
+ },
+ {
+  "id": "NFR-116",
+  "position": "Comply",
+  "evidence": "Billing export dataset; docs/cost-visibility-setup.md",
+  "todo": "Give Qatar Airways teams access to cost data for the tenant in use."
+ },
+ {
+  "id": "M-029",
+  "position": "Comply",
+  "evidence": "SLI/SLO register; live SLO dashboard; monthly service level report",
+  "todo": "Agree availability, latency, error-rate and saturation objectives with Qatar Airways and publish a live dashboard."
+ },
+ {
+  "id": "NFR-115",
+  "position": "Comply",
+  "evidence": "Usage dashboard demonstration; access control matrix",
+  "todo": "Build a usage-insights dashboard from audit/event data: users, roles, departments, errors, feature use, peak times, with role-based access and privacy masking. Proof: dashboard populated from real activity."
+ },
+ {
+  "id": "NFR-039",
+  "position": "Comply",
+  "evidence": "Job queue configuration; queue demonstration",
+  "todo": "Queue non-critical jobs when resources are constrained."
+ },
+ {
+  "id": "NFR-041",
+  "position": "Comply",
+  "evidence": "Scheduler configuration; admin view demonstration",
+  "todo": "Complete the scheduling modes (calendar date and time, run once, run a set number of times, user-triggered)."
+ },
+ {
+  "id": "NFR-042",
+  "position": "Comply",
+  "evidence": "Admin view demonstration",
+  "todo": "Add cancel of a running execution."
+ },
+ {
+  "id": "NFR-043",
+  "position": "Comply",
+  "evidence": "Admin run-history view",
+  "todo": "Show run history in the admin view."
+ },
+ {
+  "id": "NFR-046",
+  "position": "Comply",
+  "evidence": "Retry configuration; admin view demonstration",
+  "todo": "Expose retry counts for each job to administrators."
+ },
+ {
+  "id": "NFR-105",
+  "position": "Comply",
+  "evidence": "Report job configuration; sample report email",
+  "todo": "Email key metric reports on a schedule agreed with Qatar Airways."
+ },
+ {
+  "id": "NFR-106",
+  "position": "Comply",
+  "evidence": "Synthetic job configuration; check results",
+  "todo": "Extend synthetic checks to the agreed critical flows without using patient data."
+ },
+ {
+  "id": "NFR-114",
+  "position": "Comply",
+  "evidence": "Error code reference; diagnosis runbook",
+  "todo": "Document supported manual diagnosis steps and error codes."
+ },
+ {
+  "id": "NFR-167",
+  "position": "Comply",
+  "evidence": "Log sink and connector configuration; SIEM receipt test",
+  "todo": "Forward logs to Qatar Airways' SIEM through the agreed connector."
+ },
+ {
+  "id": "NFR-101",
+  "position": "Comply",
+  "evidence": "Cloud Logging and trace configuration; SRE access grants; tracing demonstration",
+  "todo": "Distributed tracing for application and database tiers, with read access for Qatar Airways' SRE team. Contractual outer date: 2027-08-01 (six months following go-live)."
+ },
+ {
+  "id": "NFR-110",
+  "position": "Comply",
+  "evidence": "Monitoring dashboards; tracing demonstration",
+  "todo": "See NFR-101."
+ },
+ {
+  "id": "NFR-003",
+  "position": "Comply",
+  "evidence": "Onboarding workflow demonstration; developer page; consumer rate-limit configuration",
+  "todo": "Build API consumer onboarding: self-registration or request form, administrator approval queue, issued client credentials (OAuth client id/secret), per-consumer rate limits and a developer page listing endpoints (OpenAPI). Proof: onboard a test consumer end to end with no database access."
+ },
+ {
+  "id": "NFR-005",
+  "position": "Comply",
+  "evidence": "terraform/main.tf; load-test report",
+  "todo": "None for the application tier; database sizing per M-027."
+ },
+ {
+  "id": "NFR-006",
+  "position": "Comply",
+  "evidence": "Deprecation policy; per-version OpenAPI files; parallel-version demonstration",
+  "todo": "Version the API under /v1, /v2 paths, keep the previous version live for a notice period, publish a deprecation policy and OpenAPI per version. Proof: two versions answering side by side."
+ },
+ {
+  "id": "NFR-092",
+  "position": "Comply",
+  "evidence": "Admin rule screen demonstration; audit extract",
+  "todo": "Build an admin screen for event/alert rules (event type, condition, recipient, channel) stored as configuration and audited, with no code change. Proof: create a rule in the UI and see it fire."
+ },
+ {
+  "id": "NFR-093",
+  "position": "Comply",
+  "evidence": "Integration standards document; message delivery demonstration",
+  "todo": "Provide JSON over REST and a message-queue option using Pub/Sub or a JMS-compatible broker via adapter if QR needs JMS; document the standard formats. Proof: a message delivered through the agreed broker."
+ },
+ {
+  "id": "NFR-095",
+  "position": "Comply",
+  "evidence": "Contingency procedure document; copy-note demonstration",
+  "todo": "Documented manual contingency procedures. No automated fallback is offered."
+ },
+ {
+  "id": "NFR-098",
+  "position": "Comply",
+  "evidence": "Gateway configuration; gateway dashboard",
+  "todo": "Put an API gateway (Google API Gateway/Apigee or Cloud Endpoints) in front of all interfaces with central logging, quotas and dependency maps. Proof: all traffic visible in one gateway dashboard."
+ },
+ {
+  "id": "NFR-166",
+  "position": "Comply",
+  "evidence": "Webhook demonstration (delivery, failure, retry, replay); webhook configuration",
+  "todo": "Build outbound webhooks: subscriptions, HMAC-SHA256 signed payloads, exponential retry and a dead-letter queue with replay. Proof: delivery, forced failure, retry and replay."
+ },
+ {
+  "id": "NFR-001",
+  "position": "Comply",
+  "evidence": "/api-docs page; OpenAPI specification; test-console demonstration",
+  "todo": "Restrict the API reference to authenticated users and add try-it testing in non-production environments."
+ },
+ {
+  "id": "NFR-002",
+  "position": "Comply",
+  "evidence": "/api-docs page; OpenAPI specification",
+  "todo": "Restrict the reference to authenticated users (see NFR-001)."
+ },
+ {
+  "id": "NFR-004",
+  "position": "Comply",
+  "evidence": "Rate-limit configuration; load-test throttling results",
+  "todo": "Move rate-limit counters to a shared store and add per-consumer budgets for any agreed API consumer."
+ },
+ {
+  "id": "NFR-008",
+  "position": "Comply",
+  "evidence": "Monitoring dashboards; request log extract",
+  "todo": "Provide consumption, error and latency views by route through Cloud Monitoring."
+ },
+ {
+  "id": "NFR-019",
+  "position": "Comply",
+  "evidence": "SSO configuration; deep-link and transition demonstration",
+  "todo": "Connect to Qatar Airways' identity provider and support deep links and one-click transitions under the agreed single sign-on scope."
+ },
+ {
+  "id": "NFR-090",
+  "position": "Comply",
+  "evidence": "Integration configuration; end-to-end integration test record",
+  "todo": "Complete each integration as endpoints and approvals are provided."
+ },
+ {
+  "id": "NFR-094",
+  "position": "Comply",
+  "evidence": "Queue and dead-letter configuration; failure-replay demonstration",
+  "todo": "Add queue-based processing for agreed integrations."
+ },
+ {
+  "id": "NFR-096",
+  "position": "Comply",
+  "evidence": "Integration log extract; redaction configuration",
+  "todo": "Record sender, receiver and correlation identifier for each call, with payload redaction."
+ },
+ {
+  "id": "NFR-097",
+  "position": "Comply",
+  "evidence": "Retry configuration; failure-injection test record",
+  "todo": "Apply configurable retries to all outbound interfaces."
+ },
+ {
+  "id": "NFR-164",
+  "position": "Comply",
+  "evidence": "OpenAPI specification; /api-docs",
+  "todo": "Complete the schemas for all supported endpoints."
+ },
+ {
+  "id": "NFR-058",
+  "position": "Comply",
+  "evidence": "Load-test report; job schedule",
+  "todo": "Measure and document impact in the load test."
+ },
+ {
+  "id": "AI-016",
+  "position": "Comply",
+  "evidence": "Catalogue export; schema classification tags; src/app.ts",
+  "todo": "Integrate with QR's governance platform: expose a data catalogue (tables, classification labels) through an export or connector and tag fields as personal/clinical in the schema. Proof: catalogue visible in the platform."
+ },
+ {
+  "id": "NFR-011",
+  "position": "Comply",
+  "evidence": "Audit governance policy; audit ledger extract",
+  "todo": "Answer as designed: auditing cannot be switched off, which satisfies the intent. Document the stance and the governance for any change (change request plus approval, itself audited). Proof: policy page and a test showing no switch exists."
+ },
+ {
+  "id": "NFR-050",
+  "position": "Comply",
+  "evidence": "Incremental extraction demonstration; export interface description",
+  "todo": "Add updatedAt/change-sequence columns and an export endpoint or scheduled job returning rows changed since a token, with the last token stored per consumer. Proof: two extractions, the second returning only changes."
+ },
+ {
+  "id": "NFR-054",
+  "position": "Comply",
+  "evidence": "Handoff documentation set; field mapping",
+  "todo": "Document each agreed live handoff (fields, mappings, frequency, errors, responsibilities)."
+ },
+ {
+  "id": "AI-023",
+  "position": "Comply",
+  "evidence": "Recommendation explanation view; audit extract",
+  "todo": "Show fuller reasons per candidate (see F-022)."
+ },
+ {
+  "id": "M-007",
+  "position": "Comply",
+  "evidence": "src/services/auditLedger.ts; audit view and verification report; UAT test report",
+  "todo": "Add before and after values to audit entries for the agreed clinical entities (queue records, dispositions, approvals) and make them available to Qatar Airways for tracing."
+ },
+ {
+  "id": "M-008",
+  "position": "Comply",
+  "evidence": "src/services/retentionGovernance.ts; src/services/auditLedger.ts; log archive configuration; UAT test report",
+  "todo": "Retain audit events for the life of the contract unless Qatar Airways specifies another period, forward them to Qatar Airways-designated stores, and add before and after values as per M-007."
+ },
+ {
+  "id": "NFR-012",
+  "position": "Comply",
+  "evidence": "Audit trace view demonstration; integrity check result",
+  "todo": "Extend read-access auditing to the agreed confidential screens and add a trace view."
+ },
+ {
+  "id": "NFR-013",
+  "position": "Comply",
+  "evidence": "Soft-delete configuration; retention rules; UAT test report",
+  "todo": "Extend soft delete to the record types agreed with Qatar Airways, under Qatar Airways' retention rules."
+ },
+ {
+  "id": "NFR-055",
+  "position": "Comply",
+  "evidence": "Purge job configuration; retention rules",
+  "todo": "Make purge rules configurable per data type, under Qatar Airways retention rules."
+ },
+ {
+  "id": "NFR-056",
+  "position": "Comply",
+  "evidence": "Archive handoff configuration; handoff log",
+  "todo": "Hand off archive data to Qatar Airways-designated systems; IRISSTAR retains no clinical archive."
+ },
+ {
+  "id": "NFR-057",
+  "position": "Comply",
+  "evidence": "Policy configuration screen; retention rules",
+  "todo": "Provide independent archive and purge policies per data type."
+ },
+ {
+  "id": "NFR-059",
+  "position": "Comply",
+  "evidence": "Integrity check results; alert policy",
+  "todo": "Add integrity checks for agreed critical tables with alerts."
+ },
+ {
+  "id": "NFR-060",
+  "position": "Comply",
+  "evidence": "Transaction audit report; automated test results",
+  "todo": "Audit transaction boundaries and correct gaps."
+ },
+ {
+  "id": "NFR-169",
+  "position": "Comply",
+  "evidence": "Export demonstration; export format specification",
+  "todo": "Provide exports of all data types in JSON and CSV (Parquet on request)."
+ },
+ {
+  "id": "NFR-068",
+  "position": "Comply",
+  "evidence": "Environment inventory; availability report",
+  "todo": "Provide SIT, UAT and Stage environments, each with its own database, at 99% monthly availability for the Qatar Airways deployment, with measurement and exclusions agreed."
+ },
+ {
+  "id": "NFR-069",
+  "position": "Comply",
+  "evidence": "terraform definitions; environment request record",
+  "todo": "Provision additional environments on request from the same definition."
+ },
+ {
+  "id": "NFR-070",
+  "position": "Comply",
+  "evidence": "Promotion pipeline; approval record",
+  "todo": "Define the promotion path and approvals with Qatar Airways."
+ },
+ {
+  "id": "NFR-073",
+  "position": "Comply",
+  "evidence": "Canary release script; traffic-split demonstration",
+  "todo": "Use traffic-splitting canary releases for agreed changes."
+ },
+ {
+  "id": "NFR-067",
+  "position": "Comply",
+  "evidence": "Technical roadmap; annual review record",
+  "todo": "Share a technical roadmap and review it with Qatar Airways each year."
+ },
+ {
+  "id": "NFR-072",
+  "position": "Comply",
+  "evidence": "Customisation model document; rate card; change-control record",
+  "todo": "Describe a customisation model: tenant-scoped configuration plus extension points (feature flags, per-tenant protocol sets, webhooks), with change control. Agree rate card in contract. Proof: a tenant-only change not affecting another tenant."
+ },
+ {
+  "id": "NFR-074",
+  "position": "Comply",
+  "evidence": "Rollback runbook; rollback test record",
+  "todo": "Provide a documented database rollback procedure using backups and point-in-time recovery."
+ },
+ {
+  "id": "NFR-075",
+  "position": "Comply",
+  "evidence": "OpenAPI specification; sample client code; extension guide",
+  "todo": "Provide documented REST/OpenAPI and webhook extension points so QR can extend using any mainstream language (Angular, Java, .NET clients); publish SDK-free sample clients. Proof: a sample .NET or Java client calling the API."
+ },
+ {
+  "id": "NFR-076",
+  "position": "Comply",
+  "evidence": "Open standards reference; event sample in CloudEvents format",
+  "todo": "Support open standards for messages: JSON over HTTPS, OpenAPI, CloudEvents for events, Pub/Sub or Kafka-compatible export, Redis-protocol cache. Document each. Proof: event emitted in CloudEvents format."
+ },
+ {
+  "id": "NFR-085",
+  "position": "Comply",
+  "evidence": "Customisation release checklist; CI enforcement; dashboards",
+  "todo": "Apply the observability controls (logs, metrics, alerts, trace) as a mandatory checklist in the customisation release process, and add them to CI. Proof: checklist and a customised component visible on the dashboards."
+ },
+ {
+  "id": "NFR-141",
+  "position": "Comply",
+  "evidence": "Technology roadmap; annual review record",
+  "todo": "Publish a technology roadmap and review it annually."
+ },
+ {
+  "id": "NFR-142",
+  "position": "Comply",
+  "evidence": "CI workflow definitions; latest pipeline run",
+  "todo": "See NFR-082."
+ },
+ {
+  "id": "NFR-144",
+  "position": "Comply",
+  "evidence": "Rules configuration screen; audit extract of a rule change",
+  "todo": "Move hard-coded thresholds and flows into admin-editable configuration (rules table, validated, versioned and audited). Proof: change a rule in the UI and observe new behaviour without a deploy."
+ },
+ {
+  "id": "NFR-163",
+  "position": "Comply",
+  "evidence": "Penetration test reports; remediation tracker",
+  "todo": "Independent tests twice annually, subject to agreed scope and cost, with the first before go-live."
+ },
+ {
+  "id": "NFR-082",
+  "position": "Comply",
+  "evidence": "CI workflow definitions; latest pipeline run",
+  "todo": "Add performance and coverage thresholds to the pipeline."
+ },
+ {
+  "id": "NFR-099",
+  "position": "Comply",
+  "evidence": "Dockerfile and package manifests; regression test results; component lifecycle inventory",
+  "todo": "Upgrade to a supported Node.js long-term-support release after regression testing, and review Express and Prisma major versions, before go-live."
+ },
+ {
+  "id": "NFR-100",
+  "position": "Comply",
+  "evidence": "Component and lifecycle inventory; SBOM",
+  "todo": "Upgrade the runtime before go-live and keep a supported-component inventory with lifecycle reviews."
+ },
+ {
+  "id": "NFR-156",
+  "position": "Comply",
+  "evidence": "SBOM file per release; build workflow",
+  "todo": "Attach the SBOM to each tagged release."
+ },
+ {
+  "id": "AI-018",
+  "position": "Comply",
+  "evidence": "Billing export dataset; cost dashboard",
+  "todo": "Give Qatar Airways cost views for the tenant in use (see NFR-116)."
+ },
+ {
+  "id": "M-031",
+  "position": "Comply",
+  "evidence": "Browser matrix; automated browser test results",
+  "todo": "Agree the browser and version matrix with Qatar Airways IT, test it during implementation and correct issues before go-live."
+ },
+ {
+  "id": "M-006",
+  "position": "Comply",
+  "evidence": "Penetration test executive summary; remediation tracker",
+  "todo": "Commission an independent penetration test of the web application, APIs and cloud infrastructure; agree scope and window with Qatar Airways; remediate agreed findings."
+ },
+ {
+  "id": "M-016",
+  "position": "Comply",
+  "evidence": "Component and licence register; CI licence check; open-source consent record; protocol licence terms",
+  "todo": "Produce the component and licence register (all stacks), request Qatar Airways' consent under the contract's open-source clause, and confirm the protocol licence covers the named users."
+ },
+ {
+  "id": "M-032",
+  "position": "Comply",
+  "evidence": "Accessibility Conformance Report (VPAT); accessibility scan results; NFR-171",
+  "todo": "Provide a WCAG 2.1 AA evaluation and Accessibility Conformance Report (see NFR-171) and correct findings."
+ },
+ {
+  "id": "NFR-047",
+  "position": "Comply",
+  "evidence": "Applicability statement; data-flow assessment; docs/soc2-control-matrix.md",
+  "todo": "Provide an applicability statement for GDPR, HIPAA and local law, with a data-flow assessment alongside the Data Protection Officer."
+ },
+ {
+  "id": "NFR-117",
+  "position": "Comply",
+  "evidence": "Sponsor nomination letter",
+  "todo": "Name the sponsor before contract signature."
+ },
+ {
+  "id": "NFR-118",
+  "position": "Comply",
+  "evidence": "Team structure and named resource list",
+  "todo": "Provide the named team at kickoff."
+ },
+ {
+  "id": "NFR-119",
+  "position": "Comply",
+  "evidence": "Roadmap document; review minutes",
+  "todo": "Share roadmap reviews at agreed intervals."
+ },
+ {
+  "id": "NFR-155",
+  "position": "Comply",
+  "evidence": "Touchpoint document; integration test record",
+  "todo": "Complete each integration as endpoints are provided."
+ },
+ {
+  "id": "NFR-170",
+  "position": "Comply",
+  "evidence": "Provider sustainability documents",
+  "todo": "Share the provider's sustainability documents."
+ },
+ {
+  "id": "NFR-171",
+  "position": "Comply",
+  "evidence": "Accessibility Conformance Report",
+  "todo": "Provide a WCAG 2.1 AA evaluation and Accessibility Conformance Report by an independent evaluator."
+ }
+]

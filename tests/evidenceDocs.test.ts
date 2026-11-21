@@ -105,7 +105,9 @@ describe("the documents keep to what the code does", () => {
     "docs/operations/caching-and-freshness.md", "docs/operations/slos.md", "docs/operations/database-rollback.md", "docs/operations/manual-contingency-procedures.md",
     "docs/operations/availability-and-recovery.md", "docs/operations/release-and-environments.md", "docs/operations/performance-and-capacity.md", "docs/operations/alerts-and-dashboards.md",
     "docs/compliance/regulatory-applicability.md", "docs/compliance/sustainability.md", "docs/licences/stcc-licence-checklist.md", "docs/licences/open-source-consent-request.md",
-    "docs/commercial/sponsor-and-team.md", "docs/accessibility/accessibility-self-evaluation.md"
+    "docs/commercial/sponsor-and-team.md", "docs/accessibility/accessibility-self-evaluation.md",
+    "docs/security/content-security-policy.md", "docs/security/human-approval-checkpoint.md", "docs/operations/background-jobs-and-database-isolation.md",
+    "docs/performance/sizing-and-load-test.md", "docs/validation/handover-to-reshma.md"
   ];
 
   it("has every document the evidence index names", () => {

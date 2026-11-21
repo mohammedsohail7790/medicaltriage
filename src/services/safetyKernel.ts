@@ -175,7 +175,9 @@ export async function assertHumanApprovalForExport(
   encounterId: string | undefined,
   operation: SafetyKernelOperation
 ): Promise<{ approved: true; mode: "mock-mode" | "database"; encounterId?: string; operation: SafetyKernelOperation }> {
-  if (!shouldUseDatabasePersistence()) {
+  // AI-041: the demonstration mode (no database) lets the checkpoint pass so the screens can be shown. A production
+  // runtime never takes that shortcut, even if MOCK_MODE was left on by mistake: it always asks for the signed approval.
+  if (!shouldUseDatabasePersistence() && process.env.NODE_ENV !== "production") {
     return { approved: true, mode: "mock-mode", encounterId, operation };
   }
 

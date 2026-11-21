@@ -1,0 +1,26 @@
+name: Weekly dynamic security probe
+
+# AI-002: the scripted probe runs every week against the environment named in the repository variable DAST_TARGET_URL
+# (set it to the Qatar Airways staging URL). The job fails, and so alerts, on a high or critical finding. The
+# passive ZAP scan of the same environment is in zap-baseline.yml.
+
+on:
+  schedule:
+    - cron: "30 3 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Refuse to run without a target
+        run: test -n "${{ vars.DAST_TARGET_URL }}" || (echo "Set the repository variable DAST_TARGET_URL." && exit 1)
+      - run: node scripts/dastProbe.mjs "${{ vars.DAST_TARGET_URL }}"

@@ -24,6 +24,17 @@ For each document or evidence item Qatar Airways asked for, what exists, and wha
 | NFR-118 | Dedicated named team | `commercial/sponsor-and-team.md` | **Not filled in** | IRISSTAR management |
 | NFR-170 | Environmental commitment | `compliance/sustainability.md` | Partly: the product's footprint; **provider documents not attached** | The provider's published reports; IRISSTAR's policy |
 
+## Sprint 10: validation and handover
+
+| Ref | Item | Document or code | Status | Still needed |
+|---|---|---|---|---|
+| AI-002 | Dynamic security testing | `.github/workflows/ci.yml` (job `dast`), `.github/workflows/dast-probe.yml`, `scripts/dastProbe.mjs` | Workflows written; **never run on GitHub** | Push and first run; set `DAST_TARGET_URL`; authenticated testing is part of the penetration test |
+| AI-027, NFR-005, NFR-133 | Sizing and load test | `performance/sizing-and-load-test.md`; `terraform/tenant-qatar-airways/run.tf` (2 to 20 instances) | Scale-out built; **no load test at the specified peak** | Qatar Airways' peak; the tenant |
+| AI-041 | Approval before any write or message | `security/human-approval-checkpoint.md`; `src/services/safetyKernel.ts` | Built; production no longer bypasses it | |
+| NFR-130 | Background jobs apart from interactive traffic | `operations/background-jobs-and-database-isolation.md`; `terraform/tenant-qatar-airways/jobs.tf`; `src/schedulerJob.ts` | Built; **Terraform not validated** | `terraform plan` in the tenant |
+| NFR-152 | CSP directives | `security/content-security-policy.md` | Ready; inline styles allowed | Capture from the tenant |
+| Handover | Test both builds | `validation/handover-to-reshma.md`; `validation/reply-verification-register.csv`; `scripts/compareBuilds.mjs` | Pack ready; **testing not done** | Reshma |
+
 ## What changed in the product while this was written
 
-Writing the caching and revocation document showed that a session ended on one instance kept working on the others until it expired. That is fixed: other instances now ask the shared store at least every 15 seconds, and the fix is tested against PostgreSQL. Writing the patch policy showed 3 critical and 25 high dependency advisories; the critical ones and all but one high are now cleared, and the one that remains is a recorded exception.
+Writing the caching and revocation document showed that a session ended on one instance kept working on the others until it expired. That is fixed: other instances now ask the shared store at least every 15 seconds, and the fix is tested against PostgreSQL. Checking the replies against the code in Sprint 10 showed that the approval checkpoint was skipped in a production runtime left in demonstration mode (fixed), that scheduled jobs ran inside the API instances although the reply says separate jobs (a scheduler job and `SCHEDULER_MODE=external` added), and that the weekly probe and per-change scan the reply names were not scheduled anywhere (workflows added). Writing the patch policy showed 3 critical and 25 high dependency advisories; the critical ones and all but one high are now cleared, and the one that remains is a recorded exception.

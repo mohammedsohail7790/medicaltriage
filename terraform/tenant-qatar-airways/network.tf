@@ -6,7 +6,7 @@ locals {
     "run.googleapis.com", "sqladmin.googleapis.com", "secretmanager.googleapis.com", "cloudkms.googleapis.com",
     "compute.googleapis.com", "vpcaccess.googleapis.com", "servicenetworking.googleapis.com", "binaryauthorization.googleapis.com",
     "containeranalysis.googleapis.com", "logging.googleapis.com", "pubsub.googleapis.com", "orgpolicy.googleapis.com",
-    "securitycenter.googleapis.com", "privilegedaccessmanager.googleapis.com", "cloudresourcemanager.googleapis.com"
+    "securitycenter.googleapis.com", "privilegedaccessmanager.googleapis.com", "cloudresourcemanager.googleapis.com", "cloudscheduler.googleapis.com"
   ]
 }
 

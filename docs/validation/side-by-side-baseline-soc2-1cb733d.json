@@ -1,0 +1,590 @@
+{
+  "sprintUrl": "http://localhost:8099",
+  "baseUrl": "http://localhost:8098",
+  "endpointsTried": 86,
+  "accounts": [
+    "layla@irisstar.tech",
+    "rishma@irisstar.tech"
+  ],
+  "counts": {
+    "same": 90,
+    "new in sprint build": 80,
+    "fields added": 2
+  },
+  "differences": [
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/audit-policy",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/audit-trace",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/data-catalogue",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/extract",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/integrations/api-analytics",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/integrations/api-consumers",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/integrations/event-rules",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/integrations/jobs",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/integrations/registry",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/integrations/webhooks",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/integrations/webhooks/deliveries",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/integrity-checks/last",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/interface-log",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/database-role",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/handlers",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/interfaces",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/licence-usage",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/metrics",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/resources",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/rules",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/runs",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/schedules",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/secrets-rotation",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/thresholds",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/traces",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/usage-insights",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/ops/volume",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/password-policy",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/admin/retention-policies",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/auth/connected-apps",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/auth/login-config",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/auth/password/policy",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/auth/session",
+      "status": 200,
+      "kind": "fields added",
+      "detail": "added: idleTimeoutSeconds; removed: -"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/handoff/teleconsult/queue",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/note-templates",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/note-templates/all",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/safety/dashboard",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/safety/incidents",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/safety/initial-assessment-policy",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/safety/qa/queue",
+      "status": 403,
+      "kind": "new in sprint build",
+      "detail": "sprint 403, baseline 404"
+    },
+    {
+      "account": "layla@irisstar.tech",
+      "path": "/api/v1/versions",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/audit-policy",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/audit-trace",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/data-catalogue",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/extract",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/integrations/api-analytics",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/integrations/api-consumers",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/integrations/event-rules",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/integrations/jobs",
+      "status": 409,
+      "kind": "new in sprint build",
+      "detail": "sprint 409, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/integrations/registry",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/integrations/webhooks",
+      "status": 409,
+      "kind": "new in sprint build",
+      "detail": "sprint 409, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/integrations/webhooks/deliveries",
+      "status": 409,
+      "kind": "new in sprint build",
+      "detail": "sprint 409, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/integrity-checks/last",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/interface-log",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/database-role",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/handlers",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/interfaces",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/licence-usage",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/metrics",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/resources",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/rules",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/runs",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/schedules",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/secrets-rotation",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/thresholds",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/traces",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/usage-insights",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/ops/volume",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/password-policy",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/admin/retention-policies",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/auth/connected-apps",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/auth/login-config",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/auth/password/policy",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/auth/session",
+      "status": 200,
+      "kind": "fields added",
+      "detail": "added: idleTimeoutSeconds; removed: -"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/handoff/teleconsult/queue",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/note-templates",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/note-templates/all",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/safety/dashboard",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/safety/incidents",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/safety/initial-assessment-policy",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/safety/qa/queue",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    },
+    {
+      "account": "rishma@irisstar.tech",
+      "path": "/api/v1/versions",
+      "status": 200,
+      "kind": "new in sprint build",
+      "detail": "sprint 200, baseline 404"
+    }
+  ]
+}

@@ -253,6 +253,7 @@ export async function cancelRun(runId: string): Promise<Run> {
 }
 
 /** One pass of the scheduler: starts what is due. Returns what happened, for the worker and for tests. */
+const inflight = new Set<Promise<unknown>>();
 export async function tick(now = new Date()): Promise<{ started: string[]; deferred: string[] }> {
   const started: string[] = [];
   const deferred: string[] = [];
@@ -270,9 +271,22 @@ export async function tick(now = new Date()): Promise<{ started: string[]; defer
     const ends = s.mode === "once" || (s.mode === "times" && remaining === 0);
     await updateItem(s.id, { status: ends ? "completed" : "active", payload: { nextRunAtIso: ends ? null : computeNext({ mode: s.mode, cron: s.cron, timezone: s.timezone }, now), lastRunAtIso: now.toISOString(), ...(remaining !== undefined ? { timesRemaining: remaining } : {}) } });
     started.push(s.id);
-    void startRun(s, "schedule", now).then(({ done }) => done).catch(() => undefined);
+    // Kept in `inflight` from the moment the run is requested, so a process that waits for runs (the scheduler job)
+    // does not mistake "starting" for "finished".
+    const pending: Promise<unknown> = startRun(s, "schedule", now).then(({ done }) => done).catch(() => undefined);
+    inflight.add(pending);
+    void pending.finally(() => inflight.delete(pending));
   }
   return { started, deferred };
+}
+
+/**
+ * NFR-130: with SCHEDULER_MODE=external the API instances never run scheduled jobs; a separate Cloud Run job
+ * (src/schedulerJob.ts) does, so heavy jobs cannot take capacity from interactive traffic. The default keeps
+ * the in-process worker for single-instance and local use.
+ */
+export function schedulerRunsInProcess(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.SCHEDULER_MODE !== "external";
 }
 
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -289,5 +303,5 @@ export function stopSchedulerWorker(): void {
 /** Wait for in-process runs to finish (tests). */
 export async function idle(maxMs = 2000): Promise<void> {
   const until = Date.now() + maxMs;
-  while (controllers.size > 0 && Date.now() < until) await new Promise((r) => setTimeout(r, 10));
+  while ((controllers.size > 0 || inflight.size > 0) && Date.now() < until) await new Promise((r) => setTimeout(r, 10));
 }

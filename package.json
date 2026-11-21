@@ -70,7 +70,9 @@
     "migrations:lint": "tsx scripts/lintMigrations.ts",
     "recovery:rehearse": "node scripts/recoveryRehearsal.mjs",
     "growth:test": "node scripts/dataGrowthTest.mjs",
-    "evidence:generate": "tsx scripts/generateEvidenceDocs.ts"
+    "evidence:generate": "tsx scripts/generateEvidenceDocs.ts",
+    "validation:pack": "tsx scripts/generateValidationPack.ts",
+    "compare:builds": "node scripts/compareBuilds.mjs"
   },
   "dependencies": {
     "@fontsource/noto-naskh-arabic": "5.1.0",
