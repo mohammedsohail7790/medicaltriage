@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { shouldUseDatabasePersistence } from "../config/runtime.js";
+import { isMockMode, shouldUseDatabasePersistence } from "../config/runtime.js";
 import { prisma } from "../db.js";
 
 export const HITL_FORBIDDEN_PAYLOAD = {
@@ -71,13 +71,17 @@ export function traceObjects(value: unknown): Array<Record<string, unknown>> {
   return output;
 }
 
+// M-039: no fallback key outside demonstration mode. The session-signing secret is no longer reused as an
+// audit key, and a missing audit secret stops signing instead of using a value anyone can read in the source.
 function auditHmacSecret(): string {
-  return (
-    process.env.AUDIT_HMAC_SECRET ??
-    process.env.AUDIT_SIGNING_SECRET ??
-    process.env.AUTH_JWT_SECRET ??
-    "mock-local-audit-signing-secret"
-  );
+  const configured = process.env.AUDIT_HMAC_SECRET?.trim() || process.env.AUDIT_SIGNING_SECRET?.trim();
+  if (configured) {
+    return configured;
+  }
+  if (isMockMode()) {
+    return "mock-local-audit-signing-secret";
+  }
+  throw new Error("AUDIT_HMAC_SECRET must be set before signing or verifying audit trace records.");
 }
 
 function canonicalValue(value: unknown): string {

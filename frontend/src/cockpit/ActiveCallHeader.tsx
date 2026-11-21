@@ -27,7 +27,10 @@ export function ActiveCallHeader({
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const canEscalate = session.permissions.includes("triage.queue.manage");
+  // OI-36: the escalate-now action only updates and moves the nurse's own active call, which the server already
+  // allows with triage.workspace.view. It was gated on triage.queue.manage, which the nurse role does not hold,
+  // so the button never appeared for nurses.
+  const canEscalate = session.permissions.includes("triage.workspace.view");
   const canHold = session.permissions.includes("triage.workspace.view");
   // Once a disposition has been reached, the call must be finished through
   // SBAR/Complete rather than parked on Hold indefinitely - stepping away at

@@ -86,3 +86,44 @@ describe("non-bypassable safety kernel", () => {
     expect(error.payload).toEqual(HITL_FORBIDDEN_PAYLOAD);
   });
 });
+
+// M-039: the audit signing key has no fallback outside demonstration mode.
+describe("audit signing secret fallback", () => {
+  const keys = ["AUDIT_HMAC_SECRET", "AUDIT_SIGNING_SECRET", "AUTH_JWT_SECRET", "MOCK_MODE"] as const;
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const key of keys) saved[key] = process.env[key];
+    delete process.env.AUDIT_HMAC_SECRET;
+    delete process.env.AUDIT_SIGNING_SECRET;
+  });
+
+  afterEach(() => {
+    for (const key of keys) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  it("refuses to sign with no audit secret when demonstration mode is off", () => {
+    process.env.MOCK_MODE = "false";
+    expect(() => auditSignatureFor({ a: 1 })).toThrow(/AUDIT_HMAC_SECRET must be set/);
+  });
+
+  it("does not fall back to the session-signing secret", () => {
+    process.env.MOCK_MODE = "false";
+    process.env.AUTH_JWT_SECRET = "a-session-secret-that-must-not-sign-audit-records";
+    expect(() => auditSignatureFor({ a: 1 })).toThrow(/AUDIT_HMAC_SECRET must be set/);
+  });
+
+  it("signs with the configured secret when one is set", () => {
+    process.env.MOCK_MODE = "false";
+    process.env.AUDIT_HMAC_SECRET = "configured-audit-secret";
+    expect(auditSignatureFor({ a: 1 })).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("keeps the demonstration fallback only in demonstration mode", () => {
+    process.env.MOCK_MODE = "true";
+    expect(auditSignatureFor({ a: 1 })).toMatch(/^[a-f0-9]{64}$/);
+  });
+});
