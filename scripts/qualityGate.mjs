@@ -28,12 +28,21 @@ if (loadPath) {
   const file = path.resolve(process.cwd(), loadPath);
   if (!existsSync(file)) failures.push(`No load-test summary at ${file}.`);
   else {
-    const summary = JSON.parse(readFileSync(file, "utf8"));
-    const p95 = summary.p95Ms ?? summary.latency?.p95Ms;
-    const errorRate = summary.errorRate ?? (summary.requests ? (summary.failures ?? 0) / summary.requests : 0);
+    // scripts/loadTest.mjs prints a heading line and then {"scenarios": [...]}; a flat {p95Ms, errorRate} summary also works.
+    const text = readFileSync(file, "utf8");
+    const summary = JSON.parse(text.slice(Math.max(0, text.indexOf("{"))));
+    let p95 = summary.p95Ms ?? summary.latency?.p95Ms;
+    let errorRate = summary.errorRate ?? (summary.requests ? (summary.failures ?? 0) / summary.requests : undefined);
+    if (Array.isArray(summary.scenarios) && summary.scenarios.length > 0) {
+      p95 = Math.max(...summary.scenarios.map((x) => Number(x.p95Ms)));
+      const total = summary.scenarios.reduce((n, x) => n + Number(x.totalRequests), 0);
+      errorRate = total > 0 ? summary.scenarios.reduce((n, x) => n + Number(x.errorCount), 0) / total : undefined;
+    }
+    // A summary with no figures must fail: comparing "undefined" with a limit is never true, so it would pass unmeasured.
+    if (!Number.isFinite(p95) || !Number.isFinite(errorRate)) failures.push(`The load-test summary at ${file} has no latency or error figures.`);
     lines.push(`performance p95: ${p95} ms (maximum ${thresholds.performance.p95Ms} ms)`, `performance error rate: ${errorRate} (maximum ${thresholds.performance.errorRate})`);
-    if (p95 > thresholds.performance.p95Ms) failures.push(`p95 latency ${p95} ms is above ${thresholds.performance.p95Ms} ms.`);
-    if (errorRate > thresholds.performance.errorRate) failures.push(`Error rate ${errorRate} is above ${thresholds.performance.errorRate}.`);
+    if (Number.isFinite(p95) && p95 > thresholds.performance.p95Ms) failures.push(`p95 latency ${p95} ms is above ${thresholds.performance.p95Ms} ms.`);
+    if (Number.isFinite(errorRate) && errorRate > thresholds.performance.errorRate) failures.push(`Error rate ${errorRate} is above ${thresholds.performance.errorRate}.`);
   }
 } else lines.push("performance: no load-test summary given (pass --load to enforce the latency and error thresholds)");
 

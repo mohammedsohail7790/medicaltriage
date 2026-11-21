@@ -143,3 +143,33 @@ describe("the side-by-side comparison tool", () => {
   });
 });
 
+
+describe("NFR-142 the performance gate cannot pass without measuring", () => {
+  const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
+  const { mkdtempSync, writeFileSync } = require("node:fs") as typeof import("node:fs");
+  const { tmpdir } = require("node:os") as typeof import("node:os");
+  const run = (body: string) => {
+    const dir = mkdtempSync(path.join(tmpdir(), "gate-"));
+    const file = path.join(dir, "load.json");
+    writeFileSync(file, body);
+    return spawnSync("node", ["scripts/qualityGate.mjs", "--load", file], { cwd: root, encoding: "utf8" });
+  };
+  const scenario = (p95: number, errors: number) => `Load test heading line\n${JSON.stringify({ scenarios: [{ totalRequests: 100, p95Ms: p95, errorCount: errors }, { totalRequests: 100, p95Ms: 5, errorCount: 0 }] })}`;
+
+  it("passes a load-test summary inside the limits, reading the output the load test really prints", () => {
+    expect(run(scenario(300, 0)).status).toBe(0);
+  });
+  it("fails on slow answers (the worst scenario counts) and on errors", () => {
+    expect(run(scenario(2500, 0)).status).toBe(1);
+    expect(run(scenario(10, 5)).status).toBe(1);
+  });
+  it("fails when the summary holds no figures, instead of passing unmeasured", () => {
+    expect(run("{}").status).toBe(1);
+    expect(run('{"scenarios":[]}').status).toBe(1);
+  });
+  it("is part of the pipeline", () => {
+    const ci = read(".github/workflows/ci.yml");
+    expect(ci).toContain("node scripts/qualityGate.mjs --load load-test.json");
+    expect(read("docs/security/penetration-test-scope-and-programme.md")).toContain("within 30 days of the report, and Medium findings within 90 days");
+  });
+});

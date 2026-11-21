@@ -27,7 +27,7 @@ Out of scope unless Qatar Airways adds them: their identity provider, EMR, QHIE 
 
 ## Remediation
 
-Findings are rated by the tester. Critical findings are fixed or mitigated within 30 calendar days of our becoming aware, following `vulnerability-and-patch-policy.md`; high and other findings on a schedule agreed with Qatar Airways. Each is recorded with its fix, retested, and reported back. Findings that need Qatar Airways' action are handed over with the evidence.
+Findings are rated by the tester. Critical and High findings from a penetration test are remediated within 30 days of the report, and Medium findings within 90 days (the commitment in the reply to M-006). Third-party component advisories follow `vulnerability-and-patch-policy.md` (Critical within 30 calendar days of awareness; High as agreed). Each is recorded with its fix, retested, and reported back. Findings that need Qatar Airways' action are handed over with the evidence.
 
 ## The report we will ask for
 

@@ -160,10 +160,16 @@ jobs:
           pnpm exec prisma generate
           pnpm exec tsc -p tsconfig.json
           pnpm run build:web
-          PORT=8080 node dist/index.js > app.log 2>&1 &
+          PORT=8080 ADMIN_PASSWORD=ci-load-test-password-2026 node dist/index.js > app.log 2>&1 &
           for i in $(seq 1 40); do curl -sf http://localhost:8080/api/v1/runtime/environment >/dev/null && break; sleep 2; done
       - name: Scripted dynamic probe (fails on a high or critical finding)
         run: node scripts/dastProbe.mjs http://localhost:8080
+      # NFR-082 / NFR-142: the performance gate. One instance, small data, so this catches regressions in the code, not
+      # capacity at Qatar Airways' peak (see docs/performance/sizing-and-load-test.md).
+      - name: Load test and performance gate
+        run: |
+          TEST_NURSE_PASSWORD=ci-load-test-password-2026 node scripts/loadTest.mjs http://localhost:8080 20 25 > load-test.json
+          node scripts/qualityGate.mjs --load load-test.json
       - name: ZAP baseline scan (passive)
         uses: zaproxy/action-baseline@v0.14.0
         with:
@@ -178,5 +184,6 @@ jobs:
           path: |
             report_html.html
             report_json.json
+            load-test.json
             app.log
           retention-days: 30
