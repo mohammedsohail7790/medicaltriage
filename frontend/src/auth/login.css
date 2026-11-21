@@ -264,6 +264,7 @@
 #login-root .login-legal {
   text-align: center;
   font-size: 0.72rem !important;
-  color: var(--tx3) !important;
+  /* WCAG 1.4.3: the lighter text colour measured 2.8:1 on white; this one is 5.4:1. */
+  color: #6b6a66 !important;
   margin: 0 !important;
 }

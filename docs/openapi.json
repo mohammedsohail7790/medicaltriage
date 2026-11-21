@@ -2759,8 +2759,10 @@
           "customAviationTags": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 80
             },
+            "maxItems": 50,
             "default": []
           },
           "calculatedSeverity": {
@@ -5588,6 +5590,51 @@
           "admin"
         ],
         "summary": "GET /api/v1/admin/ops/interfaces",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "429": {
+            "description": "Rate limit exceeded; see Retry-After"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/licence-usage": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "GET /api/v1/admin/ops/licence-usage",
         "security": [
           {
             "bearerAuth": []

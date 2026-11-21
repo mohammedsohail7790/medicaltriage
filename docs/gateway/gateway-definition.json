@@ -348,6 +348,12 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/admin/ops/licence-usage",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/admin/ops/metrics",
       "authenticated": true,
       "hasRequestSchema": false
