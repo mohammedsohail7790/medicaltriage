@@ -725,6 +725,18 @@ export async function revokeOtherPersistedSessions(userId: string, exceptSession
   await prisma.userSession.updateMany({ where: { userId, revokedAt: null, NOT: { sessionHash: sessionHash(exceptSessionId) } }, data: { revokedAt: new Date() } });
 }
 
+/**
+ * True when the shared store says this session has been revoked (or has expired) by someone, possibly on another instance.
+ * A session the store has never seen is not treated as revoked, so a session being saved is never dropped by mistake.
+ */
+export async function isPersistedSessionRevoked(sessionId?: string): Promise<boolean> {
+  if (!sessionId || !shouldPersistSessionsInDatabase()) {
+    return false;
+  }
+  const row = await prisma.userSession.findUnique({ where: { sessionHash: sessionHash(sessionId) }, select: { revokedAt: true, expiresAt: true } });
+  return Boolean(row && (row.revokedAt || row.expiresAt.getTime() <= Date.now()));
+}
+
 export async function revokePersistedSession(sessionId?: string): Promise<void> {
   if (!sessionId || !shouldPersistSessionsInDatabase()) {
     return;

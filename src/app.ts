@@ -37,6 +37,7 @@ import { createCcpRouter } from "./routes/ccp.js";
 import { createEmrRouter } from "./routes/emr.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createHelpApiRouter, createHelpPageRouter } from "./routes/helpRouter.js";
+import { createSecurityTxtRouter } from "./routes/securityTxt.js";
 import { createJobStatusRouter, createOpsAdminRouter } from "./routes/opsAdmin.js";
 import { createHandoffRouter } from "./routes/handoffRouter.js";
 import { createNoteTemplatesRouter } from "./routes/noteTemplates.js";
@@ -320,6 +321,8 @@ export function createApp() {
   // developer-facing reference page, not part of the Vite SPA bundle.
   app.use(createApiDocsRouter());
   app.use(createDeveloperPageRouter());
+  // NFR-162: the public vulnerability disclosure policy and security.txt.
+  app.use(createSecurityTxtRouter());
 
   if (spaIndexHtml) {
     app.use(express.static(staticRoot, { index: false }));

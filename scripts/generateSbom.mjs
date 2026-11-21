@@ -1,7 +1,7 @@
 // NFR-156: Software Bill of Materials in CycloneDX 1.5 (JSON), generated from the installed production dependency tree.
 // Run with `pnpm sbom`; attach docs/sbom/sbom.cdx.json to every tagged release.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
@@ -18,7 +18,16 @@ function licenseOf(dir) {
     if (!existsSync(file)) return undefined;
     const p = JSON.parse(readFileSync(file, "utf8"));
     const l = typeof p.license === "string" ? p.license : p.license?.type ?? (Array.isArray(p.licenses) ? p.licenses.map((x) => x.type).join(" OR ") : undefined);
-    return l;
+    if (l) return l;
+    // A package with no licence field but a LICENSE file: read the file's opening words (recorded as read from the file).
+    const licenceFile = readdirSync(dir).find((f) => /^licen[cs]e(\.(md|txt))?$/i.test(f));
+    if (licenceFile) {
+      const head = readFileSync(path.join(dir, licenceFile), "utf8").slice(0, 400).toLowerCase();
+      if (head.includes("mit license") || head.includes("permission is hereby granted, free of charge")) return "MIT";
+      if (head.includes("apache license")) return "Apache-2.0";
+      if (head.includes("isc license")) return "ISC";
+    }
+    return undefined;
   } catch {
     return undefined;
   }

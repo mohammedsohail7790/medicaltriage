@@ -62,6 +62,7 @@ import type {
 import {
   getAuthenticationProviderConfig,
   getPersistedUserSession,
+  isPersistedSessionRevoked,
   getPersistedMfaCredential,
   persistMfaCredential,
   persistRevealApproval,
@@ -2805,6 +2806,7 @@ export function resetSecurityStoreForTests(): void {
   }
   dynamicallyCreatedUserEmails.clear();
   sessions.clear();
+  sessionRevocationCheckedAt.clear();
   failedLoginAttempts.clear();
   lockedUntilByUsername.clear();
   passwordStateByUserId.clear();
@@ -3805,6 +3807,9 @@ export function getSession(sessionId?: string): AuthenticatedSession | undefined
   return session;
 }
 
+const sessionRevocationCheckedAt = new Map<string, number>();
+const sessionRevocationCheckMs = () => Math.max(0, Number(process.env.SESSION_REVOCATION_CHECK_SECONDS ?? 15)) * 1000;
+
 export async function getSessionFromStore(sessionId?: string): Promise<AuthenticatedSession | undefined> {
   // With shared session storage the user may have been active on another instance. Before
   // treating this instance's copy as idle, take the newest activity time from the store.
@@ -3821,6 +3826,22 @@ export async function getSessionFromStore(sessionId?: string): Promise<Authentic
   }
   const localSession = getSession(sessionId);
   if (localSession) {
+    // NFR-121: a session revoked on another instance (a deactivated user, a removed role, a terminated session) must stop working
+    // here too. The shared store is asked about it at most every SESSION_REVOCATION_CHECK_SECONDS (default 15).
+    if (sessionId && Date.now() - (sessionRevocationCheckedAt.get(sessionId) ?? 0) >= sessionRevocationCheckMs()) {
+      sessionRevocationCheckedAt.set(sessionId, Date.now());
+      try {
+        if (await isPersistedSessionRevoked(sessionId)) {
+          sessions.delete(sessionId);
+          sessionContextBySessionId.delete(sessionId);
+          sessionLastActivity.delete(sessionId);
+          sessionRevocationCheckedAt.delete(sessionId);
+          return undefined;
+        }
+      } catch (error) {
+        console.error("Failed to check session revocation:", sanitizeForLog(error));
+      }
+    }
     return localSession;
   }
 

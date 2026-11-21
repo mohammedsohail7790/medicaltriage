@@ -53,8 +53,24 @@ jobs:
       - name: Validate isolated test database and apply migrations
         run: pnpm run test:db:guard && pnpm exec prisma migrate deploy
 
-      - name: Backend tests (including database-backed suites)
-        run: pnpm run test
+      # NFR-033 / NFR-136 / NFR-140: a database change must keep the previous release working.
+      - name: Migration lint (backward-compatible changes only)
+        run: pnpm run migrations:lint
+
+      # NFR-082 / NFR-142: the backend tests run with coverage, and the quality gate fails the build when coverage is below
+      # the thresholds in quality-thresholds.json.
+      - name: Backend tests with coverage (including database-backed suites)
+        run: pnpm run test:coverage
+
+      - name: Quality gate (coverage thresholds)
+        run: pnpm run quality:gate
+
+      - name: Upload coverage summary
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-summary
+          path: coverage/coverage-summary.json
+          retention-days: 90
 
       - name: Frontend tests
         run: pnpm run test:frontend
@@ -92,7 +108,7 @@ jobs:
       # UNLICENSED against itself, a false positive, not a real dependency
       # license issue).
       - name: License compliance check
-        run: npx license-checker-rseidelsohn --onlyAllow "MIT;ISC;Apache-2.0;BSD-3-Clause;BSD-2-Clause;BlueOak-1.0.0;MIT-0;MPL-2.0;CC0-1.0;CC-BY-4.0;CC-BY-3.0" --excludePackages "$(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
+        run: npx license-checker-rseidelsohn --onlyAllow "MIT;ISC;Apache-2.0;BSD-3-Clause;BSD-2-Clause;BlueOak-1.0.0;MIT-0;MPL-2.0;CC0-1.0;CC-BY-4.0;CC-BY-3.0;OFL-1.1;0BSD;Unlicense;Zlib;(MIT AND Zlib)" --excludePackages "$(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
 
       # SBOM (CycloneDX) generated at every push, published as a build
       # artifact - closes NFR-177. --ignore-npm-errors is required because

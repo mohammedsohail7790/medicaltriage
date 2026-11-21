@@ -12,6 +12,7 @@ import { rotationReport } from "../services/secretRotation.js";
 import { evaluateInterfaces, interfaceStats } from "../integration/interfaceStats.js";
 import { callCreationTimes, volumeDip } from "../services/businessMetrics.js";
 import { runbookFor } from "../services/jobRunbooks.js";
+import { listUsers } from "../services/securityAdmin.js";
 import { collectMetrics } from "../observability/metrics.js";
 import { recentTraces, spansForTrace } from "../observability/tracing.js";
 import { Thresholds, evaluate, getThresholds, setThresholds } from "../services/performanceMonitor.js";
@@ -152,6 +153,16 @@ export function createOpsAdminRouter(): Router {
     } catch (error) {
       return fail(res, error, next);
     }
+  });
+
+  // F-001: clinical-content licence usage. Named users with clinical roles against the number the licence covers.
+  router.get("/licence-usage", read, (_req, res) => {
+    const clinical = new Set(["remote_triage_nurse", "teleconsultant_physician", "clinical_safety_officer", "qa_reviewer"]);
+    const { users } = listUsers({ limit: 10_000, offset: 0 });
+    const named = users.filter((u) => u.accountStatus === "active" && u.roles.some((r) => clinical.has(r)));
+    const licensed = Number(process.env.STCC_LICENSED_USERS);
+    const known = Number.isFinite(licensed) && licensed > 0;
+    return res.json({ namedClinicalUsers: named.length, licensedUsers: known ? licensed : null, status: !known ? "licence count not recorded" : named.length > licensed ? "over licence" : "within licence", note: "Counts active accounts holding a clinical role. The licence terms decide who counts; confirm them with the licensor." });
   });
 
   router.get("/schedules", read, async (_req, res, next) => {

@@ -261,3 +261,20 @@ variable "disk_alert_percent" {
   type    = number
   default = 80
 }
+
+variable "slo_availability_goal" {
+  description = "Availability objective over a rolling 30 days (M-029). A placeholder until Qatar Airways agrees it."
+  type        = number
+  default     = 0.995
+}
+
+variable "slo_latency_goal" {
+  description = "Share of requests that must complete within slo_latency_threshold_ms."
+  type        = number
+  default     = 0.95
+}
+
+variable "slo_latency_threshold_ms" {
+  type    = number
+  default = 1000
+}
