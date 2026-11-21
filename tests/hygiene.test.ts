@@ -61,6 +61,7 @@ describe("NFR-085 observability checklist for customisations", () => {
   // Routers that only read, or that record their own audit trail through a service, are listed with the reason.
   const NO_DIRECT_AUDIT: Record<string, string> = {
     "apiDocsRouter.ts": "serves the specification",
+    "securityTxt.ts": "public read-only disclosure pages",
     "developerRouter.ts": "public registration; the service audits",
     "helpRouter.ts": "help content",
     "me.ts": "reads the caller's own profile",
