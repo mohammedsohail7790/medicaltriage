@@ -1,9 +1,10 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, ShieldCheck, Timer } from "lucide-react";
 import { useEffect, useState } from "react";
+import { apiBase } from "../auth/apiBase";
 
 type SafetyKpis = {
   averageHandlingTimeAiSeconds: number;
-  averageHandlingTimeManualSeconds: number;
+  averageHandlingTimeManualSeconds: number | null;
   overtriageRate: number;
   undertriageRate: number;
   medsafeDxPassRate: number;
@@ -46,17 +47,16 @@ type ExplainabilityRow = {
 };
 
 type SafetyDashboardPayload = {
+  demonstrationData?: boolean;
   kpis: SafetyKpis;
   trends: SafetyTrend[];
   explainabilityLog: ExplainabilityRow[];
 };
 
-const apiBase = import.meta.env.VITE_API_BASE_URL || "";
-
 const emptyDashboard: SafetyDashboardPayload = {
   kpis: {
     averageHandlingTimeAiSeconds: 0,
-    averageHandlingTimeManualSeconds: 0,
+    averageHandlingTimeManualSeconds: null,
     overtriageRate: 0,
     undertriageRate: 0,
     medsafeDxPassRate: 0,
@@ -132,6 +132,12 @@ export default function SafetyDashboard() {
 
   return (
     <section className="space-y-5" aria-label="AI safety officer dashboard">
+      {payload.demonstrationData && (
+        <div role="note" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-800">
+          <strong>Demonstration data.</strong> These figures are fixed examples. They are not calculated from live
+          calls.
+        </div>
+      )}
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-5 w-5" />
@@ -147,7 +153,11 @@ export default function SafetyDashboard() {
         <KpiCard
           label="AHT AI-assisted"
           value={seconds(payload.kpis.averageHandlingTimeAiSeconds)}
-          hint={`Manual baseline ${seconds(payload.kpis.averageHandlingTimeManualSeconds)}`}
+          hint={
+            payload.kpis.averageHandlingTimeManualSeconds == null
+              ? "No manual handling time is recorded."
+              : `Manual baseline ${seconds(payload.kpis.averageHandlingTimeManualSeconds)}`
+          }
           tone="green"
         />
         <KpiCard

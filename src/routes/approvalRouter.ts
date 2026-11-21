@@ -232,6 +232,8 @@ function mockApprovalQueue() {
 
 function mockSafetyDashboard() {
   return {
+    // F-019: these are fixed examples, not calculated from calls. The flag lets the screen say so.
+    demonstrationData: true,
     kpis: {
       averageHandlingTimeAiSeconds: 390,
       averageHandlingTimeManualSeconds: 540,
@@ -558,9 +560,12 @@ export async function liveSafetyDashboard(session: AuthenticatedSession | undefi
   const trends = trendBuckets(encounters);
 
   return {
+    demonstrationData: false,
     kpis: {
       averageHandlingTimeAiSeconds: mean(handlingTimes, 0),
-      averageHandlingTimeManualSeconds: mean(handlingTimes, 0) + 150,
+      // F-019: there is no recorded manual handling time, so none is shown. This used to be the measured
+      // figure plus a fixed 150 seconds, which was invented, not calculated from live data.
+      averageHandlingTimeManualSeconds: null,
       overtriageRate: roundRate((safetyFloorOverrides / denominator) * 100),
       undertriageRate: roundRate((criticalFloorBreaches / denominator) * 100),
       medsafeDxPassRate: roundRate(((denominator - criticalFloorBreaches) / denominator) * 100),

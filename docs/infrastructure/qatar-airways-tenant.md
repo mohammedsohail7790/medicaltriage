@@ -1,6 +1,6 @@
 # Qatar Airways tenant: infrastructure design and runbook
 
-Status: **written and parsed, not applied.** The Terraform in `terraform/tenant-qatar-airways/` has not been run through `terraform validate` or `terraform plan` (no Terraform is installed in the build environment, and there is no tenant to plan against). It parses as valid HCL and is covered by guardrail tests. It must be validated and planned in Qatar Airways' tenant before anything is applied. It shares no state, backend, provider or project with the existing SOC 2 environment (`terraform/main.tf`), which it does not touch.
+Status: **written and validated, not planned or applied.** The Terraform in `terraform/tenant-qatar-airways/` passed `terraform validate` on 21 Nov 2026 (details under "Not validated" below). `terraform plan` has not been run, because there is no tenant to plan against, and it is covered by guardrail tests. It must be planned in Qatar Airways' tenant, and the plan reviewed by their IT, before anything is applied. It shares no state, backend, provider or project with the existing SOC 2 environment (`terraform/main.tf`), which it does not touch.
 
 ## What each requirement is answered by
 
