@@ -32,7 +32,7 @@ For Reshma. The sprint build must do everything the baselines did, plus what the
 
 - The product starts in demonstration mode unless `MOCK_MODE=false` and the production settings are present. In demonstration mode there is no real database and some checks (for example the clinical approval gate) are relaxed. A production-mode run needs the production secrets and a database.
 - New features are off or inert until configured: the vulnerability disclosure pages need `SECURITY_CONTACT`; licence usage needs `STCC_LICENSED_USERS`; external scheduling needs `SCHEDULER_MODE=external` and the scheduler job.
-- The Terraform (`terraform/tenant-qatar-airways/`) has never been validated or applied; it cannot be tested until the tools and the tenant exist.
+- The Terraform (`terraform/tenant-qatar-airways/`) passed `terraform validate` on 21 Nov 2026 but has not been planned or applied; it cannot be tested further until the tenant exists.
 
 ## What cannot be validated yet
 

@@ -15,7 +15,7 @@ The reply to NFR-130 says heavy background jobs run separately from interactive 
 
 ## What is not shown yet
 
-- The Terraform has been parse-checked only. `terraform validate` and `terraform plan` have not been run, and nothing has been applied.
+- The Terraform passed `terraform validate` on 21 Nov 2026 (see `docs/infrastructure/qatar-airways-tenant.md`). `terraform plan` has not been run, and nothing has been applied.
 - The job script was run locally against a real PostgreSQL database (see `tests/sprint10Database.test.ts`). It has not been run as a Cloud Run job.
 - The integration job worker (queued EMR write-backs and e-mails) and the webhook worker still run in the application instances. They are small, event-driven tasks rather than heavy jobs; if Qatar Airways counts them as heavy, they move to the same job in a later change.
 - The job takes up to a minute to notice a due schedule (Cloud Scheduler's finest step). Schedules finer than a minute are not supported in this mode.

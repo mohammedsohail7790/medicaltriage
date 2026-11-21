@@ -61,6 +61,7 @@ Everything is held in the regions in `approved_regions`. The default is `me-cent
 
 ## Not validated
 
-- `terraform validate` and `terraform plan`: not run. Attribute names follow the Google provider 6.x documentation as understood, and any that differ will be found at `validate`.
+- `terraform validate`: **passed on 21 Nov 2026** for this configuration (`terraform/tenant-qatar-airways`, 91 resources including the environment module). It was run on a scratch copy with Terraform 1.17.2, Google provider 6.50.0 and Random provider 3.9.1, after `terraform init -backend=false`, with no credentials. The download checksums were checked against HashiCorp's published list. The older top-level `terraform/` files (which require Terraform ~> 1.14) also passed, on Terraform 1.14.9. Validate checks syntax and internal consistency only; it does not show that the resources can be created. `terraform fmt -check` flags one cosmetic alignment in `secrets.tf` (not changed).
+- `terraform plan`: not run. It needs the tenant project, real variable values and credentials. Nothing has been applied.
 - Whether Qatar Airways' Google Cloud organisation offers Privileged Access Manager, Security Command Center and Cloud Armor Adaptive Protection at the tier needed.
 - Cloud Run reaching Google APIs with all egress forced through the connector: private DNS for `googleapis.com` to the restricted range is written (`network.tf`) but untested; confirm with Qatar Airways IT that the design suits their network.
