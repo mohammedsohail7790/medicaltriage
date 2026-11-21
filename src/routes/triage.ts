@@ -71,7 +71,7 @@ function deriveCompletionFitToFlyStatus(args: {
 export const FitToFlyPreviewRequestSchema = z.object({
   jobTitle: z.string().optional(),
   finalDispositionCode: z.string(),
-  customAviationTags: z.array(z.string()).default([]),
+  customAviationTags: z.array(z.string().max(80)).max(50).default([]),
   calculatedSeverity: z.enum(["EMERGENCY", "URGENT", "ROUTINE", "SELF_CARE"]).optional()
 });
 

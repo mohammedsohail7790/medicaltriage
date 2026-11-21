@@ -64,7 +64,7 @@ export function createIntegrationAdminRouter(): Router {
   router.patch("/webhooks/:id", write, async (req: AuthorizedRequest, res, next) => {
     try {
       requireDatabase();
-      const body = z.object({ status: z.enum(["active", "paused"]).optional(), url: z.string().optional(), events: z.array(z.string()).min(1).optional() }).safeParse(req.body);
+      const body = z.object({ status: z.enum(["active", "paused"]).optional(), url: z.string().optional(), events: z.array(z.string().max(100)).min(1).max(50).optional() }).safeParse(req.body);
       if (!body.success) return res.status(400).json({ error: "Invalid change" });
       if (body.data.url) validateWebhookUrl(body.data.url);
       const before = await prisma.webhookSubscription.findUnique({ where: { id: req.params.id } });

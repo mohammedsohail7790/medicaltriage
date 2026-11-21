@@ -110,7 +110,7 @@ export const VoiceInterpreterInputSchema = z
     questionId: z.string().min(1),
     responseType: InitialAssessmentResponseTypeSchema,
     promptTextEn: z.string().min(1),
-    emergencyKeywords: z.array(z.string().min(1)),
+    emergencyKeywords: z.array(z.string().min(1).max(120)).max(200),
     transcriptText: z.string(),
     interrupted: z.boolean(),
     sttConfidence: z.number().min(0).max(1).optional()
@@ -214,7 +214,7 @@ export const MedGemmaVoiceTrainingExampleSchema = z
     transcriptText: z.string().min(1),
     approvedClassification: z.enum(["YES", "NO", "OPEN_TEXT"]),
     approvedValue: z.union([z.string(), z.number(), z.boolean()]),
-    evidence: z.array(z.string()),
+    evidence: z.array(z.string().max(2000)).max(100),
     source: z.literal("NURSE_VALIDATED_VOICE_TURN")
   })
   .strict();
