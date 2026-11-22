@@ -22,7 +22,7 @@ describe("NFR-097 retries and backpressure on every outbound interface", () => {
     const calls: string[] = [];
     setExternalClientForTests({
       fetch: async (url) => {
-        calls.push(url);
+        calls.push(String(url));
         const next = responses[Math.min(i++, responses.length - 1)];
         if (next instanceof Error) throw next;
         return reply(next);

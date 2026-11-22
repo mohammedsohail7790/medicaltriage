@@ -114,13 +114,15 @@ describe("the side-by-side comparison tool", () => {
     try {
       await Promise.all(servers.map((s) => new Promise<void>((resolve) => (s.listening ? resolve() : s.once("listening", () => resolve())))));
       const [a, b] = servers.map((s) => `http://127.0.0.1:${(s.address() as AddressInfo).port}`);
-      const { execFileSync } = await import("node:child_process");
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile); // async: the servers under test live in this process, so it must not block
       const { mkdtempSync, rmSync } = await import("node:fs");
       const { tmpdir } = await import("node:os");
       const dir = mkdtempSync(path.join(tmpdir(), "compare-"));
       try {
         const outFile = path.join(dir, "out.json");
-        execFileSync("node", ["scripts/compareBuilds.mjs", a, b, outFile], { cwd: root, env: { ...process.env, COMPARE_PASSWORD: process.env.ADMIN_PASSWORD, COMPARE_ACCOUNTS: "layla@irisstar.tech:remote_triage_nurse" }, timeout: 120000, stdio: "pipe" });
+        await execFileAsync("node", ["scripts/compareBuilds.mjs", a, b, outFile], { cwd: root, env: { ...process.env, COMPARE_PASSWORD: process.env.ADMIN_PASSWORD, COMPARE_ACCOUNTS: "layla@irisstar.tech:remote_triage_nurse" }, timeout: 120000 });
         const result = JSON.parse(readFileSync(outFile, "utf8")) as { endpointsTried: number; counts: Record<string, number>; differences: unknown[] };
         expect(result.endpointsTried).toBeGreaterThan(50);
         expect(Object.keys(result.counts)).toEqual(["same"]);
