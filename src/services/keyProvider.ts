@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import { requireSecret, secretVersions } from "../config/secrets.js";
+import { GcpKmsKeyProvider } from "./gcpKmsKeyProvider.js";
 
 /**
  * Key management for field-level encryption (M-019, M-020).
@@ -61,9 +62,21 @@ export class LocalKeyProvider implements KeyProvider {
   }
 }
 
-let provider: KeyProvider = new LocalKeyProvider();
+let provider: KeyProvider | undefined;
+
+/**
+ * Chooses the provider from FIELD_ENCRYPTION_PROVIDER: "local" (the default, keys from Secret Manager) or
+ * "gcp-kms" (Google Cloud KMS). An unknown value is an error, so a typo cannot silently fall back to local keys.
+ */
+export function providerFromEnv(env: NodeJS.ProcessEnv = process.env): KeyProvider {
+  const kind = (env.FIELD_ENCRYPTION_PROVIDER ?? "local").trim().toLowerCase();
+  if (kind === "local" || kind === "") return new LocalKeyProvider();
+  if (kind === "gcp-kms") return GcpKmsKeyProvider.fromEnv(env);
+  throw new Error(`FIELD_ENCRYPTION_PROVIDER "${kind}" is not supported. Use "local" or "gcp-kms".`);
+}
 
 export function getKeyProvider(): KeyProvider {
+  provider ??= providerFromEnv();
   return provider;
 }
 
@@ -73,6 +86,6 @@ export function setKeyProvider(next: KeyProvider): void {
 }
 
 export function resetKeyProvider(): void {
-  provider = new LocalKeyProvider();
+  provider = undefined;
   kekCache.clear();
 }

@@ -57,3 +57,36 @@ resource "google_kms_crypto_key_iam_member" "secretmanager" {
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:service-${data.google_project.tenant.number}@gcp-sa-secretmanager.iam.gserviceaccount.com"
 }
+
+# M-019, M-020, AI-012: the key that wraps the data keys of field-level encryption. The application calls Cloud KMS
+# to wrap and unwrap, so no key-encryption material is held by the service. With customer_managed_key set, that key
+# is used instead and Qatar Airways must grant the runtime service account roles/cloudkms.cryptoKeyEncrypterDecrypter
+# on it (the member is the runtime_service_account output).
+resource "google_kms_crypto_key" "field" {
+  count                      = local.use_own_key ? 1 : 0
+  name                       = "field-encryption"
+  key_ring                   = google_kms_key_ring.tenant[0].id
+  rotation_period            = var.kms_rotation_period
+  destroy_scheduled_duration = var.key_destroy_delay
+  purpose                    = "ENCRYPT_DECRYPT"
+
+  version_template {
+    algorithm        = "GOOGLE_SYMMETRIC_ENCRYPTION"
+    protection_level = "HSM"
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+locals {
+  field_key_id = local.use_own_key ? google_kms_crypto_key.field[0].id : var.customer_managed_key
+}
+
+resource "google_kms_crypto_key_iam_member" "runtime_field" {
+  count         = local.use_own_key ? 1 : 0
+  crypto_key_id = google_kms_crypto_key.field[0].id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:${google_service_account.runtime.email}"
+}

@@ -89,9 +89,17 @@ export function secretVersions(name: string): string[] {
 /** Names that must be configured before the service starts in production. */
 export const REQUIRED_PRODUCTION_SECRETS = ["AUTH_JWT_SECRET", "MFA_ENCRYPTION_KEY", "FIELD_ENCRYPTION_KEY"] as const;
 
+/** With FIELD_ENCRYPTION_PROVIDER=gcp-kms the field key lives in Cloud KMS, so no local field key is needed. */
+function fieldKeyHeldInKms(): boolean {
+  return (process.env.FIELD_ENCRYPTION_PROVIDER ?? "").trim().toLowerCase() === "gcp-kms";
+}
+
 export function missingProductionSecrets(): string[] {
-  return REQUIRED_PRODUCTION_SECRETS.filter((name) => {
+  const missing: string[] = REQUIRED_PRODUCTION_SECRETS.filter((name) => {
+    if (name === "FIELD_ENCRYPTION_KEY" && fieldKeyHeldInKms()) return false;
     const value = provider.get(name);
     return !value || looksLikePlaceholder(value);
   });
+  if (fieldKeyHeldInKms() && !process.env.FIELD_ENCRYPTION_KMS_KEY?.trim()) missing.push("FIELD_ENCRYPTION_KMS_KEY");
+  return missing;
 }

@@ -69,6 +69,31 @@ covers *application secret* rotation, which is genuinely IST Health's own
 responsibility and control; it does not claim to cover encryption-key
 management proper, which remains GCP's.
 
+## Field-level encryption keys (Google Cloud KMS provider)
+
+Personal and clinical fields are encrypted with a fresh data key per value, and each data key is wrapped by a
+key-encryption key held by a key provider (`src/services/keyProvider.ts`).
+
+| Setting | Meaning |
+|---|---|
+| `FIELD_ENCRYPTION_PROVIDER` | `local` (default: a key from Secret Manager) or `gcp-kms`. Any other value stops the service from starting to use it, so a typo cannot fall back to local keys. |
+| `FIELD_ENCRYPTION_KMS_KEY` | A Cloud KMS crypto key name, `projects/.../locations/.../keyRings/.../cryptoKeys/...`. A key version name is refused. The key's region must be in `APPROVED_DATA_REGIONS` when that is set. |
+| `FIELD_ENCRYPTION_KMS_KEY_PREVIOUS` | Optional, comma separated. Older crypto keys still needed to unwrap data after a move to a different key. |
+
+- **Rotation inside one key:** Cloud KMS rotates versions of the crypto key (the Terraform sets the rotation period)
+  and unwraps with whichever version wrapped the data. Nothing needs re-wrapping.
+- **Moving to a different key** (for example a Qatar Airways-held key): set the new name, list the old one under
+  `..._PREVIOUS`, then run `npx tsx src/scripts/encryptStoredFields.ts --execute --rewrap` so stored values move to the new key (it is a dry run without `--execute`).
+- **No fallback:** if Cloud KMS refuses or is unreachable, encryption and decryption fail. No local key is used.
+- **Access:** only the runtime service account holds `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the field key.
+  For a Qatar Airways-held key, Qatar Airways grants that role to the runtime service account.
+- **Production start-up:** with `gcp-kms`, `FIELD_ENCRYPTION_KEY` is not required, and `FIELD_ENCRYPTION_KMS_KEY` is.
+- **Not tested against real Cloud KMS.** The tests use a stand-in KMS that enforces the same additional
+  authenticated data. The first run in the Qatar Airways tenant is the first real test, and Terraform has been
+  validated but not planned or applied.
+- **Fortanix** is Qatar Airways' vault (NFR-048). No Fortanix adapter exists; one would implement the same
+  `KeyProvider` interface once Qatar Airways gives the interface and key design.
+
 ## Review cadence
 
 Reviewed alongside the annual risk-register cadence

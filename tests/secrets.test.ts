@@ -50,6 +50,18 @@ describe("M-039 secret handling", () => {
     expect(() => assertRuntimeConfiguration()).toThrow(/AUTH_JWT_SECRET/);
   });
 
+  it("does not require a local field key when the field key is held in Cloud KMS, but requires the KMS key name", () => {
+    process.env.NODE_ENV = "production";
+    process.env.AUTH_JWT_SECRET = "a-real-session-secret-0123456789ab";
+    process.env.MFA_ENCRYPTION_KEY = "a-real-mfa-secret-0123456789abcd";
+    delete process.env.FIELD_ENCRYPTION_KEY;
+    process.env.FIELD_ENCRYPTION_PROVIDER = "gcp-kms";
+    delete process.env.FIELD_ENCRYPTION_KMS_KEY;
+    expect(missingProductionSecrets()).toEqual(["FIELD_ENCRYPTION_KMS_KEY"]);
+    process.env.FIELD_ENCRYPTION_KMS_KEY = "projects/p/locations/me-central1/keyRings/r/cryptoKeys/k";
+    expect(missingProductionSecrets()).toEqual([]);
+  });
+
   it("reads from an installed provider such as a vault adapter", () => {
     setSecretProvider({ get: (name) => (name === "MFA_ENCRYPTION_KEY" ? "vault-supplied-key-0123456789" : undefined) });
     expect(requireSecret("MFA_ENCRYPTION_KEY")).toBe("vault-supplied-key-0123456789");

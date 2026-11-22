@@ -43,6 +43,14 @@ resource "google_cloud_run_v2_service" "app" {
         name  = "SSO_ENFORCED"
         value = "true"
       }
+      env {
+        name  = "FIELD_ENCRYPTION_PROVIDER"
+        value = "gcp-kms"
+      }
+      env {
+        name  = "FIELD_ENCRYPTION_KMS_KEY"
+        value = local.field_key_id
+      }
       # NFR-130: scheduled jobs run in the separate Cloud Run job (jobs.tf), never in these instances.
       env {
         name  = "SCHEDULER_MODE"
