@@ -1,7 +1,7 @@
 // The clinical actions panel has its own tests (clinical/ClinicalWorkspace.test.tsx).
 jest.mock("../ClinicalActionsPanel", () => ({ ClinicalActionsPanel: () => null }));
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CompletionStage } from "./CompletionStage";
 import type { QueueItem } from "../../QueueContext";
 
@@ -18,6 +18,14 @@ const compileTriageCompletion = jest.fn();
 jest.mock("../api/triageCompletion", () => ({
   previewTriageCompletion: (...args: unknown[]) => previewTriageCompletion(...args),
   compileTriageCompletion: (...args: unknown[]) => compileTriageCompletion(...args)
+}));
+
+jest.mock("../../auth/apiBase", () => ({ apiBase: "" }));
+
+const submitClinicalApproval = jest.fn();
+jest.mock("../api/approval", () => ({
+  ...jest.requireActual("../api/approval"),
+  submitClinicalApproval: (...args: unknown[]) => submitClinicalApproval(...args)
 }));
 
 jest.mock("../api/feedback", () => ({
@@ -56,6 +64,7 @@ beforeEach(() => {
   moveItem.mockClear();
   previewTriageCompletion.mockReset().mockResolvedValue({ notePayload: "# default preview note", preview: true });
   compileTriageCompletion.mockReset();
+  submitClinicalApproval.mockReset().mockResolvedValue(undefined);
 });
 
 describe("CompletionStage", () => {
@@ -99,11 +108,14 @@ describe("CompletionStage", () => {
       sbarNoteText: undefined,
       sbarCopied: false,
       dispositionCode: "HMC_URGENT_REVIEW",
-      destinationName: "HMC urgent review pathway"
+      destinationName: "HMC urgent review pathway",
+      matchedProtocolId: "proto-ear",
+      calculatedSeverity: "URGENT"
     });
     render(<CompletionStage item={item} isReadOnly={false} onCallCompleted={jest.fn()} />);
 
     expect(screen.queryByRole("button", { name: /Copy SBAR/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox"));
 
     const completeButton = screen.getByRole("button", { name: /Complete Call/ });
     completeButton.click();
@@ -130,7 +142,7 @@ describe("CompletionStage", () => {
     });
     render(<CompletionStage item={item} isReadOnly={false} onCallCompleted={jest.fn()} />);
 
-    expect(screen.getByRole("button", { name: /Complete Call/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Complete Call/ })).toBeDisabled(); // needs the nurse's confirmation first
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(moveItem).not.toHaveBeenCalled();
   });
@@ -147,5 +159,58 @@ describe("CompletionStage", () => {
 
     expect(moveItem).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /Complete Call/ })).toBeDisabled();
+  });
+
+  describe("OI-49 signed clinical approval before the call closes", () => {
+    const active = () =>
+      makeItem({
+        status: "IN_PROCESS",
+        sbarNoteText: undefined,
+        sbarCopied: false,
+        matchedProtocolId: "proto-ear",
+        calculatedSeverity: "URGENT",
+        taqResponses: { q1: true }
+      });
+
+    it("keeps Complete Call disabled until the nurse confirms she reviewed the reasoning", () => {
+      render(<CompletionStage item={active()} isReadOnly={false} onCallCompleted={jest.fn()} />);
+      expect(screen.getByRole("button", { name: /Complete Call/ })).toBeDisabled();
+      fireEvent.click(screen.getByRole("checkbox"));
+      expect(screen.getByRole("button", { name: /Complete Call/ })).toBeEnabled();
+    });
+
+    it("cannot be confirmed when too little reasoning is recorded", () => {
+      render(
+        <CompletionStage
+          item={makeItem({ status: "IN_PROCESS", sbarNoteText: undefined, sbarCopied: false, dispositionCode: undefined })}
+          isReadOnly={false}
+          onCallCompleted={jest.fn()}
+        />
+      );
+      expect(screen.getByRole("checkbox")).toBeDisabled();
+    });
+
+    it("records the approval under the saved encounter, then closes the call", async () => {
+      compileTriageCompletion.mockResolvedValue({ notePayload: "# n", clipboardOptimized: true, persistence: { persisted: true, recordId: "enc-77" } });
+      const done = jest.fn();
+      render(<CompletionStage item={active()} isReadOnly={false} onCallCompleted={done} />);
+      fireEvent.click(screen.getByRole("checkbox"));
+      fireEvent.click(screen.getByRole("button", { name: /Complete Call/ }));
+      await waitFor(() => expect(done).toHaveBeenCalled());
+      expect(submitClinicalApproval).toHaveBeenCalledWith("enc-77", expect.objectContaining({ id: "queue-item-abc" }));
+      expect(submitClinicalApproval.mock.invocationCallOrder[0]).toBeLessThan(moveItem.mock.invocationCallOrder[0]);
+    });
+
+    it("leaves the call open when the approval is refused", async () => {
+      compileTriageCompletion.mockResolvedValue({ notePayload: "# n", clipboardOptimized: true, persistence: { persisted: true, recordId: "enc-77" } });
+      submitClinicalApproval.mockRejectedValue(new Error("Only the Remote Triage Nurse role can approve."));
+      const done = jest.fn();
+      render(<CompletionStage item={active()} isReadOnly={false} onCallCompleted={done} />);
+      fireEvent.click(screen.getByRole("checkbox"));
+      fireEvent.click(screen.getByRole("button", { name: /Complete Call/ }));
+      await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/Only the Remote Triage Nurse/));
+      expect(moveItem).not.toHaveBeenCalled();
+      expect(done).not.toHaveBeenCalled();
+    });
   });
 });

@@ -15,6 +15,8 @@ export type TriageCompleteResponse = {
   notePayload: unknown;
   fitToFlyStatus?: "CLEARED" | "RESTRICTED" | "MEDICAL_REVIEW_REQUIRED";
   clipboardOptimized: true;
+  // recordId is the encounter the note was saved under; absent when nothing was persisted (demonstration mode).
+  persistence?: { persisted: boolean; recordId?: string; reason?: string };
 };
 
 export async function compileTriageCompletion(

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueue, type QueueItem } from "../../QueueContext";
 import { splitBilingualSbarNote } from "../../utils/splitBilingualSbarNote";
 import { compileTriageCompletion, previewTriageCompletion } from "../api/triageCompletion";
 import { FeedbackWidget } from "../FeedbackWidget";
 import { ClinicalActionsPanel } from "../ClinicalActionsPanel";
+import { reasoningFeatureIds, submitClinicalApproval } from "../api/approval";
 
 type CompletionStageProps = {
   item: QueueItem;
@@ -19,6 +20,10 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
   const [actionError, setActionError] = useState("");
   const [completed, setCompleted] = useState(item.status === "COMPLETED");
   const [previewText, setPreviewText] = useState<string>("");
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const encounterIdRef = useRef<string | undefined>(undefined);
+  const reviewedFeatures = reasoningFeatureIds(item);
+  const canApprove = reviewedFeatures.length >= 2;
 
   // For an already-closed call that never had its note captured (e.g. an
   // older record from before sbarNoteText was persisted, or one closed via
@@ -79,6 +84,7 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
     }
     try {
       const result = await compileTriageCompletion(item.id, completionRequestBody);
+      if (result.persistence?.recordId) encounterIdRef.current = result.persistence.recordId;
       const text =
         typeof result.notePayload === "string" ? result.notePayload : JSON.stringify(result.notePayload, null, 2);
       setSbarText(text);
@@ -114,6 +120,14 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
       if (!sbarPersisted) {
         await persistSbar();
       }
+      // Step B2 (OI-49): record the nurse's signed clinical approval before the call can close. The server signs
+      // it and checks it before any EMR write-back or patient message. The encounter the note was saved under is
+      // the approval's key; completion is idempotent, so asking again returns the same one.
+      if (!encounterIdRef.current) {
+        const saved = await compileTriageCompletion(item.id, completionRequestBody);
+        encounterIdRef.current = saved.persistence?.recordId ?? item.id;
+      }
+      await submitClinicalApproval(encounterIdRef.current, item);
       // Step C: the only point of no return - never show "completed" before
       // this call's response confirms the COMPLETED transition.
       await moveItem(item.id, "SBAR", "COMPLETED");
@@ -180,11 +194,25 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
           <div style={{ marginTop: 12, fontSize: "0.8rem", color: "var(--muted)" }}>Completing this call...</div>
         ) : (
           <div className="flow-actions">
+            <label className="clinical-review-confirm" style={{ display: "block", marginBottom: 8, fontSize: "0.85rem" }}>
+              <input
+                type="checkbox"
+                checked={reviewConfirmed}
+                onChange={(event) => setReviewConfirmed(event.target.checked)}
+                disabled={busy || !canApprove}
+              />{" "}
+              I have reviewed the reasoning behind this disposition and approve it.
+              <span style={{ display: "block", color: "var(--muted)", fontSize: "0.75rem" }}>
+                {canApprove
+                  ? `Reviewed: ${reviewedFeatures.length} items (protocol, disposition and the answers recorded).`
+                  : "Not enough recorded reasoning to approve yet: finish the protocol and questions stages."}
+              </span>
+            </label>
             <button
               type="button"
               className="complete-btn"
               onClick={completeCall}
-              disabled={busy || !item.dispositionCode || !item.destinationName}
+              disabled={busy || !item.dispositionCode || !item.destinationName || !reviewConfirmed || !canApprove}
               title={
                 !item.dispositionCode || !item.destinationName
                   ? "Complete the Disposition stage before finishing this call."
