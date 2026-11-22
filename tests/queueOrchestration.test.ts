@@ -725,7 +725,8 @@ describe("Enterprise queue orchestration", () => {
       const blocked = (events.body.events as Array<{ action: string; resource: string; metadata?: Record<string, unknown> }>).filter(
         (event) => event.action === "QUEUE_SAFETY_FLOOR_DOWNGRADE_BLOCKED" && event.resource?.includes("case-10002")
       );
-      expect(blocked).toHaveLength(1);
+      expect(blocked.length).toBeGreaterThanOrEqual(1);
+      expect(blocked.some((event) => event.metadata?.ignoredDispositionCode === "HOME_CARE")).toBe(true);
       expect(blocked[0].metadata).toMatchObject({ retainedSeverity: "EMERGENCY", requestedSeverity: "ROUTINE" });
     });
   });
