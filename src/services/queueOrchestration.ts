@@ -2324,6 +2324,23 @@ export async function updateQueueContext(
     record.calculatedSeverity === "EMERGENCY" &&
     Boolean(update.calculatedSeverity) &&
     update.calculatedSeverity !== "EMERGENCY";
+  if (floorBlocksDowngrade) {
+    // OI-48: the safety floor keeps the call at EMERGENCY. The attempt is not silent: it is recorded.
+    await recordQueueAuditEvent({
+      session,
+      action: "QUEUE_SAFETY_FLOOR_DOWNGRADE_BLOCKED",
+      recordId: record.id,
+      success: false,
+      riskLevel: "high",
+      metadata: {
+        retainedSeverity: record.calculatedSeverity,
+        requestedSeverity: update.calculatedSeverity ?? null,
+        floorSource: record.safetyFloorSource ?? null,
+        ignoredDispositionCode: update.dispositionCode ?? null,
+        ignoredDestinationName: update.destinationName ?? null
+      }
+    });
+  }
   if (update.calculatedSeverity && !floorBlocksDowngrade) {
     record.calculatedSeverity = update.calculatedSeverity;
     if (update.calculatedSeverity === "EMERGENCY") {

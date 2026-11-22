@@ -708,6 +708,27 @@ describe("Enterprise queue orchestration", () => {
       expect(claimEvents.length).toBeGreaterThan(0);
     });
   });
+
+  describe("OI-48 ignored downgrade is audited", () => {
+    it("keeps EMERGENCY under an active floor and records the attempted downgrade", async () => {
+      const nurse = await agentFor("layla@irisstar.tech", "remote_triage_nurse");
+      await nurse.post("/api/v1/queue/case-10002/claim").expect(200);
+
+      const res = await nurse
+        .patch("/api/v1/queue/case-10002/context")
+        .send({ calculatedSeverity: "ROUTINE", dispositionCode: "HOME_CARE" })
+        .expect(200);
+      expect(res.body.item.calculatedSeverity).toBe("EMERGENCY");
+
+      const admin = await agentFor("rishma@irisstar.tech", "platform_super_administrator");
+      const events = await admin.get("/api/v1/admin/audit-events").expect(200);
+      const blocked = (events.body.events as Array<{ action: string; resource: string; metadata?: Record<string, unknown> }>).filter(
+        (event) => event.action === "QUEUE_SAFETY_FLOOR_DOWNGRADE_BLOCKED" && event.resource?.includes("case-10002")
+      );
+      expect(blocked).toHaveLength(1);
+      expect(blocked[0].metadata).toMatchObject({ retainedSeverity: "EMERGENCY", requestedSeverity: "ROUTINE" });
+    });
+  });
 });
 
 describe("NFR-122 low-bandwidth lists", () => {
