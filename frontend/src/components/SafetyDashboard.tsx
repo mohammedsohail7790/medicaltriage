@@ -173,9 +173,9 @@ export default function SafetyDashboard() {
           tone={payload.kpis.undertriageRate > 0 ? "rose" : "green"}
         />
         <KpiCard
-          label="MedSafe-Dx pass"
+          label="Calls without a critical breach"
           value={`${payload.kpis.medsafeDxPassRate}%`}
-          hint={`${payload.kpis.pendingApprovals} approvals pending`}
+          hint={`Share of calls with no downgrade below the rules floor. ${payload.kpis.pendingApprovals} approvals pending.`}
           tone="green"
         />
         <KpiCard

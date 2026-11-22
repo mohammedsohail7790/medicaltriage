@@ -137,9 +137,9 @@ variable "log_retention_days" {
 }
 
 variable "secrets" {
-  description = "Names of the secrets the application needs. Values are set outside Terraform."
+  description = "Names of the secrets the application needs. Values are set outside Terraform. The field-encryption key is not a secret here: its key-encryption key lives in Cloud KMS (kms.tf)."
   type        = list(string)
-  default     = ["auth-jwt-secret", "audit-hmac-secret", "field-encryption-key", "mfa-encryption-key", "database-url", "login-encryption-key"]
+  default     = ["auth-jwt-secret", "audit-hmac-secret", "mfa-encryption-key", "database-url", "login-encryption-key"]
 }
 
 variable "integration_egress_cidrs" {

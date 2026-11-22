@@ -27,6 +27,9 @@ describe("SafetyDashboard", () => {
     await waitFor(() => expect(screen.getByText(/Safety scorecard loaded/)).toBeInTheDocument());
     expect(screen.getByRole("note")).toHaveTextContent(/Demonstration data/);
     expect(screen.getByText(/Manual baseline/)).toBeInTheDocument();
+    // The figure is the share of calls without a critical breach, so it must not carry a benchmark name.
+    expect(screen.getByText("Calls without a critical breach")).toBeInTheDocument();
+    expect(screen.queryByText(/MedSafe-Dx/)).not.toBeInTheDocument();
   });
 
   it("shows no notice for live figures and no manual baseline when none is recorded", async () => {

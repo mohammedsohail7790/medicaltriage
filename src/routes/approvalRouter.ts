@@ -568,6 +568,8 @@ export async function liveSafetyDashboard(session: AuthenticatedSession | undefi
       averageHandlingTimeManualSeconds: null,
       overtriageRate: roundRate((safetyFloorOverrides / denominator) * 100),
       undertriageRate: roundRate((criticalFloorBreaches / denominator) * 100),
+      // The field keeps its old name so clients do not break. It is the share of calls with no critical floor breach,
+      // not the result of any external benchmark, and the screen labels it that way.
       medsafeDxPassRate: roundRate(((denominator - criticalFloorBreaches) / denominator) * 100),
       pendingApprovals,
       safetyFloorOverrides,
