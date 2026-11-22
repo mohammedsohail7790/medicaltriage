@@ -8,11 +8,11 @@ import {
 } from "./communicationAdapters.js";
 import type {
   CcpCommunicationStatus,
-  CcpMessageApproveRequest,
   CcpMessageDraftRequest,
   CcpOutboundDraft,
   CcpSendResult,
-  InboundWebhookRecord
+  InboundWebhookRecord,
+  TrustedCcpApproval
 } from "../types/communication.js";
 import {
   getPersistedCcpOutboundDraft,
@@ -59,7 +59,7 @@ function applyTestRedirect(draft: CcpOutboundDraft): CcpOutboundDraft {
   };
 }
 
-function requireRemoteTriageNurseApproval(draft: CcpOutboundDraft, approval: CcpMessageApproveRequest) {
+function requireRemoteTriageNurseApproval(draft: CcpOutboundDraft, approval: TrustedCcpApproval) {
   if (approval.reviewerRole !== "Remote Triage Nurse") {
     throw new CcpCommunicationError(
       "Only the Remote Triage Nurse role can approve an employee-facing CCP outbound message.",
@@ -192,7 +192,7 @@ export async function createCcpOutboundDraft(request: CcpMessageDraftRequest): P
 
 export async function approveAndSendCcpDraft(
   draftId: string,
-  approval: CcpMessageApproveRequest
+  approval: TrustedCcpApproval
 ): Promise<CcpOutboundDraft> {
   const draft = await findDraft(draftId);
   if (!draft) {

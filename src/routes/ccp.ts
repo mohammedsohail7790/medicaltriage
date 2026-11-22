@@ -13,6 +13,7 @@ import {
 import { EmployeeCcpLookupSchema } from "../types/ccp.js";
 import { CcpMessageApproveRequestSchema, CcpMessageDraftRequestSchema } from "../types/communication.js";
 import { isSafetyKernelError } from "../services/safetyKernel.js";
+import { requirePermission, type AuthorizedRequest } from "../services/authorization.js";
 
 function normalizeFormBody(body: unknown): Record<string, string> {
   if (!body || typeof body !== "object") {
@@ -81,14 +82,25 @@ export function createCcpRouter(): Router {
     }
   });
 
-  router.post("/messages/:draftId/approve-send", async (req, res) => {
-    const parsed = CcpMessageApproveRequestSchema.safeParse(req.body);
+  // OI-37: only a signed-in Remote Triage Nurse can approve and send. The role and identity are read from the
+  // session; whatever the request body claims about the reviewer is ignored.
+  router.post("/messages/:draftId/approve-send", requirePermission("triage.workspace.view"), async (req: AuthorizedRequest, res) => {
+    const session = req.securitySession;
+    if (!session || session.activeRole !== "remote_triage_nurse") {
+      return res.status(403).json({ error: "Only the Remote Triage Nurse role can approve an employee-facing CCP outbound message." });
+    }
+    const parsed = CcpMessageApproveRequestSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       return res.status(400).json({ error: "Invalid CCP approval request", details: parsed.error.flatten() });
     }
 
     try {
-      const draft = await approveAndSendCcpDraft(req.params.draftId, parsed.data);
+      const draft = await approveAndSendCcpDraft(req.params.draftId, {
+        encounterId: parsed.data.encounterId,
+        note: parsed.data.note,
+        reviewerId: session.user.id,
+        reviewerRole: "Remote Triage Nurse"
+      });
       return res.json({ draft });
     } catch (error) {
       return handleCcpError(error, res);

@@ -16,13 +16,17 @@ export const CcpMessageDraftRequestSchema = z.object({
 });
 export type CcpMessageDraftRequest = z.infer<typeof CcpMessageDraftRequestSchema>;
 
+// OI-37: the reviewer's identity and role come from the signed-in session, never from the request. Older clients may
+// still send reviewerId and reviewerRole; they are accepted and ignored.
 export const CcpMessageApproveRequestSchema = z.object({
-  reviewerId: z.string().min(2).max(120),
-  reviewerRole: z.string().min(2).max(120),
+  reviewerId: z.string().max(120).optional(),
+  reviewerRole: z.string().max(120).optional(),
   encounterId: z.string().min(1).max(140).optional(),
   note: z.string().max(500).optional()
 });
 export type CcpMessageApproveRequest = z.infer<typeof CcpMessageApproveRequestSchema>;
+/** The approval as the service uses it: identity and role taken from the session by the route. */
+export type TrustedCcpApproval = Omit<CcpMessageApproveRequest, "reviewerId" | "reviewerRole"> & { reviewerId: string; reviewerRole: string };
 
 export type CcpDraftStatus =
   | "pending-nurse-review"
