@@ -27,6 +27,7 @@ import { canAccessClinicalWorkspace, canAccessNurseCockpit, canAccessServiceMana
 import { ClinicalWorkspace } from "./clinical/ClinicalWorkspace";
 import { TriageServiceManagerBoard } from "./serviceManagerBoard/TriageServiceManagerBoard";
 import { formatRole } from "./admin/shared/roleLabels";
+import { productName } from "./auth/brand";
 
 type ViewKey = "workspace" | "cockpitV2" | "cockpit" | "kanban" | "ccp" | "help" | "admin" | "serviceManagerBoard" | "clinical";
 type ThemeMode = "light" | "dark";
@@ -173,7 +174,7 @@ export default function App() {
 
     return {
       eyebrow: "TRIAGE PAGE",
-      title: "IST Health Clinical Decision Support",
+      title: `${productName()} Clinical Decision Support`,
       subtitle: "Rules-first clinical triage for Qatar workforce health operations with SBAR drafting.",
       metric: "6",
       metricLabel: "REVIEW GATES"
@@ -435,7 +436,7 @@ export default function App() {
             >
               <IstLogoMark />
               <span>
-                <strong>IST Health | {activeViewLabel}</strong>
+                <strong>{productName()} | {activeViewLabel}</strong>
                 <small>{session.user.fullName} | {activeRoleLabel}</small>
               </span>
             </button>
@@ -520,7 +521,7 @@ export default function App() {
                 <div>
                   <strong>Core operating rule</strong>
                   <p>
-                    IST Health does not autonomously approve a clinical disposition. It drafts, challenges,
+                    {productName()} does not autonomously approve a clinical disposition. It drafts, challenges,
                     evidence-packs, and tracks the worksheet so clinicians can validate faster with traceability.
                   </p>
                 </div>

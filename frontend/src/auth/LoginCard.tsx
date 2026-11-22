@@ -6,6 +6,7 @@ import { buildLoginRequest } from "./loginTransport";
 import { renderCaptchaWidget, solveSelfChallenge, type CaptchaPrompt } from "./captchaClient";
 import { useLocale } from "../i18n/LocaleContext";
 import type { AuthenticatedSession } from "./session";
+import { productName } from "./brand";
 
 function BrandMark({ className }: { className?: string }) {
   return (
@@ -396,7 +397,7 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
   const brandHeader = (
     <div className="login-brand">
       <BrandMark className="login-brand-mark" />
-      <span className="login-brand-word">IST Health</span>
+      <span className="login-brand-word">{productName()}</span>
     </div>
   );
 
@@ -692,7 +693,7 @@ export function LoginCard({ onAuthenticated }: LoginCardProps) {
         <a href="#terms">Terms of use</a>
         <a href="mailto:helpdesk@irisstar.tech">Helpdesk</a>
       </div>
-      <p className="login-legal">IRIS STAR Technologies L.L.C. &middot; IST Health</p>
+      <p className="login-legal">IRIS STAR Technologies L.L.C. &middot; {productName()}</p>
     </form>
   );
 }

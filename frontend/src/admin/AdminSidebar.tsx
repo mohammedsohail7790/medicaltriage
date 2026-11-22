@@ -6,6 +6,7 @@ import { cn } from "./components/lib/utils";
 import { Button } from "./components/ui/button";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import type { AdminNavTab } from "./AdminNav";
+import { productName } from "../auth/brand";
 
 type AdminSidebarProps = {
   tabs: AdminNavTab[];
@@ -36,7 +37,7 @@ export function AdminSidebar({ tabs, fullName, activeRole, onLogout }: AdminSide
     >
       <div className="flex items-center gap-2 border-b border-border px-3 py-3">
         <img className="admin-logo shrink-0" src="/logo-irisstar.svg" alt="" aria-hidden="true" />
-        {!collapsed && <span className="truncate text-sm font-bold text-foreground">IST Health | Admin</span>}
+        {!collapsed && <span className="truncate text-sm font-bold text-foreground">{productName()} | Admin</span>}
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2">

@@ -34,6 +34,7 @@ import type {
 import { useQueue } from "../../QueueContext";
 import { SectionTabs } from "../ui/NavigationControls";
 import InitialAssessmentPanel from "./InitialAssessmentPanelRedesign";
+import { productName } from "../../auth/brand";
 
 type ConsciousLevel = "alert" | "voice" | "pain" | "unresponsive";
 type Severity = "Emergency" | "Urgent" | "Routine" | "Self-care";
@@ -665,7 +666,7 @@ function sbarMarkdown(card: Card, score?: ApiScoreResult, assessmentResponses: A
       : undefined;
 
   return [
-    "# IST Health Tele-Triage SBAR",
+    `# ${productName()} Tele-Triage SBAR`,
     "",
     "## English",
     `S: ${card.patientName} (${card.maskedPatientId}), ${card.age} years, ${card.jobTitle}, reports ${card.symptomTextRaw}`,
