@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import { isMockMode, shouldUseDatabasePersistence } from "../config/runtime.js";
+import { areDemoCredentialsEnabled, isMockMode, shouldUseDatabasePersistence } from "../config/runtime.js";
 import { prisma } from "../db.js";
 import type { AuthenticatedSession } from "../types/security.js";
 import type {
@@ -139,7 +139,8 @@ function gatewaySecret(): string {
   if (configured) {
     return configured;
   }
-  if (isMockMode()) {
+  // The well-known demo secret exists only where demo credentials are allowed (never NODE_ENV=production by default).
+  if (areDemoCredentialsEnabled()) {
     return "mock-call-center-gateway-secret";
   }
   throw new CallCenterGatewayError(

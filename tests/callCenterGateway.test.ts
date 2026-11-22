@@ -356,3 +356,19 @@ describe("Provider-neutral call-center gateway integration", () => {
     );
   });
 });
+
+describe("call-centre gateway demo secret", () => {
+  const saved = { ...process.env };
+  afterEach(() => {
+    process.env = { ...saved };
+  });
+
+  it("is not used when NODE_ENV=production, even if MOCK_MODE is left on", async () => {
+    delete process.env.CALL_CENTER_GATEWAY_SECRET;
+    delete process.env.ALLOW_DEMO_CREDENTIALS;
+    process.env.NODE_ENV = "production";
+    process.env.MOCK_MODE = "true";
+    const { areDemoCredentialsEnabled } = await import("../src/config/runtime.js");
+    expect(areDemoCredentialsEnabled()).toBe(false);
+  });
+});
