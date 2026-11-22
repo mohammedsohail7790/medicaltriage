@@ -38,6 +38,6 @@ export function productionPreflight(env: NodeJS.ProcessEnv = process.env): Prefl
     warn("scheduler", "SCHEDULER_MODE is not 'external': scheduled jobs and queue workers run inside the API instances.");
   }
   if (!has("CALL_CENTER_GATEWAY_SECRET")) fail("call-centre gateway", "CALL_CENTER_GATEWAY_SECRET is not set; events would be rejected.");
-  if (!has("CORS_ALLOWED_ORIGINS") && !has("ALLOWED_ORIGINS")) warn("CORS", "no allowed origins configured.");
+  if (!has("CORS_ALLOWED_ORIGINS")) warn("CORS", "no allowed origins configured.");
   return out;
 }
