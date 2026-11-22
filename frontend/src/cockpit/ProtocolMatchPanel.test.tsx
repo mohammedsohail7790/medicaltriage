@@ -103,6 +103,13 @@ describe("ProtocolMatchPanel", () => {
     expect(screen.getByText("Score 2")).toBeInTheDocument();
   });
 
+  it("F-006 shows which protocol source and content release each suggestion comes from", () => {
+    render(<ProtocolMatchPanel item={makeItem({ preparedProtocol: makePrepared() })} isReadOnly={false} />);
+    const sources = screen.getAllByTestId("protocol-source");
+    expect(sources.length).toBeGreaterThan(0);
+    expect(sources[0]).toHaveTextContent("STCC protocol, content release v1");
+  });
+
   it("shows a pending-reason message when status is PENDING_REASON", () => {
     const item = makeItem({ preparedProtocol: makePrepared({ status: "PENDING_REASON", extractedKeywords: [] }) });
     render(<ProtocolMatchPanel item={item} isReadOnly={false} />);

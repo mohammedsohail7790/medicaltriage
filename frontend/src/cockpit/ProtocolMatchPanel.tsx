@@ -59,6 +59,11 @@ function SuggestionRow({
         {acuityChip(suggestion.acuity)}
         <span className="protocol-match-suggestion-score">Score {suggestion.score}</span>
       </div>
+      {suggestion.releaseVersion && (
+        <div className="protocol-match-source" data-testid="protocol-source">
+          Source: STCC protocol, content release {suggestion.releaseVersion}
+        </div>
+      )}
       {suggestion.matchedTerms.length > 0 && (
         <div className="protocol-match-tags">
           {suggestion.matchedTerms.map((term) => (
