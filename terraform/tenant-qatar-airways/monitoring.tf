@@ -168,3 +168,87 @@ resource "google_project_iam_member" "dashboard_viewers" {
   role     = "roles/monitoring.viewer"
   member   = each.value
 }
+
+# NFR-132: alerts on 95th-percentile latency, error rate and queue backlog age, with thresholds Qatar Airways can set.
+resource "google_monitoring_alert_policy" "latency_p95" {
+  display_name = "Request latency (95th percentile) is high"
+  combiner     = "OR"
+  conditions {
+    display_name = "p95 latency above ${var.alert_p95_latency_ms} ms"
+    condition_threshold {
+      filter          = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${google_cloud_run_v2_service.app.name}\" AND metric.type=\"run.googleapis.com/request_latencies\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.alert_p95_latency_ms
+      duration        = "300s"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_PERCENTILE_95"
+      }
+    }
+  }
+  notification_channels = local.channels
+}
+
+resource "google_monitoring_alert_policy" "error_rate" {
+  display_name = "Server error rate is high"
+  combiner     = "OR"
+  conditions {
+    display_name = "Server errors above ${var.alert_error_rate * 100} percent of requests"
+    condition_threshold {
+      filter             = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${google_cloud_run_v2_service.app.name}\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.label.response_code_class=\"5xx\""
+      denominator_filter = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${google_cloud_run_v2_service.app.name}\" AND metric.type=\"run.googleapis.com/request_count\""
+      comparison         = "COMPARISON_GT"
+      threshold_value    = var.alert_error_rate
+      duration           = "300s"
+      aggregations {
+        alignment_period     = "300s"
+        per_series_aligner   = "ALIGN_RATE"
+        cross_series_reducer = "REDUCE_SUM"
+      }
+      denominator_aggregations {
+        alignment_period     = "300s"
+        per_series_aligner   = "ALIGN_RATE"
+        cross_series_reducer = "REDUCE_SUM"
+      }
+    }
+  }
+  notification_channels = local.channels
+}
+
+# The application writes a queue_backlog log line (emitQueueBacklogMetric in src/services/queueOrchestration.ts) on queue reads.
+resource "google_logging_metric" "queue_backlog_age" {
+  name   = "aimltriage_queue_oldest_waiting_item_age_seconds"
+  filter = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${google_cloud_run_v2_service.app.name}\" AND jsonPayload.type=\"queue_metric\" AND jsonPayload.metric=\"queue_backlog\""
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type  = "DISTRIBUTION"
+    unit        = "s"
+  }
+  value_extractor = "EXTRACT(jsonPayload.oldestWaitingAgeSeconds)"
+  bucket_options {
+    exponential_buckets {
+      num_finite_buckets = 30
+      growth_factor      = 2
+      scale              = 1
+    }
+  }
+}
+
+resource "google_monitoring_alert_policy" "queue_backlog_age" {
+  display_name = "Queue backlog age is high"
+  combiner     = "OR"
+  conditions {
+    display_name = "Oldest waiting queue item older than ${var.alert_queue_backlog_age_seconds} seconds"
+    condition_threshold {
+      filter          = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.queue_backlog_age.name}\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.alert_queue_backlog_age_seconds
+      duration        = "300s"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_PERCENTILE_99"
+      }
+    }
+  }
+  notification_channels = local.channels
+}

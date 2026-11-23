@@ -278,3 +278,22 @@ variable "slo_latency_threshold_ms" {
   type    = number
   default = 1000
 }
+
+# NFR-132: alert thresholds that Qatar Airways can set. The defaults are engineering placeholders until they agree them.
+variable "alert_p95_latency_ms" {
+  description = "Alert when the 95th-percentile request latency stays above this many milliseconds."
+  type        = number
+  default     = 2000
+}
+
+variable "alert_error_rate" {
+  description = "Alert when the share of requests ending in a server error stays above this (0.05 is 5 percent)."
+  type        = number
+  default     = 0.05
+}
+
+variable "alert_queue_backlog_age_seconds" {
+  description = "Alert when the oldest waiting queue item is older than this many seconds."
+  type        = number
+  default     = 1800
+}
