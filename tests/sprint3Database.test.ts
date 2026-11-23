@@ -93,6 +93,9 @@ describeDb("Sprint 3 database-backed behaviour", () => {
     });
 
     it("passes on healthy data and records a passing event", async () => {
+      // Write an event of its own, so the ledger has something to check however the tests before it left the database.
+      const { appendOperationalAuditEvent } = await import("../src/services/auditLedger.js");
+      await appendOperationalAuditEvent({ action: "INTEGRITY_HEALTHY_SEED", module: "Test", resource: "Test", success: true });
       const { runIntegrityChecks } = await import("../src/services/integrityChecks.js");
       const report = await runIntegrityChecks({ only: ["audit-ledger", "soft-delete", "completed-cases"] });
       expect(report.checks.find((c) => c.name === "audit-ledger")?.checked).toBeGreaterThan(0);
