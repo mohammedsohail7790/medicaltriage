@@ -4,7 +4,7 @@ import { splitBilingualSbarNote } from "../../utils/splitBilingualSbarNote";
 import { compileTriageCompletion, previewTriageCompletion } from "../api/triageCompletion";
 import { FeedbackWidget } from "../FeedbackWidget";
 import { ClinicalActionsPanel } from "../ClinicalActionsPanel";
-import { reasoningFeatureIds, submitClinicalApproval } from "../api/approval";
+import { choiceIsValid, higherSeverities, MIN_RATIONALE_LENGTH, reasoningFeatureIds, submitClinicalApproval, type ApprovalChoice } from "../api/approval";
 
 type CompletionStageProps = {
   item: QueueItem;
@@ -22,6 +22,14 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
   const [previewText, setPreviewText] = useState<string>("");
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const encounterIdRef = useRef<string | undefined>(undefined);
+  const [decision, setDecision] = useState<"approve" | "raise" | "modify">("approve");
+  const [raiseTo, setRaiseTo] = useState<string>("");
+  const [carePlan, setCarePlan] = useState("");
+  const [rationale, setRationale] = useState("");
+  const raiseOptions = higherSeverities(item.calculatedSeverity);
+  const choice: ApprovalChoice =
+    decision === "raise" ? { kind: "raise", severity: (raiseTo || raiseOptions[0]) as never, rationale } : decision === "modify" ? { kind: "modify", carePlan, rationale } : { kind: "approve" };
+  const choiceValid = choiceIsValid(choice, item);
   const reviewedFeatures = reasoningFeatureIds(item);
   const canApprove = reviewedFeatures.length >= 2;
 
@@ -127,7 +135,11 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
         const saved = await compileTriageCompletion(item.id, completionRequestBody);
         encounterIdRef.current = saved.persistence?.recordId ?? item.id;
       }
-      await submitClinicalApproval(encounterIdRef.current, item);
+      await submitClinicalApproval(encounterIdRef.current, item, choice);
+      if (choice.kind === "raise") {
+        // The queue record follows the nurse's decision. Severity can only go up here, so the safety floor allows it.
+        await updateItemContext(item.id, { calculatedSeverity: choice.severity });
+      }
       // Step C: the only point of no return - never show "completed" before
       // this call's response confirms the COMPLETED transition.
       await moveItem(item.id, "SBAR", "COMPLETED");
@@ -208,11 +220,42 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
                   : "Not enough recorded reasoning to approve yet: finish the protocol and questions stages."}
               </span>
             </label>
+            <label style={{ display: "block", marginBottom: 8, fontSize: "0.85rem" }}>
+              Your decision{" "}
+              <select aria-label="Your decision" value={decision} onChange={(event) => setDecision(event.target.value as typeof decision)} disabled={busy}>
+                <option value="approve">Approve as recommended</option>
+                <option value="raise" disabled={raiseOptions.length === 0}>Raise the urgency</option>
+                <option value="modify">Add to the care plan</option>
+              </select>
+              <span style={{ display: "block", color: "var(--muted)", fontSize: "0.75rem" }}>Urgency can only be raised here, never lowered.</span>
+            </label>
+            {decision === "raise" && (
+              <label style={{ display: "block", marginBottom: 8, fontSize: "0.85rem" }}>
+                Raise to{" "}
+                <select aria-label="Raise to" value={raiseTo || raiseOptions[0]} onChange={(event) => setRaiseTo(event.target.value)} disabled={busy}>
+                  {raiseOptions.map((severity) => (
+                    <option key={severity} value={severity}>{severity.replace("_", "-").toLowerCase()}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {decision === "modify" && (
+              <label style={{ display: "block", marginBottom: 8, fontSize: "0.85rem" }}>
+                Care plan note
+                <textarea aria-label="Care plan note" value={carePlan} maxLength={2000} onChange={(event) => setCarePlan(event.target.value)} disabled={busy} style={{ display: "block", width: "100%" }} />
+              </label>
+            )}
+            {decision !== "approve" && (
+              <label style={{ display: "block", marginBottom: 8, fontSize: "0.85rem" }}>
+                Why you are changing it (at least {MIN_RATIONALE_LENGTH} characters)
+                <textarea aria-label="Why you are changing it" value={rationale} maxLength={1200} onChange={(event) => setRationale(event.target.value)} disabled={busy} style={{ display: "block", width: "100%" }} />
+              </label>
+            )}
             <button
               type="button"
               className="complete-btn"
               onClick={completeCall}
-              disabled={busy || !item.dispositionCode || !item.destinationName || !reviewConfirmed || !canApprove}
+              disabled={busy || !item.dispositionCode || !item.destinationName || !reviewConfirmed || !canApprove || !choiceValid}
               title={
                 !item.dispositionCode || !item.destinationName
                   ? "Complete the Disposition stage before finishing this call."

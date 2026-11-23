@@ -139,13 +139,13 @@ Verify a challenge solved at sign-in after repeated failures.
 
 ## Message broker (`message-broker`)
 
-Publish platform events (CloudEvents) to Pub/Sub or a JMS bridge.
+Publish platform events (CloudEvents) to Pub/Sub, a JMS bridge or a Kafka-compatible REST proxy.
 
 | | |
 |---|---|
 | Direction | outbound |
-| Protocol | HTTPS (Pub/Sub REST) or signed HTTPS bridge |
-| Authentication | Google identity or token; HMAC for the bridge |
+| Protocol | HTTPS (Pub/Sub REST), signed HTTPS bridge, or Kafka REST Proxy v2 |
+| Authentication | Google identity or token; HMAC for the bridge; bearer token for the Kafka REST proxy |
 | When it runs | Each audited event. |
 | Data exchanged | Event type, reference and changed field names; never record contents |
 | Kinds of data | operational |

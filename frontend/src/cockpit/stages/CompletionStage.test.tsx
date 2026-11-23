@@ -208,8 +208,46 @@ describe("CompletionStage", () => {
       fireEvent.click(screen.getByRole("checkbox"));
       fireEvent.click(screen.getByRole("button", { name: /Complete Call/ }));
       await waitFor(() => expect(done).toHaveBeenCalled());
-      expect(submitClinicalApproval).toHaveBeenCalledWith("enc-77", expect.objectContaining({ id: "queue-item-abc" }));
+      expect(submitClinicalApproval).toHaveBeenCalledWith("enc-77", expect.objectContaining({ id: "queue-item-abc" }), { kind: "approve" });
       expect(submitClinicalApproval.mock.invocationCallOrder[0]).toBeLessThan(moveItem.mock.invocationCallOrder[0]);
+    });
+
+    it("lets the nurse raise the urgency with a reason, records it, and updates the call's severity", async () => {
+      compileTriageCompletion.mockResolvedValue({ notePayload: "# n", clipboardOptimized: true, persistence: { persisted: true, recordId: "enc-77" } });
+      const done = jest.fn();
+      render(<CompletionStage item={active()} isReadOnly={false} onCallCompleted={done} />);
+      fireEvent.click(screen.getByRole("checkbox"));
+      fireEvent.change(screen.getByLabelText("Your decision"), { target: { value: "raise" } });
+      // Only higher levels than urgent are offered.
+      expect(Array.from((screen.getByLabelText("Raise to") as HTMLSelectElement).options).map((o) => o.value)).toEqual(["EMERGENCY"]);
+      expect(screen.getByRole("button", { name: /Complete Call/ })).toBeDisabled();
+      fireEvent.change(screen.getByLabelText("Why you are changing it"), { target: { value: "short" } });
+      expect(screen.getByRole("button", { name: /Complete Call/ })).toBeDisabled();
+      fireEvent.change(screen.getByLabelText("Why you are changing it"), { target: { value: "Caller sounds breathless on the line" } });
+      fireEvent.click(screen.getByRole("button", { name: /Complete Call/ }));
+      await waitFor(() => expect(done).toHaveBeenCalled());
+      expect(submitClinicalApproval).toHaveBeenCalledWith("enc-77", expect.anything(), { kind: "raise", severity: "EMERGENCY", rationale: "Caller sounds breathless on the line" });
+      expect(updateItemContext).toHaveBeenCalledWith("queue-item-abc", { calculatedSeverity: "EMERGENCY" });
+    });
+
+    it("never offers to lower the urgency, and cannot raise an emergency further", () => {
+      render(<CompletionStage item={{ ...active(), calculatedSeverity: "EMERGENCY" }} isReadOnly={false} onCallCompleted={jest.fn()} />);
+      expect(screen.getByRole("option", { name: "Raise the urgency" })).toBeDisabled();
+      expect(screen.queryByRole("option", { name: /lower/i })).toBeNull();
+    });
+
+    it("lets the nurse add to the care plan with a reason, without changing the severity", async () => {
+      compileTriageCompletion.mockResolvedValue({ notePayload: "# n", clipboardOptimized: true, persistence: { persisted: true, recordId: "enc-77" } });
+      const done = jest.fn();
+      render(<CompletionStage item={active()} isReadOnly={false} onCallCompleted={done} />);
+      fireEvent.click(screen.getByRole("checkbox"));
+      fireEvent.change(screen.getByLabelText("Your decision"), { target: { value: "modify" } });
+      fireEvent.change(screen.getByLabelText("Care plan note"), { target: { value: "Arrange a call back in one hour" } });
+      fireEvent.change(screen.getByLabelText("Why you are changing it"), { target: { value: "Caller lives far from the clinic" } });
+      fireEvent.click(screen.getByRole("button", { name: /Complete Call/ }));
+      await waitFor(() => expect(done).toHaveBeenCalled());
+      expect(submitClinicalApproval).toHaveBeenCalledWith("enc-77", expect.anything(), { kind: "modify", carePlan: "Arrange a call back in one hour", rationale: "Caller lives far from the clinic" });
+      expect(updateItemContext).not.toHaveBeenCalledWith("queue-item-abc", expect.objectContaining({ calculatedSeverity: expect.anything() }));
     });
 
     it("leaves the call open when the approval is refused", async () => {

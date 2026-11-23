@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router, type Response } from "express";
+import { z } from "zod";
 import { requireAnyPermission, requirePermission, type AuthorizedRequest } from "../services/authorization.js";
 import { buildAuditChange } from "../services/auditChange.js";
 import { BranchRuleInput, draftRule, listRules, nextQuestion, retireRule, signOffRule } from "../services/adaptiveQuestions.js";
@@ -12,11 +13,14 @@ import {
   listClinicalProtocols,
   searchClinicalProtocols
 } from "../services/clinicalContent.js";
+import { cacheGetOrSet } from "../services/sharedCache.js";
+import { hiddenProtocolIds, protocolSetView, setProtocolSet } from "../services/protocolSets.js";
 import { explainCandidate, possibleConditions, sourceInfo } from "../services/clinicalExplain.js";
 import { DispositionCodeSchema } from "../types/triage.js";
 import { ProtocolSearchQuerySchema } from "../types/clinicalContent.js";
 
 export const BranchRuleInputSchema = BranchRuleInput;
+export const ProtocolSetChangeSchema = z.object({ hiddenProtocolIds: z.array(z.string().min(1).max(200)).max(500), reason: z.string().trim().min(5).max(500) });
 
 function parsePositiveQuestionIds(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -65,20 +69,27 @@ export function createProtocolsRouter(): Router {
 
     return res.json({
       release: getCurrentClinicalContentPackage().release,
-      results: searchClinicalProtocols(parsed.data)
+      results: searchClinicalProtocols(parsed.data).filter((result) => !hiddenProtocolIds().has(result.id))
     });
   });
 
-  router.get("/", (req, res) => {
-    const all = listClinicalProtocols().map((protocol) => ({
-      id: protocol.id,
-      titleEn: protocol.titleEn,
-      clinicalDefinitionEn: protocol.clinicalDefinitionEn,
-      ageMin: protocol.ageMin,
-      ageMax: protocol.ageMax,
-      mode: protocol.mode,
-      questionCount: protocol.questions.length
-    }));
+  router.get("/", async (req, res, next) => {
+    try {
+    const hidden = hiddenProtocolIds();
+    // NFR-121 / NFR-076: the prepared protocol summary is reference data, shared between instances when a Redis-protocol cache is configured.
+    const release = getCurrentClinicalContentPackage().release;
+    const summary = await cacheGetOrSet(`protocols:summary:${String(release)}`, 300_000, () =>
+      listClinicalProtocols().map((protocol) => ({
+        id: protocol.id,
+        titleEn: protocol.titleEn,
+        clinicalDefinitionEn: protocol.clinicalDefinitionEn,
+        ageMin: protocol.ageMin,
+        ageMax: protocol.ageMax,
+        mode: protocol.mode,
+        questionCount: protocol.questions.length
+      }))
+    );
+    const all = summary.filter((protocol) => !hidden.has(protocol.id));
 
     // Opt-in only (closes the remainder of R-03's pagination recommendation,
     // docs/load-test-baseline-2026-08-04.md) - omitted, response is the full
@@ -97,6 +108,30 @@ export function createProtocolsRouter(): Router {
       protocols,
       totalCount: all.length
     });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  // NFR-072: the protocol set offered to this organisation's nurses. Hides from the list and search only; see services/protocolSets.ts.
+  router.get("/set", requireAnyPermission("protocol.library.manage", "clinical.governance.approve"), async (_req, res, next) => {
+    try {
+      return res.json(await protocolSetView());
+    } catch (error) {
+      return ruleFail(res, error, next);
+    }
+  });
+
+  router.put("/set", requirePermission("clinical.governance.approve"), async (req: AuthorizedRequest, res, next) => {
+    try {
+      const parsed = ProtocolSetChangeSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid protocol set change", details: parsed.error.flatten() });
+      const change = await setProtocolSet(parsed.data.hiddenProtocolIds, req.securitySession!.user.id, parsed.data.reason);
+      await auditRule(req, "PROTOCOL_SET_CHANGED", "ProtocolSet", { hidden: change.before }, { hidden: change.after, version: change.version, reason: parsed.data.reason.slice(0, 200) });
+      return res.json(change);
+    } catch (error) {
+      return ruleFail(res, error, next);
+    }
   });
 
   // F-007: adaptive question layer. Only signed-off branches are used; the reasoning is returned with each question.

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { requireAnyPermission } from "../middleware/rbac.js";
+import { flagEnabled } from "../services/featureFlags.js";
 import type { AuthorizedRequest } from "../services/authorization.js";
 import {
   buildMedGemmaVoiceTrainingExamples,
@@ -40,6 +41,7 @@ function handleVoiceError(
 
 export function createVoiceAssessmentRouter(): Router {
   const router = Router();
+  router.use((_req, res, next) => (flagEnabled("voice.assessment") ? next() : res.status(404).json({ error: "The voice assessment aid is turned off for this organisation.", code: "FEATURE_DISABLED" })));
   const requireClinicalOperator = requireAnyPermission(["triage.workspace.view"]);
   const requireTrainingReviewer = requireAnyPermission([
     "clinical.governance.approve",

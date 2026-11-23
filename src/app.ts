@@ -4,6 +4,7 @@ import { registerPlatformSubscribers } from "./services/platformEvents.js";
 import { interfaceWatcher } from "./integration/interfaceLog.js";
 import { captchaProvider, validateCaptchaConfiguration, WIDGET_ORIGINS } from "./services/captcha.js";
 import { validateArchiveHandoffConfiguration } from "./services/archiveHandoff.js";
+import { cacheStoreName } from "./services/sharedCache.js";
 import { validateLoginEncryptionConfiguration } from "./services/loginEncryption.js";
 import { parseOAuthApiConfig } from "./services/oauthBearer.js";
 import compression from "compression";
@@ -126,6 +127,7 @@ export function createApp() {
   validateCaptchaConfiguration();
   validateLoginEncryptionConfiguration();
   validateArchiveHandoffConfiguration();
+  cacheStoreName();
   // Sprint 7: data residency, database transport and sign-in policy, checked at start-up in production.
   validateInfrastructureConfiguration();
   const app = express();

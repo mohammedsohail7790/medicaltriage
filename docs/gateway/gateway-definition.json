@@ -336,6 +336,24 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/admin/ops/flags/{key}/history",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/admin/ops/flags/{key}",
+      "authenticated": true,
+      "hasRequestSchema": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ops/flags",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/admin/ops/handlers",
       "authenticated": true,
       "hasRequestSchema": false
@@ -1095,6 +1113,18 @@
       "path": "/api/v1/protocols/search",
       "authenticated": true,
       "hasRequestSchema": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/protocols/set",
+      "authenticated": true,
+      "hasRequestSchema": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/protocols/set",
+      "authenticated": true,
+      "hasRequestSchema": true
     },
     {
       "method": "GET",

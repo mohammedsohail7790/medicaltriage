@@ -118,7 +118,9 @@ describe("NFR-076 open standards are documented", () => {
   it("documents JSON over HTTPS, OpenAPI and CloudEvents", () => {
     for (const standard of ["JSON over HTTPS", "OpenAPI 3.0", "CloudEvents 1.0"]) expect(guide).toContain(standard);
   });
-  it("states plainly that Kafka-compatible export and a Redis-protocol cache are not built", () => {
-    expect(guide).toMatch(/Not built:\*\* Kafka-compatible export, a Redis-protocol cache/);
+  it("documents the Kafka-compatible export and the Redis-protocol cache, with their limits", () => {
+    expect(guide).toMatch(/kafka-rest/);
+    expect(guide).toMatch(/CACHE_STORE=redis/);
+    expect(guide).toMatch(/not the native Kafka wire protocol/);
   });
 });

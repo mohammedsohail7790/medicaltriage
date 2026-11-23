@@ -10,6 +10,9 @@ import { callExternal } from "./externalClient.js";
  *   MESSAGE_BROKER=pubsub        Google Cloud Pub/Sub (PUBSUB_PROJECT, PUBSUB_TOPIC_PREFIX; PUBSUB_EMULATOR_HOST for local use)
  *   MESSAGE_BROKER=jms-bridge    a JMS-compatible broker (ActiveMQ, Artemis, IBM MQ) through a bridge the partner runs, which
  *                                accepts a signed JSON POST (JMS_BRIDGE_URL, JMS_BRIDGE_SECRET, JMS_DESTINATION_PREFIX)
+ *   MESSAGE_BROKER=kafka-rest    Kafka-compatible export through the Kafka REST Proxy interface, which Apache Kafka (Confluent REST
+ *                                Proxy), Redpanda and Azure Event Hubs for Kafka expose (KAFKA_REST_URL, KAFKA_TOPIC_PREFIX, and
+ *                                optional KAFKA_REST_TOKEN). This is the HTTP interface, not the native Kafka wire protocol.
  * Publishing goes through the durable integration queue, so a broker outage delays messages but never loses them.
  */
 
@@ -59,6 +62,19 @@ export class JmsBridgeBroker implements MessageBroker {
   }
 }
 
+export class KafkaRestBroker implements MessageBroker {
+  readonly name = "kafka-rest";
+  constructor(private readonly url: string, private readonly topicPrefix: string, private readonly token?: string) {}
+  async publish(topic: string, message: Record<string, unknown>, attributes: Record<string, string> = {}): Promise<void> {
+    const topicName = `${this.topicPrefix}${topic}`.replace(/[^A-Za-z0-9._-]/g, "-");
+    const headers: Record<string, string> = { "content-type": "application/vnd.kafka.json.v2+json", accept: "application/vnd.kafka.v2+json" };
+    if (this.token) headers.authorization = `Bearer ${this.token}`;
+    const key = attributes.type ?? topic;
+    const response = await send(`${this.url.replace(/\/+$/, "")}/topics/${encodeURIComponent(topicName)}`, { method: "POST", headers, body: JSON.stringify({ records: [{ key, value: message }] }) });
+    if (!response.ok) throw new Error(`Kafka REST proxy answered HTTP ${response.status}.`);
+  }
+}
+
 export function brokerFromEnv(env: Record<string, string | undefined> = process.env): MessageBroker | undefined {
   const kind = env.MESSAGE_BROKER?.trim().toLowerCase();
   if (!kind || kind === "none") return undefined;
@@ -72,7 +88,14 @@ export function brokerFromEnv(env: Record<string, string | undefined> = process.
     if (env.NODE_ENV === "production" && !/^https:\/\//i.test(url)) throw new Error("JMS_BRIDGE_URL must use https.");
     return new JmsBridgeBroker(url, env.JMS_DESTINATION_PREFIX?.trim() ?? "aimltriage.");
   }
-  throw new Error("MESSAGE_BROKER must be pubsub, jms-bridge or none.");
+  if (kind === "kafka-rest") {
+    const url = env.KAFKA_REST_URL?.trim();
+    if (!url) throw new Error("KAFKA_REST_URL is required for the kafka-rest broker.");
+    if (env.NODE_ENV === "production" && !/^https:\/\//i.test(url)) throw new Error("KAFKA_REST_URL must use https.");
+    if (env.NODE_ENV === "production" && !env.KAFKA_REST_TOKEN?.trim()) throw new Error("KAFKA_REST_TOKEN is required for the kafka-rest broker in production.");
+    return new KafkaRestBroker(url, env.KAFKA_TOPIC_PREFIX?.trim() ?? "aimltriage.", env.KAFKA_REST_TOKEN?.trim() || undefined);
+  }
+  throw new Error("MESSAGE_BROKER must be pubsub, jms-bridge, kafka-rest or none.");
 }
 
 export function registerBrokerPublishing(): void {

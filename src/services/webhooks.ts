@@ -1,3 +1,4 @@
+import { flagEnabled } from "./featureFlags.js";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { callExternal } from "../integration/externalClient.js";
@@ -88,6 +89,7 @@ export async function createSubscription(input: z.infer<typeof SubscriptionInput
 
 export async function enqueueForEvent(event: PlatformEvent): Promise<number> {
   if (!shouldPersistPlatformInDatabase()) return 0;
+  if (!flagEnabled("webhooks.delivery")) return 0;
   const subscriptions = await prisma.webhookSubscription.findMany({ where: { status: "active" } });
   const payload = toCloudEvent(event);
   let queued = 0;

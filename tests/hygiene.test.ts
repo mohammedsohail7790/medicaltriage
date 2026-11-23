@@ -99,6 +99,52 @@ describe("NFR-085 observability checklist for customisations", () => {
     }
   });
 
+  // Logs: runtime code writes structured JSON lines, never free text that could carry personal or clinical content.
+  it("writes runtime log lines as structured JSON (scripts and the start-up banner are exempt)", () => {
+    const walk = (dir: string): string[] =>
+      readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? walk(`${dir}/${d.name}`) : d.name.endsWith(".ts") ? [`${dir}/${d.name}`] : []));
+    // callSimulator is the demonstration call generator, which prints progress for the person running it.
+    const EXEMPT = new Set(["src/index.ts", "src/services/callSimulator.ts"]);
+    const offenders: string[] = [];
+    for (const file of walk("src").filter((f) => !f.startsWith("src/scripts/") && !EXEMPT.has(f))) {
+      const lines = read(file).split("\n");
+      lines.forEach((line, i) => {
+        if (!/console\.(log|info)\(/.test(line)) return;
+        const window = lines.slice(i, i + 3).join(" ");
+        if (!window.includes("JSON.stringify")) offenders.push(`${file}:${i + 1}`);
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  // Traces: calls to other systems go through the shared outbound client so they are spans, retried and logged.
+  it("makes outbound calls only through the shared client (the log shipper is exempt so it cannot trace itself)", () => {
+    const walk = (dir: string): string[] =>
+      readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? walk(`${dir}/${d.name}`) : d.name.endsWith(".ts") ? [`${dir}/${d.name}`] : []));
+    // Browser scripts held in strings (developer page, API viewer, help page) run in the user's browser, not on the server;
+    // callSimulator calls this same application for demonstrations.
+    const EXEMPT = new Set(["src/integration/externalClient.ts", "src/observability/logStream.ts", "src/routes/apiDocsRouter.ts", "src/routes/developerRouter.ts", "src/services/helpLibraryContent.ts", "src/services/callSimulator.ts"]);
+    const offenders = walk("src")
+      .filter((f) => !f.startsWith("src/scripts/") && !EXEMPT.has(f))
+      .filter((f) => /(^|[^a-zA-Z._])fetch\(/.test(read(f)));
+    expect(offenders).toEqual([]);
+  });
+
+  // Alerts: a failure mode has an alert. Latency, errors, queue age and job failure are defined in the tenant configuration.
+  it("defines an alert for each failure mode a customisation can hit", () => {
+    const monitoring = read("terraform/tenant-qatar-airways/monitoring.tf");
+    for (const policy of ["latency_p95", "error_rate", "queue_backlog_age", "job_failure", "uptime", "database_down"]) {
+      expect(monitoring).toContain(`resource "google_monitoring_alert_policy" "${policy}"`);
+    }
+  });
+
+  // Dashboards: latency and queue age are on the monitoring dashboard.
+  it("shows latency and queue backlog age on the monitoring dashboard", () => {
+    const dashboard = read("terraform/dashboard.tf");
+    expect(dashboard).toContain("request_latencies");
+    expect(dashboard).toContain("Queue backlog age");
+  });
+
   it("states the checklist in the customisation guide", () => {
     const guide = read("docs/customisation-guide.md");
     for (const item of ["Logs", "Metrics", "Alerts", "Traces"]) expect(guide).toContain(item);

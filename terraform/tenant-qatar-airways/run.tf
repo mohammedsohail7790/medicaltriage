@@ -52,6 +52,13 @@ resource "google_cloud_run_v2_service" "app" {
         value = local.field_key_id
       }
       # NFR-130: scheduled jobs run in the separate Cloud Run job (jobs.tf), never in these instances.
+      dynamic "env" {
+        for_each = var.enable_shared_cache ? { CACHE_STORE = "redis" } : {}
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
       env {
         name  = "SCHEDULER_MODE"
         value = "external"

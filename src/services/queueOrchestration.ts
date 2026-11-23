@@ -154,7 +154,7 @@ const globalForQueue = globalThis as unknown as {
 function recordCompletion(recordId: string): void {
   globalForQueue.istTriageCompletionCounter = (globalForQueue.istTriageCompletionCounter ?? 0) + 1;
   // eslint-disable-next-line no-console
-  console.log(`[queue] completed #${globalForQueue.istTriageCompletionCounter}: ${recordId}`);
+  console.log(JSON.stringify({ type: "queue_completion", completed: globalForQueue.istTriageCompletionCounter, recordId }));
 }
 
 export function getCompletionCounter(): number {

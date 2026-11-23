@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router, type Response } from "express";
+import { z } from "zod";
 import { shouldPersistPlatformInDatabase } from "../config/runtime.js";
 import { prisma } from "../db.js";
 import { buildAuditChange } from "../services/auditChange.js";
@@ -7,6 +8,7 @@ import { requireElevatedPermission, requirePermission, canPerformAction, type Au
 import { WorkError } from "../services/clinicalWork.js";
 import { ScheduleInput, cancelRun, cancelSchedule, createSchedule, getRun, listRuns, listSchedules, runNow, schedulerHandlerNames, setScheduleEnabled } from "../services/jobScheduler.js";
 import { listRules, ruleHistory, setRule } from "../services/businessRules.js";
+import { flagHistory, listFlags, setFlag } from "../services/featureFlags.js";
 import { databaseRoleReport } from "../services/databaseRole.js";
 import { rotationReport } from "../services/secretRotation.js";
 import { evaluateInterfaces, interfaceStats } from "../integration/interfaceStats.js";
@@ -24,6 +26,7 @@ import type { AuthenticatedSession } from "../types/security.js";
 
 export const ScheduleInputSchema = ScheduleInput;
 export const ThresholdsSchema = Thresholds;
+export const FlagChangeSchema = z.object({ value: z.boolean(), reason: z.string().trim().min(5).max(500) });
 
 /**
  * Job scheduling and monitoring (NFR-041, 042, 043, 046, 039) and the status of asynchronous work (NFR-126).
@@ -138,6 +141,35 @@ export function createOpsAdminRouter(): Router {
     try {
       const change = await setRule(String(req.params.key), req.body?.value, req.securitySession!.user.id, typeof req.body?.reason === "string" ? req.body.reason : "");
       await audit(req.securitySession!, "BUSINESS_RULE_CHANGED", `BusinessRule:${req.params.key}`, { value: change.before }, { value: change.after, version: change.version, reason: String(req.body.reason).slice(0, 200) });
+      return res.json({ key: req.params.key, ...change });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  // ---- NFR-072 feature flags: optional integrations and aids, never a clinical safeguard ----
+  router.get("/flags", read, async (_req, res, next) => {
+    try {
+      return res.json({ flags: await listFlags(), note: "Flags switch optional integrations and aids only. Clinical safeguards are not flags." });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.get("/flags/:key/history", read, async (req, res, next) => {
+    try {
+      return res.json({ history: await flagHistory(String(req.params.key)) });
+    } catch (error) {
+      return fail(res, error, next);
+    }
+  });
+
+  router.put("/flags/:key", write, async (req: AuthorizedRequest, res, next) => {
+    try {
+      const parsed = FlagChangeSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid feature flag change", details: parsed.error.flatten() });
+      const change = await setFlag(String(req.params.key), parsed.data.value, req.securitySession!.user.id, parsed.data.reason);
+      await audit(req.securitySession!, "FEATURE_FLAG_CHANGED", `FeatureFlag:${req.params.key}`, { value: change.before }, { value: change.after, version: change.version, reason: parsed.data.reason.slice(0, 200) });
       return res.json({ key: req.params.key, ...change });
     } catch (error) {
       return fail(res, error, next);

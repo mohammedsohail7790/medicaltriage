@@ -10,6 +10,8 @@ For Qatar Airways' own developers and integrators. Everything here is configurat
 | Initial Assessment rule | Setting with a required reason when relaxed | Administrator | Audit trail |
 | Reusable note wording | Note templates, approved by a second person | Clinical lead and approver | Audit trail, version |
 | Protocol question order | Adaptive branch rules, signed off by a second person | Clinical lead and approver | Audit trail |
+| Switching optional integrations and aids on or off | Feature flags (`GET/PUT /api/v1/admin/ops/flags/{key}`): webhook delivery, the voice assessment aid. A reason is required, history is kept, never a clinical safeguard | Administrator, elevated | Audit trail, flag history |
+| Which protocols nurses are offered | Organisation protocol set (`GET/PUT /api/v1/protocols/set`). Hides protocols from the list and search only, at most half the library, never all; direct lookup still works | Clinical governance approver | Audit trail with before and after |
 | Who is told about what | Event and alert rules (log, email, webhook) | Administrator | Audit trail |
 | Your systems reacting to events | Signed webhooks with retry, dead-letter and replay; Pub/Sub or JMS bridge | Administrator | Audit trail, delivery log |
 | Your systems calling the API | Registered API consumers (OAuth 2.0 client credentials), a role and a request budget each | Developer registers, administrator approves | Audit trail |
@@ -35,11 +37,12 @@ You extend the product with any language that can speak HTTPS and JSON. There is
 | Authentication | OAuth 2.0 client credentials, bearer JWT, OIDC single sign-on | `/api/v1/oauth/token` |
 | Tracing | W3C Trace Context; OpenTelemetry (OTLP over HTTP/JSON) export | `traceparent` header; `OTEL_EXPORTER_OTLP_ENDPOINT` |
 | Metrics | Prometheus text exposition | `/metrics` with `METRICS_TOKEN` |
-| Messaging | Google Cloud Pub/Sub; JMS through a signed HTTPS bridge | `MESSAGE_BROKER` |
+| Messaging | Google Cloud Pub/Sub; JMS through a signed HTTPS bridge; Kafka-compatible export through the Kafka REST Proxy interface (Apache Kafka, Redpanda, Event Hubs for Kafka) | `MESSAGE_BROKER=pubsub`, `jms-bridge` or `kafka-rest` |
+| Shared cache | Redis protocol (RESP2) over TLS: Memorystore, Redis, Valkey. Reference and configuration data only | `CACHE_STORE=redis`, `REDIS_URL`; Terraform `enable_shared_cache` |
 | Software bill of materials | CycloneDX 1.5 | `docs/sbom/sbom.cdx.json` |
 | Data extraction | JSON, CSV, Apache Parquet | `/api/v1/admin/extract/...` |
 
-**Not built:** Kafka-compatible export, a Redis-protocol cache, a general feature-flag facility, and a choice of protocol set per organisation (each deployment carries one protocol set, changed through a clinical release). If Qatar Airways needs any of these, it is new work.
+**Limits:** the Kafka export uses the Kafka REST Proxy HTTP interface, not the native Kafka wire protocol. The Redis-protocol client opens one connection per command and has no cluster mode. Neither has been run against a real Kafka or Memorystore instance; the Kafka export is tested against the documented request format and the cache against a server that speaks the protocol. The protocol set changes which protocols are offered, not the licensed clinical content, which changes only through a clinical release.
 
 ## Observability checklist for every customisation
 

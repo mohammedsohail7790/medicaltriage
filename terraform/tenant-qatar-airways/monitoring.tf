@@ -252,3 +252,24 @@ resource "google_monitoring_alert_policy" "queue_backlog_age" {
   }
   notification_channels = local.channels
 }
+
+# NFR-085: any scheduled job that finishes with a failure raises an alert, so a customisation that adds a job is covered without a change here.
+resource "google_monitoring_alert_policy" "job_failure" {
+  display_name = "A scheduled job failed"
+  combiner     = "OR"
+  conditions {
+    display_name = "A Cloud Run job execution ended without success"
+    condition_threshold {
+      filter          = "resource.type=\"cloud_run_job\" AND metric.type=\"run.googleapis.com/job/completed_execution_count\" AND metric.labels.result!=\"succeeded\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+      aggregations {
+        alignment_period     = "300s"
+        per_series_aligner   = "ALIGN_SUM"
+        cross_series_reducer = "REDUCE_SUM"
+      }
+    }
+  }
+  notification_channels = local.channels
+}
