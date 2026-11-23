@@ -39,7 +39,7 @@ You extend the product with any language that can speak HTTPS and JSON. There is
 | Software bill of materials | CycloneDX 1.5 | `docs/sbom/sbom.cdx.json` |
 | Data extraction | JSON, CSV, Apache Parquet | `/api/v1/admin/extract/...` |
 
-**Not built:** Kafka-compatible export, and a Redis-protocol cache. If Qatar Airways needs either, it is new work.
+**Not built:** Kafka-compatible export, a Redis-protocol cache, a general feature-flag facility, and a choice of protocol set per organisation (each deployment carries one protocol set, changed through a clinical release). If Qatar Airways needs any of these, it is new work.
 
 ## Observability checklist for every customisation
 
