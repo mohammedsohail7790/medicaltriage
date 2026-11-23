@@ -89,9 +89,12 @@ export function secretVersions(name: string): string[] {
 /** Names that must be configured before the service starts in production. */
 export const REQUIRED_PRODUCTION_SECRETS = ["AUTH_JWT_SECRET", "MFA_ENCRYPTION_KEY", "FIELD_ENCRYPTION_KEY"] as const;
 
-/** With FIELD_ENCRYPTION_PROVIDER=gcp-kms the field key lives in Cloud KMS, so no local field key is needed. */
+/** With FIELD_ENCRYPTION_PROVIDER=gcp-kms or fortanix the field key lives in a key service, so no local field key is needed. */
+function fieldProvider(): string {
+  return (process.env.FIELD_ENCRYPTION_PROVIDER ?? "").trim().toLowerCase();
+}
 function fieldKeyHeldInKms(): boolean {
-  return (process.env.FIELD_ENCRYPTION_PROVIDER ?? "").trim().toLowerCase() === "gcp-kms";
+  return fieldProvider() === "gcp-kms" || fieldProvider() === "fortanix";
 }
 
 export function missingProductionSecrets(): string[] {
@@ -100,6 +103,12 @@ export function missingProductionSecrets(): string[] {
     const value = provider.get(name);
     return !value || looksLikePlaceholder(value);
   });
-  if (fieldKeyHeldInKms() && !process.env.FIELD_ENCRYPTION_KMS_KEY?.trim()) missing.push("FIELD_ENCRYPTION_KMS_KEY");
+  if (fieldProvider() === "gcp-kms" && !process.env.FIELD_ENCRYPTION_KMS_KEY?.trim()) missing.push("FIELD_ENCRYPTION_KMS_KEY");
+  if (fieldProvider() === "fortanix") {
+    for (const name of ["FORTANIX_ENDPOINT"]) if (!process.env[name]?.trim()) missing.push(name);
+    if (!process.env.FORTANIX_KEY_ID?.trim() && !process.env.FORTANIX_KEY_NAME?.trim()) missing.push("FORTANIX_KEY_ID");
+    const apiKey = provider.get("FORTANIX_API_KEY");
+    if (!apiKey || looksLikePlaceholder(apiKey)) missing.push("FORTANIX_API_KEY");
+  }
   return missing;
 }

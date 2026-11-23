@@ -297,3 +297,31 @@ variable "alert_queue_backlog_age_seconds" {
   type        = number
   default     = 1800
 }
+
+# M-019, M-020, AI-012: use Qatar Airways' Fortanix vault for the field-encryption key instead of Cloud KMS.
+variable "fortanix_endpoint" {
+  description = "https address of Qatar Airways' Fortanix DSM. Leave null to use Cloud KMS. When set, add its address to integration_egress_cidrs, add fortanix-api-key to secrets and fill it outside Terraform."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.fortanix_endpoint == null || startswith(var.fortanix_endpoint, "https://")
+    error_message = "The Fortanix endpoint must use https."
+  }
+}
+
+variable "fortanix_key_id" {
+  description = "UUID of the AES key in the Fortanix vault that wraps the data keys."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.fortanix_key_id == null || can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.fortanix_key_id))
+    error_message = "The Fortanix key id must be a UUID."
+  }
+}
+
+check "fortanix_settings" {
+  assert {
+    condition     = var.fortanix_endpoint == null || (var.fortanix_key_id != null && contains(var.secrets, "fortanix-api-key"))
+    error_message = "With fortanix_endpoint set, also set fortanix_key_id and add fortanix-api-key to secrets."
+  }
+}

@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import { requireSecret, secretVersions } from "../config/secrets.js";
+import { FortanixKeyProvider } from "./fortanixKeyProvider.js";
 import { GcpKmsKeyProvider } from "./gcpKmsKeyProvider.js";
 
 /**
@@ -66,13 +67,14 @@ let provider: KeyProvider | undefined;
 
 /**
  * Chooses the provider from FIELD_ENCRYPTION_PROVIDER: "local" (the default, keys from Secret Manager) or
- * "gcp-kms" (Google Cloud KMS). An unknown value is an error, so a typo cannot silently fall back to local keys.
+ * "gcp-kms" (Google Cloud KMS) or "fortanix" (a Fortanix DSM vault). An unknown value is an error, so a typo cannot silently fall back to local keys.
  */
 export function providerFromEnv(env: NodeJS.ProcessEnv = process.env): KeyProvider {
   const kind = (env.FIELD_ENCRYPTION_PROVIDER ?? "local").trim().toLowerCase();
   if (kind === "local" || kind === "") return new LocalKeyProvider();
   if (kind === "gcp-kms") return GcpKmsKeyProvider.fromEnv(env);
-  throw new Error(`FIELD_ENCRYPTION_PROVIDER "${kind}" is not supported. Use "local" or "gcp-kms".`);
+  if (kind === "fortanix") return FortanixKeyProvider.fromEnv(env);
+  throw new Error(`FIELD_ENCRYPTION_PROVIDER "${kind}" is not supported. Use "local", "gcp-kms" or "fortanix".`);
 }
 
 export function getKeyProvider(): KeyProvider {

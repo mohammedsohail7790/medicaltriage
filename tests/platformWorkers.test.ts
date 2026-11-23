@@ -60,8 +60,12 @@ describe("platform workers and the external scheduler job", () => {
   it("is wired in the tenant Terraform: the job and the service use the same KMS key, and no local field key is mounted", () => {
     for (const file of ["terraform/tenant-qatar-airways/run.tf", "terraform/tenant-qatar-airways/jobs.tf"]) {
       const text = read(file);
-      expect(text).toMatch(/FIELD_ENCRYPTION_PROVIDER"\s+value\s+=\s+"gcp-kms"/);
-      expect(text).toMatch(/FIELD_ENCRYPTION_KMS_KEY"\s+value\s+=\s+local\.field_key_id/);
+      // The default is Cloud KMS; with a Fortanix endpoint set, both use the same vault key. Either way the job and the service match.
+      expect(text).toMatch(/FIELD_ENCRYPTION_PROVIDER\s+=\s+"gcp-kms"/);
+      expect(text).toMatch(/FIELD_ENCRYPTION_KMS_KEY\s+=\s+local\.field_key_id/);
+      expect(text).toMatch(/FIELD_ENCRYPTION_PROVIDER\s+=\s+"fortanix"/);
+      expect(text).toMatch(/FORTANIX_ENDPOINT\s+=\s+var\.fortanix_endpoint/);
+      expect(text).toMatch(/FORTANIX_KEY_ID\s+=\s+var\.fortanix_key_id/);
     }
     const secretsDefault = /variable "secrets"[\s\S]*?default\s+=\s+\[([^\]]*)\]/.exec(read("terraform/tenant-qatar-airways/variables.tf"))?.[1] ?? "";
     expect(secretsDefault).not.toContain("field-encryption-key");

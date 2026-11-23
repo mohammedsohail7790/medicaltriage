@@ -43,13 +43,20 @@ resource "google_cloud_run_v2_service" "app" {
         name  = "SSO_ENFORCED"
         value = "true"
       }
-      env {
-        name  = "FIELD_ENCRYPTION_PROVIDER"
-        value = "gcp-kms"
-      }
-      env {
-        name  = "FIELD_ENCRYPTION_KMS_KEY"
-        value = local.field_key_id
+      # M-019, M-020, AI-012: the key-encryption key is in Cloud KMS by default, or in Qatar Airways' Fortanix vault when fortanix_endpoint is set.
+      dynamic "env" {
+        for_each = var.fortanix_endpoint == null ? {
+          FIELD_ENCRYPTION_PROVIDER = "gcp-kms"
+          FIELD_ENCRYPTION_KMS_KEY  = local.field_key_id
+          } : {
+          FIELD_ENCRYPTION_PROVIDER = "fortanix"
+          FORTANIX_ENDPOINT         = var.fortanix_endpoint
+          FORTANIX_KEY_ID           = var.fortanix_key_id
+        }
+        content {
+          name  = env.key
+          value = env.value
+        }
       }
       # NFR-130: scheduled jobs run in the separate Cloud Run job (jobs.tf), never in these instances.
       dynamic "env" {

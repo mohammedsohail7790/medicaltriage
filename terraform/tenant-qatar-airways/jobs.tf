@@ -38,14 +38,20 @@ resource "google_cloud_run_v2_job" "scheduler" {
           name  = "APPROVED_DATA_REGIONS"
           value = join(",", var.approved_regions)
         }
-        # M-019, M-020: the job reads and writes the same encrypted fields as the service, through the same KMS key.
-        env {
-          name  = "FIELD_ENCRYPTION_PROVIDER"
-          value = "gcp-kms"
-        }
-        env {
-          name  = "FIELD_ENCRYPTION_KMS_KEY"
-          value = local.field_key_id
+        # M-019, M-020: the job reads and writes the same encrypted fields as the service, through the same key (Cloud KMS, or the Fortanix vault when fortanix_endpoint is set).
+        dynamic "env" {
+          for_each = var.fortanix_endpoint == null ? {
+            FIELD_ENCRYPTION_PROVIDER = "gcp-kms"
+            FIELD_ENCRYPTION_KMS_KEY  = local.field_key_id
+            } : {
+            FIELD_ENCRYPTION_PROVIDER = "fortanix"
+            FORTANIX_ENDPOINT         = var.fortanix_endpoint
+            FORTANIX_KEY_ID           = var.fortanix_key_id
+          }
+          content {
+            name  = env.key
+            value = env.value
+          }
         }
         dynamic "env" {
           for_each = google_secret_manager_secret.app

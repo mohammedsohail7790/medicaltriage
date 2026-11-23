@@ -76,7 +76,7 @@ key-encryption key held by a key provider (`src/services/keyProvider.ts`).
 
 | Setting | Meaning |
 |---|---|
-| `FIELD_ENCRYPTION_PROVIDER` | `local` (default: a key from Secret Manager) or `gcp-kms`. Any other value stops the service from starting to use it, so a typo cannot fall back to local keys. |
+| `FIELD_ENCRYPTION_PROVIDER` | `local` (default: a key from Secret Manager), `gcp-kms` or `fortanix`. Any other value stops the service from starting to use it, so a typo cannot fall back to local keys. |
 | `FIELD_ENCRYPTION_KMS_KEY` | A Cloud KMS crypto key name, `projects/.../locations/.../keyRings/.../cryptoKeys/...`. A key version name is refused. The key's region must be in `APPROVED_DATA_REGIONS` when that is set. |
 | `FIELD_ENCRYPTION_KMS_KEY_PREVIOUS` | Optional, comma separated. Older crypto keys still needed to unwrap data after a move to a different key. |
 
@@ -91,6 +91,29 @@ key-encryption key held by a key provider (`src/services/keyProvider.ts`).
 - **Not tested against real Cloud KMS.** The tests use a stand-in KMS that enforces the same additional
   authenticated data. The first run in the Qatar Airways tenant is the first real test, and Terraform has been
   validated but not planned or applied.
+
+## Fortanix vault (Qatar Airways-held key)
+
+With `FIELD_ENCRYPTION_PROVIDER=fortanix` the key-encryption key stays in the Qatar Airways Fortanix DSM vault. Each data key is
+encrypted and decrypted by a call to the vault. The application holds no key-encryption material.
+
+| Setting | Meaning |
+|---|---|
+| `FORTANIX_ENDPOINT` | The vault's https address. Plain http is accepted only for localhost outside production. |
+| `FORTANIX_API_KEY` | The application's API key, a secret from Secret Manager (`fortanix-api-key`). |
+| `FORTANIX_KEY_ID` | UUID of the AES key (or `FORTANIX_KEY_NAME`). |
+| `FORTANIX_KEY_ID_PREVIOUS` | Optional, comma separated UUIDs of older keys, so a key change needs no re-wrap. |
+
+- **How it calls the vault:** it signs in with the API key (`POST /sys/v1/session/auth`, Basic), then calls
+  `POST /crypto/v1/encrypt` and `/crypto/v1/decrypt` with AES-GCM and additional authenticated data. It does not use the vault's
+  wrap and unwrap calls.
+- **In the vault:** create an app with an API key, an enabled AES key, and give the app the Encrypt and Decrypt operations on it.
+- **No fallback:** if the vault refuses or is unreachable, encryption and decryption fail. No local key is used.
+- **Network:** add the vault's address to `integration_egress_cidrs`, set `fortanix_endpoint`, `fortanix_key_id` and
+  `fortanix-api-key` in the tenant Terraform. The Cloud KMS settings are then not used.
+- **Built to Fortanix's public documentation and tested against a stand-in vault only. Not confirmed against a real tenant:**
+  the wire names `tag`, `tag_len` and `ad`, the unit of `expires_in` (assumed seconds), and the error body. Run
+  `tests/fortanixKeyProvider.test.ts` and then a smoke test in the Qatar Airways tenant before relying on it.
 - **Fortanix** is Qatar Airways' vault (NFR-048). No Fortanix adapter exists; one would implement the same
   `KeyProvider` interface once Qatar Airways gives the interface and key design.
 

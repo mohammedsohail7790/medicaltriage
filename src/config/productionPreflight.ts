@@ -31,8 +31,8 @@ export function productionPreflight(env: NodeJS.ProcessEnv = process.env): Prefl
   const flags = persistenceConfigurationSummary();
   for (const [flag, on] of Object.entries(flags)) if (!on) fail("persistence", `${flag} is not true.`);
 
-  if ((env.FIELD_ENCRYPTION_PROVIDER ?? "").trim().toLowerCase() !== "gcp-kms") {
-    warn("field encryption", "FIELD_ENCRYPTION_PROVIDER is not gcp-kms: field keys are held by the application, not the key service.");
+  if (!["gcp-kms", "fortanix"].includes((env.FIELD_ENCRYPTION_PROVIDER ?? "").trim().toLowerCase())) {
+    warn("field encryption", "FIELD_ENCRYPTION_PROVIDER is not gcp-kms or fortanix: field keys are held by the application, not a key service.");
   }
   if (env.SCHEDULER_MODE !== "external") {
     warn("scheduler", "SCHEDULER_MODE is not 'external': scheduled jobs and queue workers run inside the API instances.");
