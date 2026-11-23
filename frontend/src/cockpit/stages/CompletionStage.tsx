@@ -204,7 +204,7 @@ export function CompletionStage({ item, isReadOnly, onCallCompleted }: Completio
               I have reviewed the reasoning behind this disposition and approve it.
               <span style={{ display: "block", color: "var(--muted)", fontSize: "0.75rem" }}>
                 {canApprove
-                  ? `Reviewed: ${reviewedFeatures.length} items (protocol, disposition and the answers recorded).`
+                  ? `Reviewed: ${reviewedFeatures.length} items (what is recorded for this call on this screen).`
                   : "Not enough recorded reasoning to approve yet: finish the protocol and questions stages."}
               </span>
             </label>

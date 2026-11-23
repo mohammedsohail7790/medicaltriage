@@ -190,6 +190,17 @@ describe("CompletionStage", () => {
       expect(screen.getByRole("checkbox")).toBeDisabled();
     });
 
+    it("lets an emergency call with no matching protocol be approved, on its reason, severity and safety floor", () => {
+      render(
+        <CompletionStage
+          item={makeItem({ status: "IN_PROCESS", sbarNoteText: undefined, sbarCopied: false, calculatedSeverity: "EMERGENCY", safetyFloorActive: true, safetyFloorSource: "symptom" })}
+          isReadOnly={false}
+          onCallCompleted={jest.fn()}
+        />
+      );
+      expect(screen.getByRole("checkbox")).toBeEnabled();
+    });
+
     it("records the approval under the saved encounter, then closes the call", async () => {
       compileTriageCompletion.mockResolvedValue({ notePayload: "# n", clipboardOptimized: true, persistence: { persisted: true, recordId: "enc-77" } });
       const done = jest.fn();

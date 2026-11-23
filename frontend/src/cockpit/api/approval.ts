@@ -17,6 +17,9 @@ export function approvalSeverity(severity: QueueSeverity | undefined) {
 /** The parts of the case the nurse is shown and confirms they have reviewed. */
 export function reasoningFeatureIds(item: QueueItem): string[] {
   const ids: string[] = [];
+  if (item.reasonNarrative?.trim()) ids.push("reason-for-call");
+  if (item.calculatedSeverity) ids.push(`severity:${item.calculatedSeverity}`);
+  if (item.safetyFloorActive) ids.push(`safety-floor:${item.safetyFloorSource ?? "active"}`);
   if (item.matchedProtocolId) ids.push(`protocol:${item.matchedProtocolId}`);
   if (item.dispositionCode) ids.push(`disposition:${item.dispositionCode}`);
   for (const key of Object.keys(item.initialAssessmentResponses ?? {})) ids.push(`initial-assessment:${key}`);
