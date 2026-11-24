@@ -175,3 +175,16 @@ describe("NFR-142 the performance gate cannot pass without measuring", () => {
     expect(read("docs/security/penetration-test-scope-and-programme.md")).toContain("within 30 days of the report, and Medium findings within 90 days");
   });
 });
+
+describe("the comparison with the demo baseline is documented with the figures it produced", () => {
+  it("matches the recorded result", () => {
+    const result = JSON.parse(read("docs/validation/side-by-side-baseline-demo-73beab9.json")) as { endpointsTried: number; counts: Record<string, number>; differences: Array<{ kind: string }> };
+    const total = Object.values(result.counts).reduce((x, y) => x + y, 0);
+    const handover = read("docs/validation/handover-to-reshma.md");
+    expect(handover).toContain(`${result.endpointsTried} read-only endpoints, nurse and administrator accounts, ${total} comparisons`);
+    expect(handover).toContain(`${result.counts.same} gave the same status`);
+    expect(handover).toContain(`${result.counts["new in sprint build"]} are endpoints that exist only`);
+    // No regression: nothing missing, no status change, no field removed.
+    expect(result.differences.filter((d) => ["missing from sprint build", "status differs", "fields removed"].includes(d.kind))).toEqual([]);
+  });
+});
