@@ -139,6 +139,7 @@ export function createOpsAdminRouter(): Router {
 
   router.put("/rules/:key", write, async (req: AuthorizedRequest, res, next) => {
     try {
+      // contract: BusinessRuleChangeBodySchema
       const change = await setRule(String(req.params.key), req.body?.value, req.securitySession!.user.id, typeof req.body?.reason === "string" ? req.body.reason : "");
       await audit(req.securitySession!, "BUSINESS_RULE_CHANGED", `BusinessRule:${req.params.key}`, { value: change.before }, { value: change.after, version: change.version, reason: String(req.body.reason).slice(0, 200) });
       return res.json({ key: req.params.key, ...change });

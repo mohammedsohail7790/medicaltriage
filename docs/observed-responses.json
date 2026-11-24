@@ -1,0 +1,6540 @@
+{
+ "GET /api/v1/admin/access-entitlement-reviews": {
+  "type": "object",
+  "properties": {
+   "reviews": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "reviews"
+  ]
+ },
+ "GET /api/v1/admin/access-revocation-metrics": {
+  "type": "object",
+  "properties": {
+   "periodStartIso": {
+    "type": "string"
+   },
+   "periodEndIso": {
+    "type": "string"
+   },
+   "organization": {
+    "type": "string"
+   },
+   "completedCount": {
+    "type": "integer"
+   },
+   "failedCount": {
+    "type": "integer"
+   },
+   "p50DurationMs": {
+    "nullable": true
+   },
+   "p95DurationMs": {
+    "nullable": true
+   },
+   "maxDurationMs": {
+    "nullable": true
+   },
+   "byType": {
+    "type": "object",
+    "properties": {
+     "ACCOUNT_STATUS_CHANGE": {
+      "type": "object",
+      "properties": {
+       "completed": {
+        "type": "integer"
+       },
+       "failed": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "completed",
+       "failed"
+      ]
+     },
+     "ROLE_PERMISSION_REVOKE": {
+      "type": "object",
+      "properties": {
+       "completed": {
+        "type": "integer"
+       },
+       "failed": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "completed",
+       "failed"
+      ]
+     },
+     "SESSION_TERMINATION": {
+      "type": "object",
+      "properties": {
+       "completed": {
+        "type": "integer"
+       },
+       "failed": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "completed",
+       "failed"
+      ]
+     },
+     "JML_DEPROVISION": {
+      "type": "object",
+      "properties": {
+       "completed": {
+        "type": "integer"
+       },
+       "failed": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "completed",
+       "failed"
+      ]
+     }
+    },
+    "required": [
+     "ACCOUNT_STATUS_CHANGE",
+     "JML_DEPROVISION",
+     "ROLE_PERMISSION_REVOKE",
+     "SESSION_TERMINATION"
+    ]
+   },
+   "dataComplete": {
+    "type": "boolean"
+   },
+   "note": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "byType",
+   "completedCount",
+   "dataComplete",
+   "failedCount",
+   "is_mock",
+   "maxDurationMs",
+   "note",
+   "organization",
+   "p50DurationMs",
+   "p95DurationMs",
+   "periodEndIso",
+   "periodStartIso"
+  ]
+ },
+ "GET /api/v1/admin/audit-events": {
+  "type": "object",
+  "properties": {
+   "events": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "timestampIso": {
+       "type": "string"
+      },
+      "userId": {
+       "type": "string"
+      },
+      "activeRole": {
+       "type": "string"
+      },
+      "organization": {
+       "type": "string"
+      },
+      "facility": {
+       "type": "string"
+      },
+      "department": {
+       "type": "string"
+      },
+      "action": {
+       "type": "string"
+      },
+      "module": {
+       "type": "string"
+      },
+      "resource": {
+       "type": "string"
+      },
+      "ipAddress": {
+       "type": "string"
+      },
+      "device": {
+       "type": "string"
+      },
+      "success": {
+       "type": "boolean"
+      },
+      "risk": {
+       "type": "string"
+      },
+      "purpose": {
+       "type": "string"
+      },
+      "metadata": {
+       "type": "object",
+       "properties": {
+        "screen": {
+         "type": "string"
+        },
+        "path": {
+         "type": "string"
+        },
+        "query": {
+         "type": "array",
+         "items": {}
+        },
+        "kind": {
+         "type": "string"
+        },
+        "recordCount": {
+         "type": "integer"
+        },
+        "bytes": {
+         "type": "integer"
+        },
+        "sha256": {
+         "type": "string"
+        }
+       },
+       "required": []
+      }
+     },
+     "required": [
+      "action",
+      "activeRole",
+      "department",
+      "device",
+      "facility",
+      "id",
+      "ipAddress",
+      "module",
+      "organization",
+      "resource",
+      "risk",
+      "success",
+      "timestampIso",
+      "userId"
+     ]
+    }
+   },
+   "totalCount": {
+    "type": "integer"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "events",
+   "is_mock",
+   "totalCount"
+  ]
+ },
+ "GET /api/v1/admin/audit-policy": {
+  "type": "object",
+  "properties": {
+   "auditingCanBeDisabled": {
+    "type": "boolean"
+   },
+   "perDataElementDisable": {
+    "type": "boolean"
+   },
+   "guarantees": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "configurable": {
+    "type": "object",
+    "properties": {
+     "retention": {
+      "type": "object",
+      "properties": {
+       "mode": {
+        "type": "string"
+       },
+       "days": {
+        "nullable": true
+       },
+       "source": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "days",
+       "mode",
+       "source"
+      ]
+     },
+     "forwardingSinks": {
+      "type": "array",
+      "items": {}
+     },
+     "durableStorage": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "durableStorage",
+     "forwardingSinks",
+     "retention"
+    ]
+   },
+   "appendOnlyEnforcedByDatabase": {
+    "type": "string"
+   },
+   "governance": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "appendOnlyEnforcedByDatabase",
+   "auditingCanBeDisabled",
+   "configurable",
+   "governance",
+   "guarantees",
+   "is_mock",
+   "perDataElementDisable"
+  ]
+ },
+ "GET /api/v1/admin/audit-trace": {
+  "type": "object",
+  "properties": {
+   "filters": {
+    "type": "object",
+    "properties": {},
+    "required": []
+   },
+   "count": {
+    "type": "integer"
+   },
+   "nextOffset": {
+    "nullable": true
+   },
+   "events": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "timestampIso": {
+       "type": "string"
+      },
+      "userId": {
+       "type": "string"
+      },
+      "activeRole": {
+       "type": "string"
+      },
+      "organization": {
+       "type": "string"
+      },
+      "facility": {
+       "type": "string"
+      },
+      "department": {
+       "type": "string"
+      },
+      "action": {
+       "type": "string"
+      },
+      "module": {
+       "type": "string"
+      },
+      "resource": {
+       "type": "string"
+      },
+      "purpose": {
+       "type": "string"
+      },
+      "ipAddress": {
+       "type": "string"
+      },
+      "device": {
+       "type": "string"
+      },
+      "success": {
+       "type": "boolean"
+      },
+      "risk": {
+       "type": "string"
+      },
+      "metadata": {
+       "type": "object",
+       "properties": {
+        "screen": {
+         "type": "string"
+        },
+        "path": {
+         "type": "string"
+        },
+        "query": {
+         "type": "array",
+         "items": {}
+        },
+        "kind": {
+         "type": "string"
+        },
+        "recordCount": {
+         "type": "integer"
+        },
+        "bytes": {
+         "type": "integer"
+        },
+        "sha256": {
+         "type": "string"
+        }
+       },
+       "required": []
+      },
+      "summary": {
+       "type": "string"
+      },
+      "change": {
+       "nullable": true
+      }
+     },
+     "required": [
+      "action",
+      "activeRole",
+      "change",
+      "department",
+      "device",
+      "facility",
+      "id",
+      "ipAddress",
+      "module",
+      "organization",
+      "resource",
+      "risk",
+      "success",
+      "summary",
+      "timestampIso",
+      "userId"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "count",
+   "events",
+   "filters",
+   "is_mock",
+   "nextOffset"
+  ]
+ },
+ "GET /api/v1/admin/control-modules": {
+  "type": "object",
+  "properties": {
+   "modules": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "label": {
+       "type": "string"
+      },
+      "purpose": {
+       "type": "string"
+      },
+      "primaryRoles": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "requiredPermissions": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "dataBoundary": {
+       "type": "string"
+      },
+      "prohibitedActions": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      }
+     },
+     "required": [
+      "dataBoundary",
+      "id",
+      "label",
+      "primaryRoles",
+      "prohibitedActions",
+      "purpose",
+      "requiredPermissions"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "modules"
+  ]
+ },
+ "GET /api/v1/admin/data-catalogue": {
+  "type": "object",
+  "properties": {
+   "generatedAt": {
+    "type": "string"
+   },
+   "schemaVersion": {
+    "type": "string"
+   },
+   "tables": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "entity": {
+       "type": "string"
+      },
+      "table": {
+       "type": "string"
+      },
+      "classification": {
+       "type": "string"
+      },
+      "containsPersonalData": {
+       "type": "boolean"
+      },
+      "containsClinicalData": {
+       "type": "boolean"
+      },
+      "fields": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "name": {
+          "type": "string"
+         },
+         "column": {
+          "type": "string"
+         },
+         "type": {
+          "type": "string"
+         },
+         "nullable": {
+          "type": "boolean"
+         },
+         "classification": {
+          "type": "string"
+         },
+         "basis": {
+          "type": "string"
+         },
+         "encrypted": {
+          "type": "boolean"
+         },
+         "isId": {
+          "type": "boolean"
+         }
+        },
+        "required": [
+         "basis",
+         "classification",
+         "column",
+         "encrypted",
+         "isId",
+         "name",
+         "nullable",
+         "type"
+        ]
+       }
+      }
+     },
+     "required": [
+      "classification",
+      "containsClinicalData",
+      "containsPersonalData",
+      "entity",
+      "fields",
+      "table"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "generatedAt",
+   "is_mock",
+   "schemaVersion",
+   "tables"
+  ]
+ },
+ "GET /api/v1/admin/elevation/status": {
+  "type": "object",
+  "properties": {
+   "elevated": {
+    "type": "boolean"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "elevated",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/admin/encryption-policies": {
+  "type": "object",
+  "properties": {
+   "policies": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "name": {
+       "type": "string"
+      },
+      "version": {
+       "type": "string"
+      },
+      "dataClassification": {
+       "type": "string"
+      },
+      "coveredEntities": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "coveredFields": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "algorithm": {
+       "type": "string"
+      },
+      "keyProvider": {
+       "type": "string"
+      },
+      "keyAlias": {
+       "type": "string"
+      },
+      "rotationDays": {
+       "type": "integer"
+      },
+      "maskingPolicy": {
+       "type": "string"
+      },
+      "revealPolicy": {
+       "type": "string"
+      },
+      "dataResidency": {
+       "type": "string"
+      },
+      "approvalRequired": {
+       "type": "boolean"
+      },
+      "status": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "algorithm",
+      "approvalRequired",
+      "coveredEntities",
+      "coveredFields",
+      "dataClassification",
+      "dataResidency",
+      "id",
+      "keyAlias",
+      "keyProvider",
+      "maskingPolicy",
+      "name",
+      "revealPolicy",
+      "rotationDays",
+      "status",
+      "version"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "policies"
+  ]
+ },
+ "GET /api/v1/admin/extract": {
+  "type": "object",
+  "properties": {
+   "datasets": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string"
+      },
+      "kind": {
+       "type": "string"
+      },
+      "description": {
+       "type": "string"
+      },
+      "orderedBy": {
+       "type": "string"
+      },
+      "columns": {
+       "type": "integer"
+      },
+      "tenantScoped": {
+       "type": "boolean"
+      },
+      "formats": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      }
+     },
+     "required": [
+      "columns",
+      "description",
+      "formats",
+      "kind",
+      "name",
+      "orderedBy",
+      "tenantScoped"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "datasets",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/admin/feedback-summary": {
+  "type": "object",
+  "properties": {
+   "measured": {
+    "type": "boolean"
+   },
+   "totalResponses": {
+    "type": "integer"
+   },
+   "averageRating": {
+    "nullable": true
+   },
+   "recentComments": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "averageRating",
+   "is_mock",
+   "measured",
+   "recentComments",
+   "totalResponses"
+  ]
+ },
+ "GET /api/v1/admin/feedback-trend": {
+  "type": "object",
+  "properties": {
+   "measured": {
+    "type": "boolean"
+   },
+   "byContext": {
+    "type": "array",
+    "items": {}
+   },
+   "byRole": {
+    "type": "array",
+    "items": {}
+   },
+   "recentAverageRating": {
+    "nullable": true
+   },
+   "priorAverageRating": {
+    "nullable": true
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "byContext",
+   "byRole",
+   "is_mock",
+   "measured",
+   "priorAverageRating",
+   "recentAverageRating"
+  ]
+ },
+ "GET /api/v1/admin/governance": {
+  "type": "object",
+  "properties": {
+   "items": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "title": {
+       "type": "string"
+      },
+      "ownerRole": {
+       "type": "string"
+      },
+      "status": {
+       "type": "string"
+      },
+      "control": {
+       "type": "string"
+      },
+      "evidence": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "control",
+      "evidence",
+      "id",
+      "ownerRole",
+      "status",
+      "title"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "items"
+  ]
+ },
+ "GET /api/v1/admin/integrations": {
+  "type": "object",
+  "properties": {
+   "connectors": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "name": {
+       "type": "string"
+      },
+      "system": {
+       "type": "string"
+      },
+      "status": {
+       "type": "string"
+      },
+      "ownerRole": {
+       "type": "string"
+      },
+      "dataHandled": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "apiSurface": {
+       "type": "string"
+      },
+      "lastCheckedIso": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "apiSurface",
+      "dataHandled",
+      "id",
+      "lastCheckedIso",
+      "name",
+      "ownerRole",
+      "status",
+      "system"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "connectors",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/admin/integrations/api-analytics": {
+  "type": "object",
+  "properties": {
+   "scope": {
+    "type": "string"
+   },
+   "rows": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "version": {
+       "type": "string"
+      },
+      "method": {
+       "type": "string"
+      },
+      "route": {
+       "type": "string"
+      },
+      "consumer": {
+       "type": "string"
+      },
+      "requests": {
+       "type": "integer"
+      },
+      "clientErrors": {
+       "type": "integer"
+      },
+      "serverErrors": {
+       "type": "integer"
+      },
+      "errorRate": {
+       "type": "number"
+      },
+      "p50Ms": {
+       "type": "number"
+      },
+      "p95Ms": {
+       "type": "number"
+      },
+      "lastSeenIso": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "clientErrors",
+      "consumer",
+      "errorRate",
+      "lastSeenIso",
+      "method",
+      "p50Ms",
+      "p95Ms",
+      "requests",
+      "route",
+      "serverErrors",
+      "version"
+     ]
+    }
+   },
+   "totals": {
+    "type": "object",
+    "properties": {
+     "requests": {
+      "type": "integer"
+     },
+     "serverErrors": {
+      "type": "integer"
+     },
+     "clientErrors": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "clientErrors",
+     "requests",
+     "serverErrors"
+    ]
+   },
+   "byConsumer": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "consumer": {
+       "type": "string"
+      },
+      "requests": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "consumer",
+      "requests"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "byConsumer",
+   "is_mock",
+   "rows",
+   "scope",
+   "totals"
+  ]
+ },
+ "GET /api/v1/admin/integrations/api-consumers": {
+  "type": "object",
+  "properties": {
+   "consumers": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "name": {
+       "type": "string"
+      },
+      "organization": {
+       "type": "string"
+      },
+      "contactEmail": {
+       "type": "string"
+      },
+      "purpose": {
+       "type": "string"
+      },
+      "sizing": {
+       "type": "object",
+       "properties": {
+        "integrationType": {
+         "type": "string"
+        },
+        "peakRequestsPerMinute": {
+         "type": "integer"
+        },
+        "expectedRequestsPerMinute": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "expectedRequestsPerMinute",
+        "integrationType",
+        "peakRequestsPerMinute"
+       ]
+      },
+      "status": {
+       "type": "string"
+      },
+      "clientId": {
+       "type": "string",
+       "nullable": true
+      },
+      "role": {
+       "type": "string",
+       "nullable": true
+      },
+      "rateLimitPerMinute": {
+       "type": "integer",
+       "nullable": true
+      },
+      "allowedIps": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "nullable": true
+      },
+      "decisionNote": {
+       "type": "string",
+       "nullable": true
+      },
+      "requestedAt": {
+       "type": "string"
+      },
+      "decidedAt": {
+       "type": "string"
+      },
+      "decidedBy": {
+       "type": "string"
+      },
+      "lastUsedAt": {
+       "type": "string",
+       "nullable": true
+      }
+     },
+     "required": [
+      "allowedIps",
+      "clientId",
+      "contactEmail",
+      "decidedAt",
+      "decidedBy",
+      "decisionNote",
+      "id",
+      "lastUsedAt",
+      "name",
+      "organization",
+      "purpose",
+      "rateLimitPerMinute",
+      "requestedAt",
+      "role",
+      "sizing",
+      "status"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "consumers",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/admin/integrations/event-rules": {
+  "type": "object",
+  "properties": {
+   "rules": {
+    "type": "array",
+    "items": {}
+   },
+   "channels": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "riskLevels": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "channels",
+   "is_mock",
+   "riskLevels",
+   "rules"
+  ]
+ },
+ "GET /api/v1/admin/integrations/registry": {
+  "type": "object",
+  "properties": {
+   "integrations": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string"
+      },
+      "label": {
+       "type": "string"
+      },
+      "configured": {
+       "type": "boolean"
+      },
+      "missingConfig": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "mode": {
+       "type": "string"
+      },
+      "dependsOn": {
+       "type": "string"
+      },
+      "canProbe": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "canProbe",
+      "configured",
+      "dependsOn",
+      "label",
+      "missingConfig",
+      "mode",
+      "name"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "integrations",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/admin/integrity-checks/last": {
+  "type": "object",
+  "properties": {
+   "report": {
+    "nullable": true
+   },
+   "checks": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "checks",
+   "is_mock",
+   "report"
+  ]
+ },
+ "GET /api/v1/admin/interface-log": {
+  "type": "object",
+  "properties": {
+   "entries": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "timestampIso": {
+       "type": "string"
+      },
+      "direction": {
+       "type": "string"
+      },
+      "integration": {
+       "type": "string"
+      },
+      "sender": {
+       "type": "string"
+      },
+      "receiver": {
+       "type": "string"
+      },
+      "correlationId": {
+       "type": "string"
+      },
+      "method": {
+       "type": "string"
+      },
+      "path": {
+       "type": "string"
+      },
+      "status": {
+       "type": "integer"
+      },
+      "durationMs": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "correlationId",
+      "direction",
+      "durationMs",
+      "id",
+      "integration",
+      "method",
+      "path",
+      "receiver",
+      "sender",
+      "status",
+      "timestampIso"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "entries",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/admin/ops/database-role": {
+  "type": "object",
+  "properties": {
+   "role": {
+    "type": "string"
+   },
+   "superuser": {
+    "type": "boolean"
+   },
+   "createRole": {
+    "type": "boolean"
+   },
+   "createDb": {
+    "type": "boolean"
+   },
+   "ownedTables": {
+    "type": "integer"
+   },
+   "canCreateInSchema": {
+    "type": "boolean"
+   },
+   "leastPrivilege": {
+    "type": "boolean"
+   },
+   "problems": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "canCreateInSchema",
+   "createDb",
+   "createRole",
+   "is_mock",
+   "leastPrivilege",
+   "ownedTables",
+   "problems",
+   "role",
+   "superuser"
+  ]
+ },
+ "GET /api/v1/admin/ops/flags": {
+  "type": "object",
+  "properties": {
+   "flags": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "key": {
+       "type": "string"
+      },
+      "description": {
+       "type": "string"
+      },
+      "default": {
+       "type": "boolean"
+      },
+      "value": {
+       "type": "boolean"
+      },
+      "version": {
+       "type": "integer"
+      },
+      "isDefault": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "default",
+      "description",
+      "isDefault",
+      "key",
+      "value",
+      "version"
+     ]
+    }
+   },
+   "note": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "flags",
+   "is_mock",
+   "note"
+  ]
+ },
+ "GET /api/v1/admin/ops/handlers": {
+  "type": "object",
+  "properties": {
+   "handlers": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "runbooks": {
+    "type": "object",
+    "properties": {
+     "business.volume_check": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     },
+     "demo.wait": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     },
+     "integrity.check": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     },
+     "interface.check": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     },
+     "performance.check": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     },
+     "report.email": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     },
+     "retention.dry_run": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     },
+     "secrets.rotation_check": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     },
+     "synthetic.check": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "safeToRerun": {
+        "type": "boolean"
+       },
+       "whenItFails": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "whoCanFix": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "safeToRerun",
+       "title",
+       "what",
+       "whenItFails",
+       "whoCanFix"
+      ]
+     }
+    },
+    "required": [
+     "business.volume_check",
+     "demo.wait",
+     "integrity.check",
+     "interface.check",
+     "performance.check",
+     "report.email",
+     "retention.dry_run",
+     "secrets.rotation_check",
+     "synthetic.check"
+    ]
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "handlers",
+   "is_mock",
+   "runbooks"
+  ]
+ },
+ "GET /api/v1/admin/ops/interfaces": {
+  "type": "object",
+  "properties": {
+   "interfaces": {
+    "type": "array",
+    "items": {}
+   },
+   "outsideThresholds": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "interfaces",
+   "is_mock",
+   "outsideThresholds"
+  ]
+ },
+ "GET /api/v1/admin/ops/licence-usage": {
+  "type": "object",
+  "properties": {
+   "namedClinicalUsers": {
+    "type": "integer"
+   },
+   "licensedUsers": {
+    "nullable": true
+   },
+   "status": {
+    "type": "string"
+   },
+   "note": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "licensedUsers",
+   "namedClinicalUsers",
+   "note",
+   "status"
+  ]
+ },
+ "GET /api/v1/admin/ops/metrics": {
+  "type": "object",
+  "properties": {
+   "routes": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "version": {
+       "type": "string"
+      },
+      "method": {
+       "type": "string"
+      },
+      "route": {
+       "type": "string"
+      },
+      "requests": {
+       "type": "integer"
+      },
+      "clientErrors": {
+       "type": "integer"
+      },
+      "serverErrors": {
+       "type": "integer"
+      },
+      "p50": {
+       "type": "number"
+      },
+      "p95": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "clientErrors",
+      "method",
+      "p50",
+      "p95",
+      "requests",
+      "route",
+      "serverErrors",
+      "version"
+     ]
+    }
+   },
+   "resources": {
+    "type": "object",
+    "properties": {
+     "eventLoopLagMs": {
+      "type": "integer"
+     },
+     "heapUsedRatio": {
+      "type": "number"
+     },
+     "activeRequests": {
+      "type": "integer"
+     },
+     "constrained": {
+      "type": "boolean"
+     },
+     "reasons": {
+      "type": "array",
+      "items": {}
+     }
+    },
+    "required": [
+     "activeRequests",
+     "constrained",
+     "eventLoopLagMs",
+     "heapUsedRatio",
+     "reasons"
+    ]
+   },
+   "jobRuns": {
+    "type": "object",
+    "properties": {},
+    "required": []
+   },
+   "databaseLatencyMs": {
+    "nullable": true
+   },
+   "process": {
+    "type": "object",
+    "properties": {
+     "uptimeSeconds": {
+      "type": "integer"
+     },
+     "rssBytes": {
+      "type": "integer"
+     },
+     "heapUsedBytes": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "heapUsedBytes",
+     "rssBytes",
+     "uptimeSeconds"
+    ]
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "databaseLatencyMs",
+   "is_mock",
+   "jobRuns",
+   "process",
+   "resources",
+   "routes"
+  ]
+ },
+ "GET /api/v1/admin/ops/resources": {
+  "type": "object",
+  "properties": {
+   "eventLoopLagMs": {
+    "type": "integer"
+   },
+   "heapUsedRatio": {
+    "type": "number"
+   },
+   "activeRequests": {
+    "type": "integer"
+   },
+   "constrained": {
+    "type": "boolean"
+   },
+   "reasons": {
+    "type": "array",
+    "items": {}
+   },
+   "limits": {
+    "type": "object",
+    "properties": {
+     "eventLoopLagMs": {
+      "type": "integer"
+     },
+     "heapUsedRatio": {
+      "type": "number"
+     },
+     "activeRequests": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "activeRequests",
+     "eventLoopLagMs",
+     "heapUsedRatio"
+    ]
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "activeRequests",
+   "constrained",
+   "eventLoopLagMs",
+   "heapUsedRatio",
+   "is_mock",
+   "limits",
+   "reasons"
+  ]
+ },
+ "GET /api/v1/admin/ops/rules": {
+  "type": "object",
+  "properties": {
+   "rules": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "key": {
+       "type": "string"
+      },
+      "description": {
+       "type": "string"
+      },
+      "default": {
+       "type": "integer"
+      },
+      "min": {
+       "type": "integer"
+      },
+      "max": {
+       "type": "integer"
+      },
+      "integer": {
+       "type": "boolean"
+      },
+      "value": {
+       "type": "integer"
+      },
+      "version": {
+       "type": "integer"
+      },
+      "isDefault": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "default",
+      "description",
+      "integer",
+      "isDefault",
+      "key",
+      "max",
+      "min",
+      "value",
+      "version"
+     ]
+    }
+   },
+   "note": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "note",
+   "rules"
+  ]
+ },
+ "GET /api/v1/admin/ops/runs": {
+  "type": "object",
+  "properties": {
+   "runs": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "runs"
+  ]
+ },
+ "GET /api/v1/admin/ops/schedules": {
+  "type": "object",
+  "properties": {
+   "schedules": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "schedules"
+  ]
+ },
+ "GET /api/v1/admin/ops/secrets-rotation": {
+  "type": "object",
+  "properties": {
+   "intervalDays": {
+    "type": "integer"
+   },
+   "secrets": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string"
+      },
+      "rotatedAtIso": {
+       "nullable": true
+      },
+      "ageDays": {
+       "nullable": true
+      },
+      "dueInDays": {
+       "nullable": true
+      },
+      "status": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "ageDays",
+      "dueInDays",
+      "name",
+      "rotatedAtIso",
+      "status"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "intervalDays",
+   "is_mock",
+   "secrets"
+  ]
+ },
+ "GET /api/v1/admin/ops/thresholds": {
+  "type": "object",
+  "properties": {
+   "thresholds": {
+    "type": "object",
+    "properties": {
+     "p95Ms": {
+      "type": "integer"
+     },
+     "errorRate": {
+      "type": "number"
+     },
+     "eventLoopLagMs": {
+      "type": "integer"
+     },
+     "minRequests": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "errorRate",
+     "eventLoopLagMs",
+     "minRequests",
+     "p95Ms"
+    ]
+   },
+   "findings": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "findings",
+   "is_mock",
+   "thresholds"
+  ]
+ },
+ "GET /api/v1/admin/ops/traces": {
+  "type": "object",
+  "properties": {
+   "traces": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "traceId": {
+       "type": "string"
+      },
+      "root": {
+       "type": "string"
+      },
+      "startMs": {
+       "type": "integer"
+      },
+      "durationMs": {
+       "type": "integer"
+      },
+      "spanCount": {
+       "type": "integer"
+      },
+      "errors": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "durationMs",
+      "errors",
+      "root",
+      "spanCount",
+      "startMs",
+      "traceId"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "traces"
+  ]
+ },
+ "GET /api/v1/admin/ops/usage-insights": {
+  "type": "object",
+  "properties": {
+   "window": {
+    "type": "object",
+    "properties": {
+     "sinceIso": {
+      "nullable": true
+     },
+     "untilIso": {
+      "nullable": true
+     },
+     "events": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "events",
+     "sinceIso",
+     "untilIso"
+    ]
+   },
+   "users": {
+    "type": "object",
+    "properties": {
+     "total": {
+      "type": "integer"
+     },
+     "top": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "user": {
+         "type": "string"
+        },
+        "events": {
+         "type": "integer"
+        },
+        "failures": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "events",
+        "failures",
+        "user"
+       ]
+      }
+     }
+    },
+    "required": [
+     "top",
+     "total"
+    ]
+   },
+   "byRole": {
+    "type": "object",
+    "properties": {
+     "platform_super_administrator": {
+      "type": "integer"
+     },
+     "remote_triage_nurse": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "platform_super_administrator",
+     "remote_triage_nurse"
+    ]
+   },
+   "byDepartment": {
+    "type": "object",
+    "properties": {
+     "not recorded": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "not recorded"
+    ]
+   },
+   "byFeature": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "feature": {
+       "type": "string"
+      },
+      "events": {
+       "type": "integer"
+      },
+      "failures": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "events",
+      "failures",
+      "feature"
+     ]
+    }
+   },
+   "errors": {
+    "type": "object",
+    "properties": {
+     "total": {
+      "type": "integer"
+     },
+     "rate": {
+      "type": "integer"
+     },
+     "topActions": {
+      "type": "array",
+      "items": {}
+     }
+    },
+    "required": [
+     "rate",
+     "topActions",
+     "total"
+    ]
+   },
+   "peakHours": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "hourUtc": {
+       "type": "integer"
+      },
+      "events": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "events",
+      "hourUtc"
+     ]
+    }
+   },
+   "daily": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "day": {
+       "type": "string"
+      },
+      "events": {
+       "type": "integer"
+      },
+      "activeUsers": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "activeUsers",
+      "day",
+      "events"
+     ]
+    }
+   },
+   "usersMasked": {
+    "type": "boolean"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "byDepartment",
+   "byFeature",
+   "byRole",
+   "daily",
+   "errors",
+   "is_mock",
+   "peakHours",
+   "users",
+   "usersMasked",
+   "window"
+  ]
+ },
+ "GET /api/v1/admin/ops/volume": {
+  "type": "object",
+  "properties": {
+   "status": {
+    "type": "string"
+   },
+   "hourStartIso": {
+    "type": "string"
+   },
+   "observed": {
+    "type": "integer"
+   },
+   "baseline": {
+    "nullable": true
+   },
+   "historyDays": {
+    "type": "integer"
+   },
+   "reason": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "baseline",
+   "historyDays",
+   "hourStartIso",
+   "is_mock",
+   "observed",
+   "reason",
+   "status"
+  ]
+ },
+ "GET /api/v1/admin/password-policy": {
+  "type": "object",
+  "properties": {
+   "policy": {
+    "type": "object",
+    "properties": {
+     "minLength": {
+      "type": "integer"
+     },
+     "requireUppercase": {
+      "type": "boolean"
+     },
+     "requireLowercase": {
+      "type": "boolean"
+     },
+     "requireDigit": {
+      "type": "boolean"
+     },
+     "requireSymbol": {
+      "type": "boolean"
+     },
+     "historyCount": {
+      "type": "integer"
+     },
+     "maxAgeDays": {
+      "type": "integer"
+     },
+     "lockoutThreshold": {
+      "type": "integer"
+     },
+     "lockoutDurationMinutes": {
+      "type": "integer"
+     },
+     "forceChangeOnFirstLogin": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "forceChangeOnFirstLogin",
+     "historyCount",
+     "lockoutDurationMinutes",
+     "lockoutThreshold",
+     "maxAgeDays",
+     "minLength",
+     "requireDigit",
+     "requireLowercase",
+     "requireSymbol",
+     "requireUppercase"
+    ]
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "policy"
+  ]
+ },
+ "GET /api/v1/admin/permissions": {
+  "type": "object",
+  "properties": {
+   "permissions": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      },
+      "module": {
+       "type": "string"
+      },
+      "action": {
+       "type": "string"
+      },
+      "description": {
+       "type": "string"
+      },
+      "risk": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "action",
+      "code",
+      "description",
+      "module",
+      "risk"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "permissions"
+  ]
+ },
+ "GET /api/v1/admin/protocol-library": {
+  "type": "object",
+  "properties": {
+   "protocols": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "title": {
+       "type": "string"
+      },
+      "category": {
+       "type": "string"
+      },
+      "status": {
+       "type": "string"
+      },
+      "ownerRole": {
+       "type": "string"
+      },
+      "release": {
+       "type": "string"
+      },
+      "safetyNotes": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "category",
+      "id",
+      "ownerRole",
+      "release",
+      "safetyNotes",
+      "status",
+      "title"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "protocols"
+  ]
+ },
+ "GET /api/v1/admin/reports": {
+  "type": "object",
+  "properties": {
+   "reports": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "title": {
+       "type": "string"
+      },
+      "audience": {
+       "type": "string"
+      },
+      "dataClass": {
+       "type": "string"
+      },
+      "exportAllowed": {
+       "type": "boolean"
+      },
+      "requiredPermission": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "audience",
+      "dataClass",
+      "exportAllowed",
+      "id",
+      "requiredPermission",
+      "title"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "reports"
+  ]
+ },
+ "GET /api/v1/admin/responsibilities": {
+  "type": "object",
+  "properties": {
+   "responsibilities": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      },
+      "name": {
+       "type": "string"
+      },
+      "module": {
+       "type": "string"
+      },
+      "businessFunction": {
+       "type": "string"
+      },
+      "risk": {
+       "type": "string"
+      },
+      "classification": {
+       "type": "string"
+      },
+      "allowedActions": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "prerequisiteResponsibilities": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "conflictingResponsibilities": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "approvalRequired": {
+       "type": "boolean"
+      },
+      "status": {
+       "type": "string"
+      },
+      "version": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "allowedActions",
+      "approvalRequired",
+      "businessFunction",
+      "classification",
+      "code",
+      "conflictingResponsibilities",
+      "module",
+      "name",
+      "prerequisiteResponsibilities",
+      "risk",
+      "status",
+      "version"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "responsibilities"
+  ]
+ },
+ "GET /api/v1/admin/retention-policies": {
+  "type": "object",
+  "properties": {
+   "policies": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      },
+      "name": {
+       "type": "string"
+      },
+      "entity": {
+       "type": "string"
+      },
+      "archivable": {
+       "type": "boolean"
+      },
+      "archiveRequired": {
+       "type": "boolean"
+      },
+      "configured": {
+       "type": "boolean"
+      },
+      "status": {
+       "type": "string"
+      },
+      "days": {
+       "type": "integer",
+       "nullable": true
+      },
+      "deletionMode": {
+       "type": "string",
+       "nullable": true
+      },
+      "legalBasis": {
+       "type": "string",
+       "nullable": true
+      },
+      "decisionReference": {
+       "type": "string",
+       "nullable": true
+      },
+      "schedule": {
+       "nullable": true
+      }
+     },
+     "required": [
+      "archivable",
+      "archiveRequired",
+      "code",
+      "configured",
+      "days",
+      "decisionReference",
+      "deletionMode",
+      "entity",
+      "legalBasis",
+      "name",
+      "schedule",
+      "status"
+     ]
+    }
+   },
+   "neverPurged": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "neverPurged",
+   "policies"
+  ]
+ },
+ "GET /api/v1/admin/reveal-directory": {
+  "type": "object",
+  "properties": {
+   "users": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "employeeId": {
+       "type": "string"
+      },
+      "hrmsId": {
+       "type": "string"
+      },
+      "fullName": {
+       "type": "string"
+      },
+      "email": {
+       "type": "string"
+      },
+      "mobile": {
+       "type": "string"
+      },
+      "organization": {
+       "type": "string"
+      },
+      "facility": {
+       "type": "string"
+      },
+      "department": {
+       "type": "string"
+      },
+      "clinicalSpecialty": {
+       "type": "string"
+      },
+      "jobTitle": {
+       "type": "string"
+      },
+      "professionalCategory": {
+       "type": "string"
+      },
+      "manager": {
+       "type": "string"
+      },
+      "country": {
+       "type": "string"
+      },
+      "preferredLanguage": {
+       "type": "string"
+      },
+      "timeZone": {
+       "type": "string"
+      },
+      "authenticationMethod": {
+       "type": "string"
+      },
+      "mfaStatus": {
+       "type": "string"
+      },
+      "accountStatus": {
+       "type": "string"
+      },
+      "roles": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "responsibilities": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "queues": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "accessProfiles": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "lastLoginIso": {
+       "type": "string"
+      },
+      "createdBy": {
+       "type": "string"
+      },
+      "createdAtIso": {
+       "type": "string"
+      },
+      "updatedBy": {
+       "type": "string"
+      },
+      "updatedAtIso": {
+       "type": "string"
+      },
+      "organizationId": {
+       "type": "string"
+      },
+      "organizationCode": {
+       "type": "string"
+      },
+      "directoryStatus": {
+       "type": "string"
+      },
+      "licenceNumber": {
+       "type": "string"
+      },
+      "licenceAuthority": {
+       "type": "string"
+      },
+      "licenceExpiry": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "accessProfiles",
+      "accountStatus",
+      "authenticationMethod",
+      "clinicalSpecialty",
+      "country",
+      "createdAtIso",
+      "createdBy",
+      "department",
+      "directoryStatus",
+      "email",
+      "employeeId",
+      "facility",
+      "fullName",
+      "hrmsId",
+      "id",
+      "jobTitle",
+      "lastLoginIso",
+      "manager",
+      "mfaStatus",
+      "mobile",
+      "organization",
+      "organizationCode",
+      "organizationId",
+      "preferredLanguage",
+      "professionalCategory",
+      "queues",
+      "responsibilities",
+      "roles",
+      "timeZone",
+      "updatedAtIso",
+      "updatedBy"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "users"
+  ]
+ },
+ "GET /api/v1/admin/reveal/pending": {
+  "type": "object",
+  "properties": {
+   "requests": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "requests"
+  ]
+ },
+ "GET /api/v1/admin/roles": {
+  "type": "object",
+  "properties": {
+   "roles": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      },
+      "name": {
+       "type": "string"
+      },
+      "description": {
+       "type": "string"
+      },
+      "permissions": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "responsibilities": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "dataScopes": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "clinicalScopes": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "integrationScopes": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "status": {
+       "type": "string"
+      },
+      "requiresApproval": {
+       "type": "boolean"
+      },
+      "system": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "clinicalScopes",
+      "code",
+      "dataScopes",
+      "description",
+      "integrationScopes",
+      "name",
+      "permissions",
+      "requiresApproval",
+      "responsibilities",
+      "status",
+      "system"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "roles"
+  ]
+ },
+ "GET /api/v1/admin/security-thresholds": {
+  "type": "object",
+  "properties": {
+   "thresholds": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "key": {
+       "type": "string"
+      },
+      "value": {
+       "type": "integer"
+      },
+      "isOverridden": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "isOverridden",
+      "key",
+      "value"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "thresholds"
+  ]
+ },
+ "GET /api/v1/admin/sso-providers": {
+  "type": "object",
+  "properties": {
+   "providers": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "name": {
+       "type": "string"
+      },
+      "protocol": {
+       "type": "string"
+      },
+      "enabled": {
+       "type": "boolean"
+      },
+      "issuerUrl": {
+       "type": "string"
+      },
+      "tenantId": {
+       "type": "string"
+      },
+      "redirectUri": {
+       "type": "string"
+      },
+      "allowedDomains": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "attributeMappings": {
+       "type": "object",
+       "properties": {
+        "email": {
+         "type": "string"
+        },
+        "fullName": {
+         "type": "string"
+        },
+        "employeeId": {
+         "type": "string"
+        },
+        "groups": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "email",
+        "employeeId",
+        "fullName",
+        "groups"
+       ]
+      },
+      "groupRoleMappings": {
+       "type": "object",
+       "properties": {
+        "IST-Platform-Admins": {
+         "type": "string"
+        },
+        "IST-Triage-Managers": {
+         "type": "string"
+        },
+        "IST-Triage-Nurses": {
+         "type": "string"
+        }
+       },
+       "required": []
+      },
+      "jitProvisioning": {
+       "type": "boolean"
+      },
+      "localLoginEnabled": {
+       "type": "boolean"
+      },
+      "certificateExpiryIso": {
+       "type": "string"
+      },
+      "secretStorage": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "allowedDomains",
+      "attributeMappings",
+      "enabled",
+      "groupRoleMappings",
+      "id",
+      "issuerUrl",
+      "jitProvisioning",
+      "localLoginEnabled",
+      "name",
+      "protocol",
+      "redirectUri",
+      "secretStorage",
+      "tenantId"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "providers"
+  ]
+ },
+ "GET /api/v1/admin/summary": {
+  "type": "object",
+  "properties": {
+   "dashboard": {
+    "type": "object",
+    "properties": {
+     "activeUsers": {
+      "type": "integer"
+     },
+     "suspendedUsers": {
+      "type": "integer"
+     },
+     "lockedUsers": {
+      "type": "integer"
+     },
+     "expiringAccess": {
+      "type": "integer"
+     },
+     "activeSessions": {
+      "type": "integer"
+     },
+     "failedLoginAttempts": {
+      "type": "integer"
+     },
+     "pendingAccessApprovals": {
+      "type": "integer"
+     },
+     "pendingRoleApprovals": {
+      "type": "integer"
+     },
+     "breakGlassEvents": {
+      "type": "integer"
+     },
+     "recentReveals": {
+      "type": "integer"
+     },
+     "identifiableExports": {
+      "type": "integer"
+     },
+     "keysNearingExpiry": {
+      "type": "integer"
+     },
+     "overdueKeyRotations": {
+      "type": "integer"
+     },
+     "failedCryptoOperations": {
+      "type": "integer"
+     },
+     "certificateExpiryWarnings": {
+      "type": "integer"
+     },
+     "openPrivacyRequests": {
+      "type": "integer"
+     },
+     "openSecurityIncidents": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "activeSessions",
+     "activeUsers",
+     "breakGlassEvents",
+     "certificateExpiryWarnings",
+     "expiringAccess",
+     "failedCryptoOperations",
+     "failedLoginAttempts",
+     "identifiableExports",
+     "keysNearingExpiry",
+     "lockedUsers",
+     "openPrivacyRequests",
+     "openSecurityIncidents",
+     "overdueKeyRotations",
+     "pendingAccessApprovals",
+     "pendingRoleApprovals",
+     "recentReveals",
+     "suspendedUsers"
+    ]
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "dashboard",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/admin/support": {
+  "type": "object",
+  "properties": {
+   "tickets": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "title": {
+       "type": "string"
+      },
+      "requesterRole": {
+       "type": "string"
+      },
+      "status": {
+       "type": "string"
+      },
+      "dataBoundary": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "dataBoundary",
+      "id",
+      "requesterRole",
+      "status",
+      "title"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "tickets"
+  ]
+ },
+ "GET /api/v1/admin/users": {
+  "type": "object",
+  "properties": {
+   "users": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "employeeId": {
+       "type": "string"
+      },
+      "hrmsId": {
+       "type": "string"
+      },
+      "fullName": {
+       "type": "string"
+      },
+      "email": {
+       "type": "string"
+      },
+      "mobile": {
+       "type": "string"
+      },
+      "organization": {
+       "type": "string"
+      },
+      "facility": {
+       "type": "string"
+      },
+      "department": {
+       "type": "string"
+      },
+      "clinicalSpecialty": {
+       "type": "string"
+      },
+      "jobTitle": {
+       "type": "string"
+      },
+      "professionalCategory": {
+       "type": "string"
+      },
+      "manager": {
+       "type": "string"
+      },
+      "country": {
+       "type": "string"
+      },
+      "preferredLanguage": {
+       "type": "string"
+      },
+      "timeZone": {
+       "type": "string"
+      },
+      "authenticationMethod": {
+       "type": "string"
+      },
+      "mfaStatus": {
+       "type": "string"
+      },
+      "accountStatus": {
+       "type": "string"
+      },
+      "roles": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "responsibilities": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "queues": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "accessProfiles": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "lastLoginIso": {
+       "type": "string"
+      },
+      "createdBy": {
+       "type": "string"
+      },
+      "createdAtIso": {
+       "type": "string"
+      },
+      "updatedBy": {
+       "type": "string"
+      },
+      "updatedAtIso": {
+       "type": "string"
+      },
+      "organizationId": {
+       "type": "string"
+      },
+      "organizationCode": {
+       "type": "string"
+      },
+      "directoryStatus": {
+       "type": "string"
+      },
+      "licenceNumber": {
+       "type": "string"
+      },
+      "licenceAuthority": {
+       "type": "string"
+      },
+      "licenceExpiry": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "accessProfiles",
+      "accountStatus",
+      "authenticationMethod",
+      "clinicalSpecialty",
+      "country",
+      "createdAtIso",
+      "createdBy",
+      "department",
+      "directoryStatus",
+      "email",
+      "employeeId",
+      "facility",
+      "fullName",
+      "hrmsId",
+      "id",
+      "jobTitle",
+      "lastLoginIso",
+      "manager",
+      "mfaStatus",
+      "mobile",
+      "organization",
+      "organizationCode",
+      "organizationId",
+      "preferredLanguage",
+      "professionalCategory",
+      "queues",
+      "responsibilities",
+      "roles",
+      "timeZone",
+      "updatedAtIso",
+      "updatedBy"
+     ]
+    }
+   },
+   "totalCount": {
+    "type": "integer"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "totalCount",
+   "users"
+  ]
+ },
+ "GET /api/v1/approval/dashboard": {
+  "type": "object",
+  "properties": {
+   "demonstrationData": {
+    "type": "boolean"
+   },
+   "kpis": {
+    "type": "object",
+    "properties": {
+     "averageHandlingTimeAiSeconds": {
+      "type": "integer"
+     },
+     "averageHandlingTimeManualSeconds": {
+      "type": "integer"
+     },
+     "overtriageRate": {
+      "type": "number"
+     },
+     "undertriageRate": {
+      "type": "integer"
+     },
+     "medsafeDxPassRate": {
+      "type": "number"
+     },
+     "pendingApprovals": {
+      "type": "integer"
+     },
+     "safetyFloorOverrides": {
+      "type": "integer"
+     },
+     "clinicianOverrides": {
+      "type": "integer"
+     },
+     "totalCallVolume": {
+      "type": "integer"
+     },
+     "hmcEscalations": {
+      "type": "integer"
+     },
+     "sidraEscalations": {
+      "type": "integer"
+     },
+     "clinicalDeviationRate": {
+      "type": "number"
+     },
+     "criticalFloorBreaches": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "averageHandlingTimeAiSeconds",
+     "averageHandlingTimeManualSeconds",
+     "clinicalDeviationRate",
+     "clinicianOverrides",
+     "criticalFloorBreaches",
+     "hmcEscalations",
+     "medsafeDxPassRate",
+     "overtriageRate",
+     "pendingApprovals",
+     "safetyFloorOverrides",
+     "sidraEscalations",
+     "totalCallVolume",
+     "undertriageRate"
+    ]
+   },
+   "trends": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "label": {
+       "type": "string"
+      },
+      "overtriageRate": {
+       "type": "number"
+      },
+      "undertriageRate": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "label",
+      "overtriageRate",
+      "undertriageRate"
+     ]
+    }
+   },
+   "explainabilityLog": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "encounterId": {
+       "type": "string"
+      },
+      "submittedAtIso": {
+       "type": "string"
+      },
+      "assignedRole": {
+       "type": "string"
+      },
+      "protocol": {
+       "type": "string"
+      },
+      "rulesEngineSeverity": {
+       "type": "string"
+      },
+      "aiRecommendation": {
+       "type": "string"
+      },
+      "finalDispositionCode": {
+       "type": "string"
+      },
+      "safetyFloorOverride": {
+       "type": "boolean"
+      },
+      "clinicianOverride": {
+       "type": "boolean"
+      },
+      "reviewed": {
+       "type": "boolean"
+      },
+      "featureLevelReasoning": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "type": "string"
+         },
+         "label": {
+          "type": "string"
+         },
+         "value": {
+          "type": "string"
+         },
+         "rationale": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "id",
+         "label",
+         "rationale",
+         "value"
+        ]
+       }
+      },
+      "vitalsSummary": {
+       "type": "string"
+      },
+      "aiReasoning": {
+       "type": "string"
+      },
+      "auditTrace": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "type": "string"
+         },
+         "label": {
+          "type": "string"
+         },
+         "value": {
+          "type": "string"
+         },
+         "rationale": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "id",
+         "label",
+         "rationale",
+         "value"
+        ]
+       }
+      }
+     },
+     "required": [
+      "aiReasoning",
+      "aiRecommendation",
+      "assignedRole",
+      "auditTrace",
+      "clinicianOverride",
+      "encounterId",
+      "featureLevelReasoning",
+      "finalDispositionCode",
+      "protocol",
+      "reviewed",
+      "rulesEngineSeverity",
+      "safetyFloorOverride",
+      "submittedAtIso",
+      "vitalsSummary"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "demonstrationData",
+   "explainabilityLog",
+   "is_mock",
+   "kpis",
+   "trends"
+  ]
+ },
+ "GET /api/v1/approval/queue": {
+  "type": "object",
+  "properties": {
+   "queue": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "encounterId": {
+       "type": "string"
+      },
+      "submittedAtIso": {
+       "type": "string"
+      },
+      "assignedRole": {
+       "type": "string"
+      },
+      "protocol": {
+       "type": "string"
+      },
+      "rulesEngineSeverity": {
+       "type": "string"
+      },
+      "aiRecommendation": {
+       "type": "string"
+      },
+      "finalDispositionCode": {
+       "type": "string"
+      },
+      "safetyFloorOverride": {
+       "type": "boolean"
+      },
+      "clinicianOverride": {
+       "type": "boolean"
+      },
+      "reviewed": {
+       "type": "boolean"
+      },
+      "featureLevelReasoning": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "type": "string"
+         },
+         "label": {
+          "type": "string"
+         },
+         "value": {
+          "type": "string"
+         },
+         "rationale": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "id",
+         "label",
+         "rationale",
+         "value"
+        ]
+       }
+      }
+     },
+     "required": [
+      "aiRecommendation",
+      "assignedRole",
+      "clinicianOverride",
+      "encounterId",
+      "featureLevelReasoning",
+      "finalDispositionCode",
+      "protocol",
+      "reviewed",
+      "rulesEngineSeverity",
+      "safetyFloorOverride",
+      "submittedAtIso"
+     ]
+    }
+   },
+   "checkpoint": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "checkpoint",
+   "is_mock",
+   "queue"
+  ]
+ },
+ "GET /api/v1/auth/connected-apps": {
+  "type": "object",
+  "properties": {
+   "apps": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "apps",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/auth/login-config": {
+  "type": "object",
+  "properties": {
+   "loginEncryption": {
+    "nullable": true
+   },
+   "captcha": {
+    "nullable": true
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "captcha",
+   "is_mock",
+   "loginEncryption"
+  ]
+ },
+ "GET /api/v1/auth/password/policy": {
+  "type": "object",
+  "properties": {
+   "minLength": {
+    "type": "integer"
+   },
+   "requireUppercase": {
+    "type": "boolean"
+   },
+   "requireLowercase": {
+    "type": "boolean"
+   },
+   "requireDigit": {
+    "type": "boolean"
+   },
+   "requireSymbol": {
+    "type": "boolean"
+   },
+   "historyCount": {
+    "type": "integer"
+   },
+   "maxAgeDays": {
+    "type": "integer"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "historyCount",
+   "is_mock",
+   "maxAgeDays",
+   "minLength",
+   "requireDigit",
+   "requireLowercase",
+   "requireSymbol",
+   "requireUppercase"
+  ]
+ },
+ "GET /api/v1/auth/session": {
+  "type": "object",
+  "properties": {
+   "authenticated": {
+    "type": "boolean"
+   },
+   "session": {
+    "type": "object",
+    "properties": {
+     "sessionId": {
+      "type": "string"
+     },
+     "user": {
+      "type": "object",
+      "properties": {
+       "id": {
+        "type": "string"
+       },
+       "employeeId": {
+        "type": "string"
+       },
+       "hrmsId": {
+        "type": "string"
+       },
+       "fullName": {
+        "type": "string"
+       },
+       "email": {
+        "type": "string"
+       },
+       "mobile": {
+        "type": "string"
+       },
+       "organization": {
+        "type": "string"
+       },
+       "facility": {
+        "type": "string"
+       },
+       "department": {
+        "type": "string"
+       },
+       "clinicalSpecialty": {
+        "type": "string"
+       },
+       "jobTitle": {
+        "type": "string"
+       },
+       "professionalCategory": {
+        "type": "string"
+       },
+       "manager": {
+        "type": "string"
+       },
+       "licenceNumber": {
+        "type": "string"
+       },
+       "licenceAuthority": {
+        "type": "string"
+       },
+       "licenceExpiry": {
+        "type": "string"
+       },
+       "country": {
+        "type": "string"
+       },
+       "preferredLanguage": {
+        "type": "string"
+       },
+       "timeZone": {
+        "type": "string"
+       },
+       "authenticationMethod": {
+        "type": "string"
+       },
+       "mfaStatus": {
+        "type": "string"
+       },
+       "accountStatus": {
+        "type": "string"
+       },
+       "roles": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "responsibilities": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "queues": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "accessProfiles": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "lastLoginIso": {
+        "type": "string"
+       },
+       "createdBy": {
+        "type": "string"
+       },
+       "createdAtIso": {
+        "type": "string"
+       },
+       "updatedBy": {
+        "type": "string"
+       },
+       "updatedAtIso": {
+        "type": "string"
+       },
+       "organizationId": {
+        "type": "string"
+       },
+       "organizationCode": {
+        "type": "string"
+       },
+       "directoryStatus": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "accessProfiles",
+       "accountStatus",
+       "authenticationMethod",
+       "clinicalSpecialty",
+       "country",
+       "createdAtIso",
+       "createdBy",
+       "department",
+       "directoryStatus",
+       "email",
+       "employeeId",
+       "facility",
+       "fullName",
+       "hrmsId",
+       "id",
+       "jobTitle",
+       "lastLoginIso",
+       "manager",
+       "mfaStatus",
+       "mobile",
+       "organization",
+       "organizationCode",
+       "organizationId",
+       "preferredLanguage",
+       "professionalCategory",
+       "queues",
+       "responsibilities",
+       "roles",
+       "timeZone",
+       "updatedAtIso",
+       "updatedBy"
+      ]
+     },
+     "activeRole": {
+      "type": "string"
+     },
+     "permissions": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "responsibilities": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "expiresAtIso": {
+      "type": "string"
+     },
+     "authMethod": {
+      "type": "string"
+     },
+     "mfaVerified": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "activeRole",
+     "authMethod",
+     "expiresAtIso",
+     "mfaVerified",
+     "permissions",
+     "responsibilities",
+     "sessionId",
+     "user"
+    ]
+   },
+   "idleTimeoutSeconds": {
+    "type": "integer"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "authenticated",
+   "idleTimeoutSeconds",
+   "is_mock",
+   "session"
+  ]
+ },
+ "GET /api/v1/call-center/sessions": {
+  "type": "object",
+  "properties": {
+   "sessions": {
+    "type": "array",
+    "items": {}
+   },
+   "count": {
+    "type": "integer"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "count",
+   "is_mock",
+   "sessions"
+  ]
+ },
+ "GET /api/v1/call-center/status": {
+  "type": "object",
+  "properties": {
+   "gateway": {
+    "type": "object",
+    "properties": {
+     "architecture": {
+      "type": "string"
+     },
+     "configuredProvider": {
+      "type": "string"
+     },
+     "persistence": {
+      "type": "string"
+     },
+     "recordingRegion": {
+      "type": "string"
+     },
+     "rawRecordingRagEligible": {
+      "type": "boolean"
+     },
+     "providers": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "key": {
+         "type": "string"
+        },
+        "displayName": {
+         "type": "string"
+        },
+        "ok": {
+         "type": "boolean"
+        },
+        "detail": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "detail",
+        "displayName",
+        "key",
+        "ok"
+       ]
+      }
+     }
+    },
+    "required": [
+     "architecture",
+     "configuredProvider",
+     "persistence",
+     "providers",
+     "rawRecordingRagEligible",
+     "recordingRegion"
+    ]
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "gateway",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/ccp/communication/status": {
+  "type": "object",
+  "properties": {
+   "mode": {
+    "type": "string"
+   },
+   "outboundGate": {
+    "type": "string"
+   },
+   "inboundGate": {
+    "type": "string"
+   },
+   "messaging": {
+    "type": "object",
+    "properties": {
+     "mode": {
+      "type": "string"
+     },
+     "provider": {
+      "type": "string"
+     },
+     "configured": {
+      "type": "boolean"
+     },
+     "live": {
+      "type": "boolean"
+     },
+     "notes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "channels": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "inboundWebhookPath": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "channels",
+     "configured",
+     "inboundWebhookPath",
+     "live",
+     "mode",
+     "notes",
+     "provider"
+    ]
+   },
+   "email": {
+    "type": "object",
+    "properties": {
+     "mode": {
+      "type": "string"
+     },
+     "provider": {
+      "type": "string"
+     },
+     "configured": {
+      "type": "boolean"
+     },
+     "live": {
+      "type": "boolean"
+     },
+     "notes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "channel": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "channel",
+     "configured",
+     "live",
+     "mode",
+     "notes",
+     "provider"
+    ]
+   },
+   "safety": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "email",
+   "inboundGate",
+   "is_mock",
+   "messaging",
+   "mode",
+   "outboundGate",
+   "safety"
+  ]
+ },
+ "GET /api/v1/ccp/messages/drafts": {
+  "type": "object",
+  "properties": {
+   "drafts": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "drafts",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/ccp/webhooks/inbound-records": {
+  "type": "object",
+  "properties": {
+   "records": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "records"
+  ]
+ },
+ "GET /api/v1/handoff/teleconsult/queue": {
+  "type": "object",
+  "properties": {
+   "items": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "items"
+  ]
+ },
+ "GET /api/v1/me/export": {
+  "type": "object",
+  "properties": {
+   "exportedAtIso": {
+    "type": "string"
+   },
+   "format": {
+    "type": "string"
+   },
+   "profile": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "employeeId": {
+      "type": "string"
+     },
+     "hrmsId": {
+      "type": "string"
+     },
+     "fullName": {
+      "type": "string"
+     },
+     "email": {
+      "type": "string"
+     },
+     "mobile": {
+      "type": "string"
+     },
+     "organization": {
+      "type": "string"
+     },
+     "facility": {
+      "type": "string"
+     },
+     "department": {
+      "type": "string"
+     },
+     "clinicalSpecialty": {
+      "type": "string"
+     },
+     "jobTitle": {
+      "type": "string"
+     },
+     "professionalCategory": {
+      "type": "string"
+     },
+     "manager": {
+      "type": "string"
+     },
+     "licenceNumber": {
+      "type": "string"
+     },
+     "licenceAuthority": {
+      "type": "string"
+     },
+     "licenceExpiry": {
+      "type": "string"
+     },
+     "country": {
+      "type": "string"
+     },
+     "preferredLanguage": {
+      "type": "string"
+     },
+     "timeZone": {
+      "type": "string"
+     },
+     "authenticationMethod": {
+      "type": "string"
+     },
+     "mfaStatus": {
+      "type": "string"
+     },
+     "accountStatus": {
+      "type": "string"
+     },
+     "roles": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "responsibilities": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "queues": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "accessProfiles": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "lastLoginIso": {
+      "type": "string"
+     },
+     "createdBy": {
+      "type": "string"
+     },
+     "createdAtIso": {
+      "type": "string"
+     },
+     "updatedBy": {
+      "type": "string"
+     },
+     "updatedAtIso": {
+      "type": "string"
+     },
+     "organizationId": {
+      "type": "string"
+     },
+     "organizationCode": {
+      "type": "string"
+     },
+     "directoryStatus": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "accessProfiles",
+     "accountStatus",
+     "authenticationMethod",
+     "clinicalSpecialty",
+     "country",
+     "createdAtIso",
+     "createdBy",
+     "department",
+     "directoryStatus",
+     "email",
+     "employeeId",
+     "facility",
+     "fullName",
+     "hrmsId",
+     "id",
+     "jobTitle",
+     "lastLoginIso",
+     "manager",
+     "mfaStatus",
+     "mobile",
+     "organization",
+     "organizationCode",
+     "organizationId",
+     "preferredLanguage",
+     "professionalCategory",
+     "queues",
+     "responsibilities",
+     "roles",
+     "timeZone",
+     "updatedAtIso",
+     "updatedBy"
+    ]
+   },
+   "activeSessions": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "sessionId": {
+       "type": "string"
+      },
+      "userId": {
+       "type": "string"
+      },
+      "activeRole": {
+       "type": "string"
+      },
+      "authMethod": {
+       "type": "string"
+      },
+      "mfaVerified": {
+       "type": "boolean"
+      },
+      "expiresAtIso": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "activeRole",
+      "authMethod",
+      "expiresAtIso",
+      "mfaVerified",
+      "sessionId",
+      "userId"
+     ]
+    }
+   },
+   "auditEvents": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "timestampIso": {
+       "type": "string"
+      },
+      "userId": {
+       "type": "string"
+      },
+      "activeRole": {
+       "type": "string"
+      },
+      "organization": {
+       "type": "string"
+      },
+      "facility": {
+       "type": "string"
+      },
+      "department": {
+       "type": "string"
+      },
+      "action": {
+       "type": "string"
+      },
+      "module": {
+       "type": "string"
+      },
+      "resource": {
+       "type": "string"
+      },
+      "ipAddress": {
+       "type": "string"
+      },
+      "device": {
+       "type": "string"
+      },
+      "success": {
+       "type": "boolean"
+      },
+      "risk": {
+       "type": "string"
+      },
+      "purpose": {
+       "type": "string"
+      },
+      "metadata": {
+       "type": "object",
+       "properties": {
+        "screen": {
+         "type": "string"
+        },
+        "path": {
+         "type": "string"
+        },
+        "query": {
+         "type": "array",
+         "items": {}
+        }
+       },
+       "required": [
+        "path",
+        "query",
+        "screen"
+       ]
+      }
+     },
+     "required": [
+      "action",
+      "activeRole",
+      "department",
+      "device",
+      "facility",
+      "id",
+      "ipAddress",
+      "module",
+      "organization",
+      "resource",
+      "risk",
+      "success",
+      "timestampIso",
+      "userId"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "activeSessions",
+   "auditEvents",
+   "exportedAtIso",
+   "format",
+   "is_mock",
+   "profile"
+  ]
+ },
+ "GET /api/v1/note-templates": {
+  "type": "object",
+  "properties": {
+   "placeholders": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "templates": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "placeholders",
+   "templates"
+  ]
+ },
+ "GET /api/v1/note-templates/all": {
+  "type": "object",
+  "properties": {
+   "templates": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "templates"
+  ]
+ },
+ "GET /api/v1/protocols": {
+  "type": "object",
+  "properties": {
+   "release": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "version": {
+      "type": "string"
+     },
+     "sourceType": {
+      "type": "string"
+     },
+     "region": {
+      "type": "string"
+     },
+     "mode": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "mode",
+     "name",
+     "region",
+     "sourceType",
+     "version"
+    ]
+   },
+   "protocols": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "titleEn": {
+       "type": "string"
+      },
+      "clinicalDefinitionEn": {
+       "type": "string"
+      },
+      "mode": {
+       "type": "string"
+      },
+      "questionCount": {
+       "type": "integer"
+      },
+      "ageMin": {
+       "type": "integer"
+      },
+      "ageMax": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "clinicalDefinitionEn",
+      "id",
+      "mode",
+      "questionCount",
+      "titleEn"
+     ]
+    }
+   },
+   "totalCount": {
+    "type": "integer"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "protocols",
+   "release",
+   "totalCount"
+  ]
+ },
+ "GET /api/v1/protocols/releases/current": {
+  "type": "object",
+  "properties": {
+   "release": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "version": {
+      "type": "string"
+     },
+     "sourceType": {
+      "type": "string"
+     },
+     "region": {
+      "type": "string"
+     },
+     "mode": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "mode",
+     "name",
+     "region",
+     "sourceType",
+     "version"
+    ]
+   },
+   "protocolCount": {
+    "type": "integer"
+   },
+   "localizedDispositionCount": {
+    "type": "integer"
+   },
+   "warning": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "localizedDispositionCount",
+   "protocolCount",
+   "release",
+   "warning"
+  ]
+ },
+ "GET /api/v1/protocols/search": {
+  "type": "object",
+  "properties": {
+   "release": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "version": {
+      "type": "string"
+     },
+     "sourceType": {
+      "type": "string"
+     },
+     "region": {
+      "type": "string"
+     },
+     "mode": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "mode",
+     "name",
+     "region",
+     "sourceType",
+     "version"
+    ]
+   },
+   "results": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "titleEn": {
+       "type": "string"
+      },
+      "clinicalDefinitionEn": {
+       "type": "string"
+      },
+      "mode": {
+       "type": "string"
+      },
+      "score": {
+       "type": "integer"
+      },
+      "matchedTerms": {
+       "type": "array",
+       "items": {}
+      },
+      "questionCount": {
+       "type": "integer"
+      },
+      "highestSeverity": {
+       "type": "string"
+      },
+      "releaseVersion": {
+       "type": "string"
+      },
+      "ageMin": {
+       "type": "integer"
+      },
+      "ageMax": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "clinicalDefinitionEn",
+      "highestSeverity",
+      "id",
+      "matchedTerms",
+      "mode",
+      "questionCount",
+      "releaseVersion",
+      "score",
+      "titleEn"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "release",
+   "results"
+  ]
+ },
+ "GET /api/v1/protocols/set": {
+  "type": "object",
+  "properties": {
+   "hiddenProtocolIds": {
+    "type": "array",
+    "items": {}
+   },
+   "offered": {
+    "type": "integer"
+   },
+   "total": {
+    "type": "integer"
+   },
+   "version": {
+    "type": "integer"
+   },
+   "maxHidden": {
+    "type": "integer"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "hiddenProtocolIds",
+   "is_mock",
+   "maxHidden",
+   "offered",
+   "total",
+   "version"
+  ]
+ },
+ "GET /api/v1/queue": {
+  "type": "object",
+  "properties": {
+   "queue": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "istStaffId": {
+       "type": "string"
+      },
+      "dependentId": {
+       "type": "string"
+      },
+      "organizationId": {
+       "type": "string"
+      },
+      "organizationCode": {
+       "type": "string"
+      },
+      "targetOrganizationId": {
+       "type": "string"
+      },
+      "targetOrganizationCode": {
+       "type": "string"
+      },
+      "status": {
+       "type": "string"
+      },
+      "currentStage": {
+       "type": "string"
+      },
+      "priorityScore": {
+       "type": "integer"
+      },
+      "patientType": {
+       "type": "string"
+      },
+      "channel": {
+       "type": "string"
+      },
+      "stationCode": {
+       "type": "string"
+      },
+      "department": {
+       "type": "string"
+      },
+      "jobTitle": {
+       "type": "string"
+      },
+      "summary": {
+       "type": "string"
+      },
+      "safetyFloorActive": {
+       "type": "boolean"
+      },
+      "safetyFloorSource": {
+       "type": "string"
+      },
+      "identityValidated": {
+       "type": "boolean"
+      },
+      "calculatedSeverity": {
+       "type": "string"
+      },
+      "dispositionCode": {
+       "type": "string"
+      },
+      "destinationName": {
+       "type": "string"
+      },
+      "sbarCopied": {
+       "type": "boolean"
+      },
+      "slaDeadlineIso": {
+       "type": "string"
+      },
+      "customAviationTags": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "createdAtIso": {
+       "type": "string"
+      },
+      "updatedAtIso": {
+       "type": "string"
+      },
+      "transitionLogs": {
+       "type": "array",
+       "items": {}
+      },
+      "identityValidationSource": {
+       "type": "string"
+      },
+      "identityValidationMessage": {
+       "type": "string"
+      },
+      "identityValidatedAtIso": {
+       "type": "string"
+      },
+      "patientAge": {
+       "type": "object",
+       "properties": {
+        "source": {
+         "type": "string"
+        },
+        "ageYears": {
+         "type": "integer"
+        },
+        "ageMonths": {
+         "type": "integer"
+        },
+        "calculatedFrom": {
+         "type": "string"
+        },
+        "dateOfBirthIso": {
+         "type": "string"
+        },
+        "biologicalSex": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "ageMonths",
+        "ageYears",
+        "biologicalSex",
+        "calculatedFrom",
+        "dateOfBirthIso",
+        "source"
+       ]
+      },
+      "reasonNarrative": {
+       "type": "string"
+      },
+      "preparedProtocol": {
+       "type": "object",
+       "properties": {
+        "sourceType": {
+         "type": "string"
+        },
+        "releaseVersion": {
+         "type": "string"
+        },
+        "reasonNarrative": {
+         "type": "string"
+        },
+        "extractedKeywords": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "preparedAtIso": {
+         "type": "string"
+        },
+        "status": {
+         "type": "string"
+        },
+        "suggestions": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "protocolId": {
+            "type": "string"
+           },
+           "titleEn": {
+            "type": "string"
+           },
+           "score": {
+            "type": "integer"
+           },
+           "matchedTerms": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "questionCount": {
+            "type": "integer"
+           },
+           "highestSeverity": {
+            "type": "string"
+           },
+           "releaseVersion": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "highestSeverity",
+           "matchedTerms",
+           "protocolId",
+           "questionCount",
+           "releaseVersion",
+           "score",
+           "titleEn"
+          ]
+         }
+        },
+        "acuityQuestionPreview": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "acuityOrder": {
+            "type": "integer"
+           },
+           "severity": {
+            "type": "string"
+           },
+           "questionTextEn": {
+            "type": "string"
+           },
+           "dispositionCode": {
+            "type": "string"
+           },
+           "redFlag": {
+            "type": "boolean"
+           },
+           "careAdviceIds": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           }
+          },
+          "required": [
+           "acuityOrder",
+           "careAdviceIds",
+           "dispositionCode",
+           "id",
+           "questionTextEn",
+           "redFlag",
+           "severity"
+          ]
+         }
+        },
+        "resourceSectionsAvailable": {
+         "type": "object",
+         "properties": {
+          "background": {
+           "type": "boolean"
+          },
+          "firstAid": {
+           "type": "boolean"
+          },
+          "careAdvice": {
+           "type": "boolean"
+          },
+          "seeMoreAppropriateGuideline": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "background",
+          "careAdvice",
+          "firstAid",
+          "seeMoreAppropriateGuideline"
+         ]
+        },
+        "ragShadow": {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string"
+          },
+          "boundary": {
+           "type": "string"
+          },
+          "sourceType": {
+           "type": "string"
+          },
+          "sourceReleaseVersion": {
+           "type": "string"
+          },
+          "query": {
+           "type": "string"
+          },
+          "extractedReason": {
+           "type": "object",
+           "properties": {
+            "normalizedReason": {
+             "type": "string"
+            },
+            "keywords": {
+             "type": "array",
+             "items": {
+              "type": "string"
+             }
+            },
+            "possibleRedFlags": {
+             "type": "array",
+             "items": {
+              "type": "string"
+             }
+            }
+           },
+           "required": [
+            "keywords",
+            "normalizedReason",
+            "possibleRedFlags"
+           ]
+          },
+          "retrieval": {
+           "type": "object",
+           "properties": {
+            "eventId": {
+             "type": "string"
+            },
+            "corpusIds": {
+             "type": "array",
+             "items": {
+              "type": "string"
+             }
+            },
+            "retrievedSourceIds": {
+             "type": "array",
+             "items": {
+              "type": "string"
+             }
+            },
+            "retrievedSnippetHashes": {
+             "type": "array",
+             "items": {
+              "type": "string"
+             }
+            },
+            "confidence": {
+             "type": "number"
+            }
+           },
+           "required": [
+            "confidence",
+            "corpusIds",
+            "eventId",
+            "retrievedSnippetHashes",
+            "retrievedSourceIds"
+           ]
+          },
+          "suggestedProtocolCandidates": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "protocolId": {
+              "type": "string"
+             },
+             "titleEn": {
+              "type": "string"
+             },
+             "score": {
+              "type": "integer"
+             },
+             "matchedTerms": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             },
+             "questionCount": {
+              "type": "integer"
+             },
+             "highestSeverity": {
+              "type": "string"
+             },
+             "releaseVersion": {
+              "type": "string"
+             }
+            },
+            "required": [
+             "highestSeverity",
+             "matchedTerms",
+             "protocolId",
+             "questionCount",
+             "releaseVersion",
+             "score",
+             "titleEn"
+            ]
+           }
+          },
+          "comparison": {
+           "type": "object",
+           "properties": {
+            "shadowPrimaryProtocolId": {
+             "type": "string"
+            },
+            "agreement": {
+             "type": "string"
+            },
+            "reasonCode": {
+             "type": "string"
+            },
+            "deterministicPrimaryProtocolId": {
+             "type": "string"
+            }
+           },
+           "required": [
+            "agreement",
+            "reasonCode"
+           ]
+          },
+          "prohibitedActionAcknowledgement": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "cannotDecideDisposition": {
+           "type": "boolean"
+          },
+          "requiresNurseReview": {
+           "type": "boolean"
+          },
+          "generatedAtIso": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "boundary",
+          "cannotDecideDisposition",
+          "comparison",
+          "extractedReason",
+          "generatedAtIso",
+          "mode",
+          "prohibitedActionAcknowledgement",
+          "query",
+          "requiresNurseReview",
+          "retrieval",
+          "sourceReleaseVersion",
+          "sourceType",
+          "suggestedProtocolCandidates"
+         ]
+        },
+        "primaryProtocolId": {
+         "type": "string"
+        },
+        "primaryProtocolTitle": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "acuityQuestionPreview",
+        "extractedKeywords",
+        "preparedAtIso",
+        "ragShadow",
+        "reasonNarrative",
+        "releaseVersion",
+        "resourceSectionsAvailable",
+        "sourceType",
+        "status",
+        "suggestions"
+       ]
+      },
+      "stccProcess": {
+       "type": "object",
+       "properties": {
+        "processName": {
+         "type": "string"
+        },
+        "averageDurationMinutes": {
+         "type": "string"
+        },
+        "currentActionTab": {
+         "type": "string"
+        },
+        "visibleActionTabs": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "label": {
+            "type": "string"
+           },
+           "mappedStepIds": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           }
+          },
+          "required": [
+           "id",
+           "label",
+           "mappedStepIds"
+          ]
+         }
+        },
+        "canonicalSteps": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "label": {
+            "type": "string"
+           },
+           "lane": {
+            "type": "string"
+           },
+           "status": {
+            "type": "string"
+           },
+           "deterministicOwner": {
+            "type": "string"
+           },
+           "nurseActionRequired": {
+            "type": "boolean"
+           },
+           "sourceBoundary": {
+            "type": "string"
+           },
+           "notes": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           }
+          },
+          "required": [
+           "deterministicOwner",
+           "id",
+           "label",
+           "lane",
+           "notes",
+           "nurseActionRequired",
+           "sourceBoundary",
+           "status"
+          ]
+         }
+        }
+       },
+       "required": [
+        "averageDurationMinutes",
+        "canonicalSteps",
+        "currentActionTab",
+        "processName",
+        "visibleActionTabs"
+       ]
+      },
+      "assignedNurseId": {
+       "type": "string"
+      },
+      "claimedAtIso": {
+       "type": "string"
+      },
+      "lockedBy": {
+       "type": "string"
+      },
+      "lockExpiresAtIso": {
+       "type": "string"
+      },
+      "vitals": {
+       "type": "object",
+       "properties": {
+        "heartRate": {
+         "type": "integer"
+        },
+        "respiratoryRate": {
+         "type": "integer"
+        },
+        "spo2": {
+         "type": "integer"
+        },
+        "temperature": {
+         "type": "number"
+        },
+        "consciousLevel": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "consciousLevel",
+        "heartRate",
+        "respiratoryRate",
+        "spo2",
+        "temperature"
+       ]
+      },
+      "lockedByName": {
+       "type": "string"
+      },
+      "matchedProtocolId": {
+       "type": "string"
+      },
+      "clinicalApproval": {
+       "type": "object",
+       "properties": {
+        "approvedBy": {
+         "type": "string"
+        },
+        "approvedAtIso": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "approvedAtIso",
+        "approvedBy"
+       ]
+      }
+     },
+     "required": [
+      "channel",
+      "createdAtIso",
+      "currentStage",
+      "customAviationTags",
+      "department",
+      "id",
+      "identityValidated",
+      "identityValidatedAtIso",
+      "identityValidationMessage",
+      "identityValidationSource",
+      "istStaffId",
+      "jobTitle",
+      "organizationCode",
+      "organizationId",
+      "patientAge",
+      "patientType",
+      "preparedProtocol",
+      "priorityScore",
+      "reasonNarrative",
+      "safetyFloorActive",
+      "sbarCopied",
+      "slaDeadlineIso",
+      "stationCode",
+      "status",
+      "stccProcess",
+      "summary",
+      "targetOrganizationCode",
+      "targetOrganizationId",
+      "transitionLogs",
+      "updatedAtIso"
+     ]
+    }
+   },
+   "count": {
+    "type": "integer"
+   },
+   "totalCount": {
+    "type": "integer"
+   },
+   "source": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "count",
+   "is_mock",
+   "queue",
+   "source",
+   "totalCount"
+  ]
+ },
+ "GET /api/v1/queue/stats/completions": {
+  "type": "object",
+  "properties": {
+   "completions": {
+    "type": "integer"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "completions",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/runtime/environment": {
+  "type": "object",
+  "properties": {
+   "environment": {
+    "type": "string"
+   },
+   "dataProfile": {
+    "type": "string"
+   },
+   "banner": {
+    "type": "object",
+    "properties": {
+     "visible": {
+      "type": "boolean"
+     },
+     "label": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "tone": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "description",
+     "label",
+     "tone",
+     "visible"
+    ]
+   },
+   "provenance": {
+    "type": "object",
+    "properties": {
+     "gitSha": {
+      "type": "string"
+     },
+     "buildId": {
+      "type": "string"
+     },
+     "cloudRunRevision": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "buildId",
+     "cloudRunRevision",
+     "gitSha"
+    ]
+   },
+   "persistence": {
+    "type": "object",
+    "properties": {
+     "QUEUE_DB_PERSISTENCE": {
+      "type": "boolean"
+     },
+     "SESSION_DB_PERSISTENCE": {
+      "type": "boolean"
+     },
+     "MFA_DB_PERSISTENCE": {
+      "type": "boolean"
+     },
+     "AUDIT_EVENT_DB_PERSISTENCE": {
+      "type": "boolean"
+     },
+     "ROLE_PERMISSION_DB_PERSISTENCE": {
+      "type": "boolean"
+     },
+     "REVEAL_WORKFLOW_DB_PERSISTENCE": {
+      "type": "boolean"
+     },
+     "REVEAL_ANOMALY_DB_PERSISTENCE": {
+      "type": "boolean"
+     },
+     "SECURITY_ANOMALY_DB_PERSISTENCE": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "AUDIT_EVENT_DB_PERSISTENCE",
+     "MFA_DB_PERSISTENCE",
+     "QUEUE_DB_PERSISTENCE",
+     "REVEAL_ANOMALY_DB_PERSISTENCE",
+     "REVEAL_WORKFLOW_DB_PERSISTENCE",
+     "ROLE_PERMISSION_DB_PERSISTENCE",
+     "SECURITY_ANOMALY_DB_PERSISTENCE",
+     "SESSION_DB_PERSISTENCE"
+    ]
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "banner",
+   "dataProfile",
+   "environment",
+   "is_mock",
+   "persistence",
+   "provenance"
+  ]
+ },
+ "GET /api/v1/safety/dashboard": {
+  "type": "object",
+  "properties": {
+   "live": {
+    "type": "boolean"
+   },
+   "message": {
+    "type": "string"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "live",
+   "message"
+  ]
+ },
+ "GET /api/v1/safety/incidents": {
+  "type": "object",
+  "properties": {
+   "incidents": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "incidents",
+   "is_mock"
+  ]
+ },
+ "GET /api/v1/safety/initial-assessment-policy": {
+  "type": "object",
+  "properties": {
+   "required": {
+    "type": "boolean"
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "required"
+  ]
+ },
+ "GET /api/v1/safety/qa/queue": {
+  "type": "object",
+  "properties": {
+   "items": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "items"
+  ]
+ },
+ "GET /api/v1/simulation/generated": {
+  "type": "object",
+  "properties": {
+   "syntheticOnly": {
+    "type": "boolean"
+   },
+   "available": {
+    "type": "boolean"
+   },
+   "message": {
+    "type": "string"
+   },
+   "runs": {
+    "type": "array",
+    "items": {}
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "available",
+   "is_mock",
+   "message",
+   "runs",
+   "syntheticOnly"
+  ]
+ },
+ "GET /api/v1/simulation/scenarios": {
+  "type": "object",
+  "properties": {
+   "syntheticOnly": {
+    "type": "boolean"
+   },
+   "count": {
+    "type": "integer"
+   },
+   "scenarios": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "scenarioId": {
+       "type": "string"
+      },
+      "name": {
+       "type": "string"
+      },
+      "role": {
+       "type": "string"
+      },
+      "ageYears": {
+       "type": "integer"
+      },
+      "symptomText": {
+       "type": "string"
+      },
+      "vitals": {
+       "type": "object",
+       "properties": {
+        "heartRate": {
+         "type": "integer"
+        },
+        "respiratoryRate": {
+         "type": "integer"
+        },
+        "spo2": {
+         "type": "integer"
+        },
+        "temperatureC": {
+         "type": "number"
+        },
+        "consciousLevel": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "consciousLevel",
+        "heartRate",
+        "respiratoryRate",
+        "spo2",
+        "temperatureC"
+       ]
+      }
+     },
+     "required": [
+      "ageYears",
+      "name",
+      "role",
+      "scenarioId",
+      "symptomText",
+      "vitals"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "count",
+   "is_mock",
+   "scenarios",
+   "syntheticOnly"
+  ]
+ },
+ "GET /api/v1/simulation/suite": {
+  "type": "object",
+  "properties": {
+   "syntheticOnly": {
+    "type": "boolean"
+   },
+   "count": {
+    "type": "integer"
+   },
+   "results": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "encounterId": {
+       "type": "string"
+      },
+      "synthetic": {
+       "type": "boolean"
+      },
+      "scenarioId": {
+       "type": "string"
+      },
+      "scenarioName": {
+       "type": "string"
+      },
+      "matchedProtocol": {
+       "type": "object",
+       "properties": {
+        "codebookNode": {
+         "type": "string"
+        },
+        "protocolId": {
+         "type": "string"
+        },
+        "titleEn": {
+         "type": "string"
+        },
+        "cosineSimilarity": {
+         "type": "number"
+        },
+        "accepted": {
+         "type": "boolean"
+        },
+        "threshold": {
+         "type": "number"
+        }
+       },
+       "required": [
+        "accepted",
+        "codebookNode",
+        "cosineSimilarity",
+        "threshold",
+        "titleEn"
+       ]
+      },
+      "vitalScore": {
+       "type": "object",
+       "properties": {
+        "score": {
+         "type": "integer"
+        },
+        "riskBand": {
+         "type": "string"
+        },
+        "severity": {
+         "type": "string"
+        },
+        "dispositionCode": {
+         "type": "string"
+        },
+        "targetFacilityCode": {
+         "type": "string"
+        },
+        "destinationName": {
+         "type": "string"
+        },
+        "routingRationale": {
+         "type": "string"
+        },
+        "redAlertTriggered": {
+         "type": "boolean"
+        },
+        "news2": {
+         "type": "object",
+         "properties": {
+          "respiratoryRate": {
+           "type": "integer"
+          },
+          "spo2": {
+           "type": "integer"
+          },
+          "temperature": {
+           "type": "integer"
+          },
+          "heartRate": {
+           "type": "integer"
+          },
+          "consciousness": {
+           "type": "integer"
+          },
+          "total": {
+           "type": "integer"
+          }
+         },
+         "required": [
+          "consciousness",
+          "heartRate",
+          "respiratoryRate",
+          "spo2",
+          "temperature",
+          "total"
+         ]
+        },
+        "trace": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "ruleId": {
+            "type": "string"
+           },
+           "matched": {
+            "type": "boolean"
+           },
+           "rationale": {
+            "type": "string"
+           },
+           "points": {
+            "type": "integer"
+           }
+          },
+          "required": [
+           "matched",
+           "rationale",
+           "ruleId"
+          ]
+         }
+        }
+       },
+       "required": [
+        "destinationName",
+        "dispositionCode",
+        "news2",
+        "redAlertTriggered",
+        "riskBand",
+        "routingRationale",
+        "score",
+        "severity",
+        "targetFacilityCode",
+        "trace"
+       ]
+      },
+      "aviation": {
+       "type": "object",
+       "properties": {
+        "tags": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "fitToFlyStatus": {
+         "type": "string"
+        },
+        "outstationEscalationRequired": {
+         "type": "boolean"
+        },
+        "sicknessValidationTelemetry": {
+         "type": "object",
+         "properties": {
+          "requested": {
+           "type": "boolean"
+          },
+          "dutyStatus": {
+           "type": "string"
+          },
+          "crewRole": {
+           "type": "string"
+          },
+          "stationCode": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "crewRole",
+          "dutyStatus",
+          "requested",
+          "stationCode"
+         ]
+        },
+        "vaccinationReactionFlag": {
+         "type": "boolean"
+        },
+        "trace": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "ruleId": {
+            "type": "string"
+           },
+           "matched": {
+            "type": "boolean"
+           },
+           "severity": {
+            "type": "string"
+           },
+           "rationale": {
+            "type": "string"
+           },
+           "dispositionCode": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "matched",
+           "rationale",
+           "ruleId"
+          ]
+         }
+        }
+       },
+       "required": [
+        "fitToFlyStatus",
+        "outstationEscalationRequired",
+        "sicknessValidationTelemetry",
+        "tags",
+        "trace",
+        "vaccinationReactionFlag"
+       ]
+      },
+      "decision": {
+       "type": "object",
+       "properties": {
+        "severity": {
+         "type": "string"
+        },
+        "dispositionCode": {
+         "type": "string"
+        },
+        "destinationName": {
+         "type": "string"
+        },
+        "destinationRationale": {
+         "type": "string"
+        },
+        "safetyFloorApplied": {
+         "type": "boolean"
+        },
+        "trace": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "ruleId": {
+            "type": "string"
+           },
+           "matched": {
+            "type": "boolean"
+           },
+           "rationale": {
+            "type": "string"
+           },
+           "severity": {
+            "type": "string"
+           },
+           "dispositionCode": {
+            "type": "string"
+           },
+           "points": {
+            "type": "integer"
+           }
+          },
+          "required": [
+           "matched",
+           "rationale",
+           "ruleId"
+          ]
+         }
+        }
+       },
+       "required": [
+        "destinationName",
+        "destinationRationale",
+        "dispositionCode",
+        "safetyFloorApplied",
+        "severity",
+        "trace"
+       ]
+      },
+      "finalSeverity": {
+       "type": "string"
+      },
+      "finalDispositionCode": {
+       "type": "string"
+      },
+      "targetRoutingEndpoint": {
+       "type": "string"
+      },
+      "fitToFlyStatus": {
+       "type": "string"
+      },
+      "sbarNote": {
+       "type": "string"
+      },
+      "transitionLog": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "stateId": {
+          "type": "integer"
+         },
+         "stateName": {
+          "type": "string"
+         },
+         "output": {
+          "type": "object",
+          "properties": {
+           "istStaffId": {
+            "type": "string"
+           },
+           "role": {
+            "type": "string"
+           },
+           "ageYears": {
+            "type": "integer"
+           },
+           "symptomText": {
+            "type": "string"
+           },
+           "synthetic": {
+            "type": "boolean"
+           },
+           "codebookNode": {
+            "type": "string"
+           },
+           "cosineSimilarity": {
+            "type": "number"
+           },
+           "accepted": {
+            "type": "boolean"
+           },
+           "threshold": {
+            "type": "number"
+           },
+           "protocolId": {
+            "type": "string"
+           },
+           "protocolTitle": {
+            "type": "string"
+           },
+           "overrideTriggered": {
+            "type": "boolean"
+           },
+           "score": {
+            "type": "integer"
+           },
+           "riskBand": {
+            "type": "string"
+           },
+           "matchedRules": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "crewRole": {
+            "type": "string"
+           },
+           "fitToFlyStatus": {
+            "type": "string"
+           },
+           "outstationEscalationRequired": {
+            "type": "boolean"
+           },
+           "tags": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "encounterId": {
+            "type": "string"
+           },
+           "finalSeverity": {
+            "type": "string"
+           },
+           "dispositionCode": {
+            "type": "string"
+           },
+           "targetRoutingEndpoint": {
+            "type": "string"
+           },
+           "sbarRendered": {
+            "type": "boolean"
+           },
+           "news2": {
+            "type": "object",
+            "properties": {
+             "respiratoryRate": {
+              "type": "integer"
+             },
+             "spo2": {
+              "type": "integer"
+             },
+             "temperature": {
+              "type": "integer"
+             },
+             "heartRate": {
+              "type": "integer"
+             },
+             "consciousness": {
+              "type": "integer"
+             },
+             "total": {
+              "type": "integer"
+             }
+            },
+            "required": [
+             "consciousness",
+             "heartRate",
+             "respiratoryRate",
+             "spo2",
+             "temperature",
+             "total"
+            ]
+           },
+           "severity": {
+            "type": "string"
+           }
+          },
+          "required": []
+         },
+         "consequence": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "consequence",
+         "output",
+         "stateId",
+         "stateName"
+        ]
+       }
+      },
+      "trainingRow": {
+       "type": "object",
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "synthetic": {
+         "type": "boolean"
+        },
+        "purpose": {
+         "type": "string"
+        },
+        "safetyNotice": {
+         "type": "string"
+        },
+        "input": {
+         "type": "object",
+         "properties": {
+          "scenarioId": {
+           "type": "string"
+          },
+          "scenarioName": {
+           "type": "string"
+          },
+          "symptomText": {
+           "type": "string"
+          },
+          "role": {
+           "type": "string"
+          },
+          "ageYears": {
+           "type": "integer"
+          },
+          "vitals": {
+           "type": "object",
+           "properties": {
+            "heartRate": {
+             "type": "integer"
+            },
+            "respiratoryRate": {
+             "type": "integer"
+            },
+            "spo2": {
+             "type": "integer"
+            },
+            "temperatureC": {
+             "type": "number"
+            },
+            "consciousLevel": {
+             "type": "string"
+            }
+           },
+           "required": [
+            "consciousLevel",
+            "heartRate",
+            "respiratoryRate",
+            "spo2",
+            "temperatureC"
+           ]
+          }
+         },
+         "required": [
+          "ageYears",
+          "role",
+          "scenarioId",
+          "scenarioName",
+          "symptomText",
+          "vitals"
+         ]
+        },
+        "expectedOutput": {
+         "type": "object",
+         "properties": {
+          "matchedProtocol": {
+           "type": "object",
+           "properties": {
+            "codebookNode": {
+             "type": "string"
+            },
+            "protocolId": {
+             "type": "string"
+            },
+            "titleEn": {
+             "type": "string"
+            },
+            "cosineSimilarity": {
+             "type": "number"
+            },
+            "accepted": {
+             "type": "boolean"
+            },
+            "threshold": {
+             "type": "number"
+            }
+           },
+           "required": [
+            "accepted",
+            "codebookNode",
+            "cosineSimilarity",
+            "threshold",
+            "titleEn"
+           ]
+          },
+          "finalSeverity": {
+           "type": "string"
+          },
+          "finalDispositionCode": {
+           "type": "string"
+          },
+          "targetRoutingEndpoint": {
+           "type": "string"
+          },
+          "fitToFlyStatus": {
+           "type": "string"
+          },
+          "safetyFloorTriggered": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "finalDispositionCode",
+          "finalSeverity",
+          "fitToFlyStatus",
+          "matchedProtocol",
+          "safetyFloorTriggered",
+          "targetRoutingEndpoint"
+         ]
+        },
+        "messages": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "role": {
+            "type": "string"
+           },
+           "content": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "content",
+           "role"
+          ]
+         }
+        }
+       },
+       "required": [
+        "expectedOutput",
+        "id",
+        "input",
+        "messages",
+        "purpose",
+        "safetyNotice",
+        "synthetic"
+       ]
+      }
+     },
+     "required": [
+      "aviation",
+      "decision",
+      "encounterId",
+      "finalDispositionCode",
+      "finalSeverity",
+      "fitToFlyStatus",
+      "matchedProtocol",
+      "sbarNote",
+      "scenarioId",
+      "scenarioName",
+      "synthetic",
+      "targetRoutingEndpoint",
+      "trainingRow",
+      "transitionLog",
+      "vitalScore"
+     ]
+    }
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "count",
+   "is_mock",
+   "results",
+   "syntheticOnly"
+  ]
+ },
+ "GET /api/v1/versions": {
+  "type": "object",
+  "properties": {
+   "versions": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "version": {
+       "type": "string"
+      },
+      "basePath": {
+       "type": "string"
+      },
+      "status": {
+       "type": "string"
+      },
+      "errorFormat": {
+       "type": "string"
+      },
+      "deprecatedAt": {
+       "nullable": true
+      },
+      "sunsetAt": {
+       "nullable": true
+      },
+      "successor": {
+       "nullable": true
+      }
+     },
+     "required": [
+      "basePath",
+      "deprecatedAt",
+      "errorFormat",
+      "status",
+      "successor",
+      "sunsetAt",
+      "version"
+     ]
+    }
+   },
+   "policy": {
+    "type": "object",
+    "properties": {
+     "minimumNoticeDays": {
+      "type": "integer"
+     },
+     "parallelSupport": {
+      "type": "string"
+     },
+     "signalling": {
+      "type": "string"
+     },
+     "breakingChanges": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "breakingChanges",
+     "minimumNoticeDays",
+     "parallelSupport",
+     "signalling"
+    ]
+   },
+   "is_mock": {
+    "type": "boolean"
+   }
+  },
+  "required": [
+   "is_mock",
+   "policy",
+   "versions"
+  ]
+ }
+}

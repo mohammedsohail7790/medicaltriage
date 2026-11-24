@@ -35,6 +35,14 @@ For each document or evidence item Qatar Airways asked for, what exists, and wha
 | NFR-152 | CSP directives | `security/content-security-policy.md` | Ready; inline styles allowed | Capture from the tenant |
 | Handover | Test both builds | `validation/handover-to-reshma.md`; `validation/reply-verification-register.csv`; `scripts/compareBuilds.mjs` | Pack ready; **testing not done** | Reshma |
 
+## After Sprint 10
+
+| Ref | Item | Document | Status | Still needed |
+|---|---|---|---|---|
+| NFR-164, NFR-001 | API specification | `api-specification-coverage.md` | Every changing operation described; 79 response schemas inferred from observed answers; **not complete for every endpoint** | Typed responses for the rest, or a clarified reply |
+| Deployment | First deployment | `operations/deployment-checklist.md` | Written; **nothing done** | Qatar Airways inputs, push, `terraform plan` |
+| Tenant | Checks only the tenant can run | `operations/tenant-first-run-checks.md` | Written; **not run** | The tenant, Fortanix, GitHub, their peak figure |
+
 ## What changed in the product while this was written
 
 Writing the caching and revocation document showed that a session ended on one instance kept working on the others until it expired. That is fixed: other instances now ask the shared store at least every 15 seconds, and the fix is tested against PostgreSQL. Checking the replies against the code in Sprint 10 showed that the approval checkpoint was skipped in a production runtime left in demonstration mode (fixed), that scheduled jobs ran inside the API instances although the reply says separate jobs (a scheduler job and `SCHEDULER_MODE=external` added), and that the weekly probe and per-change scan the reply names were not scheduled anywhere (workflows added). Writing the patch policy showed 3 critical and 25 high dependency advisories; the critical ones and all but one high are now cleared, and the one that remains is a recorded exception.

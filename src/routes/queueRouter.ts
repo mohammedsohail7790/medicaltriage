@@ -256,6 +256,7 @@ export function createQueueRouter(): Router {
   router.post("/:id/reason-audio", requirePermission("triage.workspace.view"), async (req: AuthorizedRequest, res, next) => {
     try {
       const capture = await captureReasonForCallAudio({
+        // contract: ReasonAudioBodySchema
         audioReference: typeof req.body?.audioReference === "string" ? req.body.audioReference : undefined,
         simulatedTranscriptText:
           typeof req.body?.simulatedTranscriptText === "string" ? req.body.simulatedTranscriptText : undefined

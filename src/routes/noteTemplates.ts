@@ -87,6 +87,7 @@ export function createNoteTemplatesRouter(): Router {
 
   router.post("/:id/render", nurse, async (req, res, next) => {
     try {
+      // contract: NoteTemplateRenderBodySchema
       const values = typeof req.body === "object" && req.body ? (req.body as Record<string, unknown>) : {};
       const clean: Record<string, string> = {};
       for (const key of PLACEHOLDERS) if (typeof values[key] === "string") clean[key] = String(values[key]).slice(0, 300);

@@ -73,7 +73,8 @@ export function bindSchemas(routesDir: string): Map<string, SchemaBinding> {
     starts.forEach((match, index) => {
       const end = starts[index + 1]?.index ?? source.length;
       const chunk = source.slice(match.index ?? 0, end);
-      const parse = /(\w+Schema)\.(?:safeParse|parse)\(\s*(?:\{[^}]*\.\.\.\(?[^)]*\)?[^}]*\}|req\.(body|query|params))/.exec(chunk) ?? /(\w+Schema)\.(?:safeParse|parse)\(\s*req\.(body|query|params)/.exec(chunk);
+      const marker = /\/\/ contract:\s*(\w+Schema)/.exec(chunk);
+      const parse = (marker ? [marker[0], marker[1], "body"] : null) ?? /(\w+(?:Schema|Input))\.(?:safeParse|parse)\(\s*(?:\{[^}]*\.\.\.\(?[^)]*\)?[^}]*\}|req\.(body|query|params))/.exec(chunk) ?? /(\w+(?:Schema|Input))\.(?:safeParse|parse)\(\s*req\.(body|query|params)/.exec(chunk);
       if (parse) {
         bindings.set(`${path.basename(file)}|${match[1].toUpperCase()} ${match[2]}`, {
           schemaName: parse[1],
@@ -85,6 +86,31 @@ export function bindSchemas(routesDir: string): Map<string, SchemaBinding> {
   return bindings;
 }
 
+/** Routes that change something but never read a request body (actions on an item by its identifier). */
+export function bodylessRoutes(routesDir: string): Set<string> {
+  const out = new Set<string>();
+  for (const file of listSources(routesDir)) {
+    const source = readFileSync(file, "utf8");
+    const starts = [...source.matchAll(/router\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g)];
+    starts.forEach((match, index) => {
+      if (!["post", "put", "patch"].includes(match[1])) return;
+      const chunk = source.slice(match.index ?? 0, starts[index + 1]?.index ?? source.length);
+      if (!/req\.body|Schema\.(?:safeParse|parse)|Input\.(?:safeParse|parse)/.test(chunk)) out.add(`${path.basename(file)}|${match[1].toUpperCase()} ${match[2]}`);
+    });
+  }
+  return out;
+}
+
+/** Routes registered through a loop or a configurable path, which the source scan cannot bind. */
+export const ROUTE_OVERRIDES: Record<string, { schemaName?: string; note?: string }> = {
+  "POST /api/v1/auth/login": { schemaName: "LoginRequestSchema" },
+  "POST /api/v1/admin/integrations/api-consumers/:id/suspend": { note: "Takes no request body." },
+  "POST /api/v1/admin/integrations/api-consumers/:id/reinstate": { note: "Takes no request body." },
+  "POST /api/v1/admin/ops/schedules/:id/enable": { note: "Takes no request body." },
+  "POST /api/v1/admin/ops/schedules/:id/disable": { note: "Takes no request body." },
+  "POST /api/v1/ccp/webhooks/twilio": { note: "Form-encoded callback from the messaging provider; its signature is verified. Not called by clients." }
+};
+
 export type OpenApiBuildResult = {
   spec: Record<string, unknown>;
   stats: { operations: number; withRequestSchema: number; unresolvedSchemas: string[] };
@@ -94,7 +120,8 @@ export function buildOpenApi(
   routes: RouteRecord[],
   schemaFor: (route: RouteRecord) => { name: string; location: SchemaBinding["location"]; schema: ZodType } | undefined,
   info: { title: string; version: string; description: string },
-  serverUrl?: string
+  serverUrl?: string,
+  extras: { isBodyless?: (route: RouteRecord) => boolean; observedResponse?: (route: RouteRecord) => Record<string, unknown> | undefined } = {}
 ): OpenApiBuildResult {
   const paths: Record<string, Record<string, unknown>> = {};
   const components: Record<string, unknown> = {};
@@ -131,6 +158,9 @@ export function buildOpenApi(
       }
       withRequestSchema += 1;
     }
+    if (!bound && extras.isBodyless?.(route)) operation.description = ROUTE_OVERRIDES[`${route.method.toUpperCase()} ${route.path}`]?.note ?? "Takes no request body.";
+    const observed = extras.observedResponse?.(route);
+    if (observed) (operation.responses as Record<string, unknown>)["200"] = { description: "Success (schema inferred from observed responses)", content: { "application/json": { schema: observed } } };
     paths[openPath] ??= {};
     paths[openPath][route.method] = operation;
   }
@@ -170,8 +200,10 @@ export function generateOpenApiFromApp(
   app: Express,
   srcDir: string,
   schemas: Record<string, unknown>,
-  info: { title: string; version: string; description: string }
+  info: { title: string; version: string; description: string },
+  observed?: Record<string, Record<string, unknown>>
 ): OpenApiBuildResult {
+  const bodyless = bodylessRoutes(path.join(srcDir, "routes"));
   const routes = collectRoutes(app);
   const mounts = mountFiles(srcDir);
   const bindings = bindSchemas(path.join(srcDir, "routes"));
@@ -179,6 +211,8 @@ export function generateOpenApiFromApp(
   const result = buildOpenApi(
     routes,
     (route) => {
+      const override = ROUTE_OVERRIDES[`${route.method.toUpperCase()} ${route.path}`];
+      if (override?.schemaName && schemas[override.schemaName] instanceof ZodType) return { name: override.schemaName, location: "body", schema: schemas[override.schemaName] as ZodType };
       const mount = mounts.find((m) => route.path === m.prefix || route.path.startsWith(`${m.prefix}/`));
       if (!mount) return undefined;
       const rest = route.path.slice(mount.prefix.length) || "/";
@@ -192,7 +226,18 @@ export function generateOpenApiFromApp(
       }
       return { name: binding.schemaName, location: binding.location, schema };
     },
-    info
+    info,
+    undefined,
+    {
+      isBodyless: (route) => {
+        if (ROUTE_OVERRIDES[`${route.method.toUpperCase()} ${route.path}`]?.note) return true;
+        const mount = mounts.find((m) => route.path === m.prefix || route.path.startsWith(`${m.prefix}/`));
+        if (!mount) return false;
+        const rest = route.path.slice(mount.prefix.length) || "/";
+        return bodyless.has(`${path.basename(mount.file)}|${route.method.toUpperCase()} ${rest}`);
+      },
+      observedResponse: (route) => observed?.[`${route.method.toUpperCase()} ${route.path}`]
+    }
   );
   result.stats.unresolvedSchemas = [...unresolved].sort();
   return result;

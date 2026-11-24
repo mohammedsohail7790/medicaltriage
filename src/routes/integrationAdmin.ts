@@ -14,6 +14,7 @@ import { recordAuditEvent } from "../services/securityAdmin.js";
 import { SubscriptionInput, WebhookError, createSubscription, processDueDeliveries, replayDeliveries, requireDatabase, validateWebhookUrl } from "../services/webhooks.js";
 import type { AuthenticatedSession } from "../types/security.js";
 
+import { WebhookChangeBodySchema, EventRuleTestBodySchema } from "../services/apiContracts.js";
 /**
  * Administration of the event-driven integration features: outbound webhooks (NFR-166), event and alert rules
  * (NFR-092) and the integration job queue (NFR-094). Reading needs audit access; every change needs elevation
@@ -64,7 +65,7 @@ export function createIntegrationAdminRouter(): Router {
   router.patch("/webhooks/:id", write, async (req: AuthorizedRequest, res, next) => {
     try {
       requireDatabase();
-      const body = z.object({ status: z.enum(["active", "paused"]).optional(), url: z.string().optional(), events: z.array(z.string().max(100)).min(1).max(50).optional() }).safeParse(req.body);
+      const body = WebhookChangeBodySchema.safeParse(req.body);
       if (!body.success) return res.status(400).json({ error: "Invalid change" });
       if (body.data.url) validateWebhookUrl(body.data.url);
       const before = await prisma.webhookSubscription.findUnique({ where: { id: req.params.id } });
@@ -194,7 +195,7 @@ export function createIntegrationAdminRouter(): Router {
   // Lets an administrator see a rule fire: publishes a synthetic event through the same path as real ones.
   router.post("/event-rules/test-event", write, async (req: AuthorizedRequest, res, next) => {
     try {
-      const body = z.object({ type: z.string().min(1).max(100), risk: z.enum(["low", "medium", "high", "critical"]).default("medium") }).safeParse(req.body);
+      const body = EventRuleTestBodySchema.safeParse(req.body);
       if (!body.success) return res.status(400).json({ error: "type is required" });
       await publishEvent({ id: randomUUID(), type: body.data.type, occurredAtIso: new Date().toISOString(), risk: body.data.risk, success: true, subject: "rule-test", data: { action: body.data.type.toUpperCase(), module: "RuleTest", resource: "RuleTest", userId: req.securitySession!.user.id, activeRole: req.securitySession!.activeRole } });
       return res.status(202).json({ published: true });

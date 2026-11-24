@@ -20,7 +20,7 @@ describe("OpenAPI generation", () => {
 
   it("matches the committed docs/openapi.json (run `pnpm docs:openapi` after changing routes)", async () => {
     const committed = JSON.parse(readFileSync(path.resolve(process.cwd(), "docs", "openapi.json"), "utf8"));
-    const { spec } = generateOpenApiFromApp(createApp(), srcDir, await loadSchemaRegistry(srcDir), committed.info);
+    const { spec } = generateOpenApiFromApp(createApp(), srcDir, await loadSchemaRegistry(srcDir), committed.info, JSON.parse(readFileSync(path.resolve(process.cwd(), "docs", "observed-responses.json"), "utf8")));
     expect(Object.keys((spec as { paths: object }).paths).sort()).toEqual(Object.keys(committed.paths).sort());
     expect(JSON.stringify(spec)).toEqual(JSON.stringify(committed));
   });
@@ -37,6 +37,6 @@ describe("OpenAPI generation", () => {
     const { spec } = generateOpenApiFromApp(createApp(), srcDir, await loadSchemaRegistry(srcDir), info);
     const paths = (spec as { paths: Record<string, Record<string, { requestBody?: unknown }>> }).paths;
     const missing = Object.values(paths).flatMap((ops) => Object.entries(ops).filter(([m, o]) => ["post", "put", "patch"].includes(m) && !o.requestBody));
-    expect(missing.length).toBeLessThanOrEqual(58);
+    expect(missing.length).toBeLessThanOrEqual(35); // the rest take no body (see docs/api-specification-coverage.md)
   });
 });

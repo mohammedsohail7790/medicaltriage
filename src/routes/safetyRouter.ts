@@ -98,6 +98,7 @@ export function createSafetyRouter(): Router {
   });
 
   router.post("/red-flags", requireAnyPermission("triage.workspace.view"), (req: AuthorizedRequest, res) => {
+    // contract: RedFlagsBodySchema
     const text = typeof req.body?.text === "string" ? req.body.text : "";
     if (!text.trim() || text.length > 5000) return res.status(400).json({ error: "Give the caller's words, up to 5000 characters." });
     const extra = Array.isArray(req.body?.emergencyKeywords) ? req.body.emergencyKeywords.filter((k: unknown): k is string => typeof k === "string").slice(0, 50) : [];

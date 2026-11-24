@@ -16,7 +16,7 @@ export async function loadSchemaRegistry(srcDir: string): Promise<Record<string,
   for (const file of [...walk(path.join(srcDir, "types")), ...walk(path.join(srcDir, "routes")), ...walk(path.join(srcDir, "services"))]) {
     const mod = (await import(file)) as Record<string, unknown>;
     for (const [name, value] of Object.entries(mod)) {
-      if (name.endsWith("Schema") && value instanceof ZodType) registry[name] = value;
+      if ((name.endsWith("Schema") || name.endsWith("Input")) && value instanceof ZodType) registry[name] = value;
     }
   }
   return registry;

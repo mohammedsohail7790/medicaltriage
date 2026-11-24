@@ -1,6 +1,6 @@
 // NFR-164: generates docs/openapi.json from the routes the application really registers (Express router
 // introspection) with request schemas derived from the zod validators the handlers run.
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createApp } from "../src/app.js";
 import { mkdirSync } from "node:fs";
@@ -10,13 +10,15 @@ import { loadSchemaRegistry } from "../src/services/schemaRegistry.js";
 
 process.env.MOCK_MODE ??= "true";
 const srcDir = path.resolve(process.cwd(), "src");
+const observedPath = path.resolve(process.cwd(), "docs", "observed-responses.json");
+const observed = existsSync(observedPath) ? (JSON.parse(readFileSync(observedPath, "utf8")) as Record<string, Record<string, unknown>>) : undefined;
 const { spec, stats } = generateOpenApiFromApp(createApp(), srcDir, await loadSchemaRegistry(srcDir), {
   title: "IST Health Tele-Triage API",
   version: "1.0.0",
   description:
     "Generated from the routes the application registers and the zod request validators its handlers run " +
-    "(scripts/generateOpenApiSpec.ts). Request bodies and query parameters are described by schema; responses are described by status class."
-});
+    "(scripts/generateOpenApiSpec.ts). Request bodies and query parameters are described by schema; responses are described by status class, and by schema where the response was observed (docs/observed-responses.json, scripts/observeResponses.ts)."
+}, observed);
 const outPath = path.resolve(process.cwd(), "docs", "openapi.json");
 writeFileSync(outPath, JSON.stringify(spec, null, 2) + "\n", "utf8");
 console.log(`Wrote ${outPath}: ${stats.operations} operations, ${stats.withRequestSchema} with request schemas, unresolved: ${stats.unresolvedSchemas.join(", ") || "none"}.`);

@@ -8,6 +8,7 @@ import { captchaFailsClosed, captchaProvider, captchaRequirement, issueSelfChall
 import { currentPasswordPolicy } from "../services/passwordPolicy.js";
 import { readAuthenticatedSession, requireAuthenticatedSession, signSessionJwt, type AuthenticatedRequest } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
+import { PasswordChangeBodySchema } from "../services/apiContracts.js";
 import {
   authenticateLocal,
   buildSsoAuthorizationUrl,
@@ -147,9 +148,7 @@ export function createAuthRouter(): Router {
   // expired password blocked sign-in sends their user name and current password instead.
   router.post("/password/change", loginRateLimit, async (req, res, next) => {
     try {
-      const parsed = z
-        .object({ username: z.string().min(3).max(180).optional(), currentPassword: z.string().min(1).max(256), newPassword: z.string().min(1).max(256) })
-        .safeParse(req.body);
+      const parsed = PasswordChangeBodySchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
       }
@@ -333,6 +332,7 @@ export function createAuthRouter(): Router {
   // pendingEnrollmentTokens' own comment in securityAdmin.ts.
   router.post("/mfa/enroll", async (req, res, next) => {
     try {
+      // contract: MfaEnrollBodySchema
       const enrollmentToken = typeof req.body?.enrollmentToken === "string" ? req.body.enrollmentToken : undefined;
       if (enrollmentToken) {
         const enrollment = enrollMfaWithToken(enrollmentToken);

@@ -86,7 +86,7 @@
       "method": "POST",
       "path": "/api/v1/admin/elevate",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -110,19 +110,19 @@
       "method": "POST",
       "path": "/api/v1/admin/export-requests/{id}/decision",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
       "path": "/api/v1/admin/extract/{dataset}/ack",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
       "path": "/api/v1/admin/extract/{dataset}/requests",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -164,7 +164,7 @@
       "method": "POST",
       "path": "/api/v1/admin/integrations/api-consumers/{id}/decision",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
@@ -200,13 +200,13 @@
       "method": "PUT",
       "path": "/api/v1/admin/integrations/event-rules/{id}",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
       "path": "/api/v1/admin/integrations/event-rules/test-event",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -218,7 +218,7 @@
       "method": "POST",
       "path": "/api/v1/admin/integrations/event-rules",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
@@ -272,7 +272,7 @@
       "method": "PATCH",
       "path": "/api/v1/admin/integrations/webhooks/{id}",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
@@ -302,7 +302,7 @@
       "method": "POST",
       "path": "/api/v1/admin/integrations/webhooks",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -320,7 +320,7 @@
       "method": "POST",
       "path": "/api/v1/admin/integrity-checks/run",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -392,7 +392,7 @@
       "method": "PUT",
       "path": "/api/v1/admin/ops/rules/{key}",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -500,7 +500,7 @@
       "method": "POST",
       "path": "/api/v1/admin/organizations/{orgId}/export-requests",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -548,7 +548,7 @@
       "method": "PUT",
       "path": "/api/v1/admin/retention-policies/{code}",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -566,7 +566,7 @@
       "method": "POST",
       "path": "/api/v1/admin/reveal/{id}/decision",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -758,7 +758,7 @@
       "method": "POST",
       "path": "/api/v1/auth/login",
       "authenticated": false,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
@@ -776,7 +776,7 @@
       "method": "POST",
       "path": "/api/v1/auth/mfa/enroll",
       "authenticated": false,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
@@ -788,7 +788,7 @@
       "method": "POST",
       "path": "/api/v1/auth/password/change",
       "authenticated": false,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -884,7 +884,7 @@
       "method": "POST",
       "path": "/api/v1/developer/register",
       "authenticated": false,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
@@ -1004,7 +1004,7 @@
       "method": "POST",
       "path": "/api/v1/note-templates/{id}/render",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "DELETE",
@@ -1040,7 +1040,7 @@
       "method": "POST",
       "path": "/api/v1/oauth/token",
       "authenticated": false,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",
@@ -1166,7 +1166,7 @@
       "method": "POST",
       "path": "/api/v1/queue/{id}/reason-audio",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "POST",
@@ -1298,7 +1298,7 @@
       "method": "POST",
       "path": "/api/v1/safety/red-flags",
       "authenticated": true,
-      "hasRequestSchema": false
+      "hasRequestSchema": true
     },
     {
       "method": "GET",

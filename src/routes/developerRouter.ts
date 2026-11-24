@@ -72,6 +72,7 @@ export function createDeveloperApiRouter(): Router {
   router.post("/oauth/token", tokenLimit, express.urlencoded({ extended: false }), async (req, res, next) => {
     try {
       res.setHeader("Cache-Control", "no-store");
+      // contract: OauthTokenBodySchema
       let clientId = typeof req.body?.client_id === "string" ? req.body.client_id : undefined;
       let clientSecret = typeof req.body?.client_secret === "string" ? req.body.client_secret : undefined;
       const basic = /^Basic (.+)$/i.exec(req.headers.authorization ?? "");

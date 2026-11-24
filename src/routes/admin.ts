@@ -111,6 +111,7 @@ import {
 import { AccountStatusSchema, RevealRequestSchema } from "../types/security.js";
 import { z } from "zod";
 
+import { RevealDecisionBodySchema, ElevateBodySchema, RetentionPolicyBodySchema } from "../services/apiContracts.js";
 export const UpdateUserStatusRequestSchema = z.object({
   status: AccountStatusSchema,
   reason: z.string().min(1).max(500)
@@ -280,6 +281,7 @@ export function createAdminRouter(): Router {
     async (req: AuthorizedRequest, res, next) => {
       try {
         const session = req.securitySession!;
+        // contract: ExportRequestBodySchema
         const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
         if (reason.length < 10) {
           return res.status(400).json({ error: "A reason of at least 10 characters is required." });
@@ -301,6 +303,7 @@ export function createAdminRouter(): Router {
     async (req: AuthorizedRequest, res, next) => {
       try {
         const session = req.securitySession!;
+        // contract: ExportDecisionBodySchema
         const decision = req.body?.decision;
         if (decision !== "approve" && decision !== "reject") {
           return res.status(400).json({ error: "decision must be approve or reject." });
@@ -711,6 +714,7 @@ export function createAdminRouter(): Router {
   router.post("/extract/:dataset/requests", requirePermission("reports.export"), async (req: AuthorizedRequest, res, next) => {
     try {
       datasetShape(req.params.dataset);
+      // contract: ExportRequestBodySchema
       const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
       if (reason.length < 10) return res.status(400).json({ error: "A reason of at least 10 characters is required." });
       assertExportEnabled("dataset");
@@ -761,6 +765,7 @@ export function createAdminRouter(): Router {
   // are offered again, so a failed delivery loses nothing.
   router.post("/extract/:dataset/ack", requirePermission("reports.export"), async (req, res, next) => {
     try {
+      // contract: ExtractAckBodySchema
       const consumer = typeof req.body?.consumer === "string" ? req.body.consumer.trim().slice(0, 80) : "";
       if (!consumer || typeof req.body?.token !== "string") return res.status(400).json({ error: "consumer and token are required." });
       await acknowledgeToken(consumer, req.params.dataset, req.body.token);
@@ -795,16 +800,7 @@ export function createAdminRouter(): Router {
     try {
       const target = RETENTION_TARGETS.find((t) => t.code === req.params.code);
       if (!target) return res.status(404).json({ error: "Unknown data type." });
-      const parsed = z
-        .object({
-          days: z.number().int().min(1).max(36500),
-          deletionMode: z.enum(["archive_then_delete", "hard_delete"]).default("archive_then_delete"),
-          legalBasis: z.string().trim().min(5).max(500),
-          decisionReference: z.string().trim().min(3).max(120),
-          status: z.enum(["active", "draft"]).default("draft"),
-          schedule: z.string().trim().max(120).optional()
-        })
-        .safeParse(req.body);
+      const parsed = RetentionPolicyBodySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid retention policy", details: parsed.error.flatten() });
       const body = parsed.data;
       if (body.deletionMode === "hard_delete" && target.requiresArchive) return res.status(400).json({ error: "Clinical data can only be removed after an archive copy exists." });
@@ -832,6 +828,7 @@ export function createAdminRouter(): Router {
   // NFR-059: data integrity checks, on demand. A scheduled run uses src/scripts/runIntegrityChecks.ts.
   router.post("/integrity-checks/run", requirePermission("audit.events.view"), async (req: AuthorizedRequest, res, next) => {
     try {
+      // contract: IntegrityRunBodySchema
       const only = typeof req.body?.only === "string" ? (req.body.only as string).split(",").map((name) => name.trim()).filter(Boolean) : undefined;
       if (only?.some((name) => !(name in INTEGRITY_CHECKS))) {
         return res.status(400).json({ error: `Unknown check. Available: ${Object.keys(INTEGRITY_CHECKS).join(", ")}.` });
@@ -1180,7 +1177,7 @@ export function createAdminRouter(): Router {
     requirePermission("privacy.reveal.approve"),
     async (req: AuthorizedRequest, res, next) => {
       try {
-        const parsed = z.object({ decision: z.enum(["approved", "denied"]), comments: z.string().max(500).optional() }).safeParse(
+        const parsed = RevealDecisionBodySchema.safeParse(
           req.body
         );
         if (!parsed.success) {
@@ -1249,7 +1246,7 @@ export function createAdminRouter(): Router {
       if (!session) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const parsed = z.object({ code: z.string().min(1) }).safeParse(req.body);
+      const parsed = ElevateBodySchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid elevation request", details: parsed.error.flatten() });
       }
