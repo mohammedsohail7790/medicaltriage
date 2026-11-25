@@ -17,7 +17,7 @@ await new Promise<void>((resolve) => server.once("listening", () => resolve()));
 const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 const routes = collectRoutes(app).filter((r) => r.method === "get" && !r.path.includes(":"));
 const accounts = [{ username: "layla@irisstar.tech", simulateRole: "remote_triage_nurse" }, { username: "rishma@irisstar.tech" }];
-const observed: Record<string, Json> = {};
+const observed: Record<string, Record<string, Json>> = {};
 for (const account of accounts) {
   const login = await fetch(`${base}/api/v1/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...account, password: process.env.ADMIN_PASSWORD }) });
   if (!login.ok) throw new Error(`Sign-in as ${account.username} answered ${login.status}`);
@@ -28,7 +28,8 @@ for (const account of accounts) {
     const body = await res.json().catch(() => undefined);
     if (body === undefined) continue;
     const key = `GET ${route.path}`;
-    observed[key] = key in observed ? mergeSchemas(observed[key], inferSchema(body)) : inferSchema(body);
+    observed[key] ??= {};
+    observed[key]["200"] = observed[key]["200"] ? mergeSchemas(observed[key]["200"], inferSchema(body)) : inferSchema(body);
   }
 }
 server.close();

@@ -26,6 +26,7 @@ import { corsRejectionHandler, globalErrorHandler } from "./middleware/error.js"
 import { ipAllowlist } from "./middleware/ipAllowlist.js";
 import { requestDurationLogger } from "./middleware/requestDuration.js";
 import { requestIdMiddleware } from "./middleware/requestId.js";
+import { responseRecorder } from "./middleware/responseRecorder.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { createAdminRouter } from "./routes/admin.js";
 import { createApprovalRouter } from "./routes/approvalRouter.js";
@@ -220,6 +221,7 @@ export function createApp() {
   // so it never affects an existing deployment that hasn't opted in.
   app.use(ipAllowlist(process.env.IP_ALLOWLIST));
   app.use(express.json({ limit: "1mb" }));
+  app.use(responseRecorder());
   app.use(express.urlencoded({ extended: false, limit: "1mb" }));
   app.use((_req, res, next) => {
     const originalJson = res.json.bind(res);

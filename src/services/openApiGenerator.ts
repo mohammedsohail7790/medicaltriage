@@ -121,7 +121,7 @@ export function buildOpenApi(
   schemaFor: (route: RouteRecord) => { name: string; location: SchemaBinding["location"]; schema: ZodType } | undefined,
   info: { title: string; version: string; description: string },
   serverUrl?: string,
-  extras: { isBodyless?: (route: RouteRecord) => boolean; observedResponse?: (route: RouteRecord) => Record<string, unknown> | undefined } = {}
+  extras: { isBodyless?: (route: RouteRecord) => boolean; observedResponse?: (route: RouteRecord) => Record<string, Record<string, unknown>> | undefined } = {}
 ): OpenApiBuildResult {
   const paths: Record<string, Record<string, unknown>> = {};
   const components: Record<string, unknown> = {};
@@ -160,7 +160,11 @@ export function buildOpenApi(
     }
     if (!bound && extras.isBodyless?.(route)) operation.description = ROUTE_OVERRIDES[`${route.method.toUpperCase()} ${route.path}`]?.note ?? "Takes no request body.";
     const observed = extras.observedResponse?.(route);
-    if (observed) (operation.responses as Record<string, unknown>)["200"] = { description: "Success (schema inferred from observed responses)", content: { "application/json": { schema: observed } } };
+    if (observed) {
+      for (const [status, schema] of Object.entries(observed)) {
+        (operation.responses as Record<string, unknown>)[status] = { description: "Success (schema inferred from observed responses)", content: { "application/json": { schema } } };
+      }
+    }
     paths[openPath] ??= {};
     paths[openPath][route.method] = operation;
   }
@@ -201,7 +205,7 @@ export function generateOpenApiFromApp(
   srcDir: string,
   schemas: Record<string, unknown>,
   info: { title: string; version: string; description: string },
-  observed?: Record<string, Record<string, unknown>>
+  observed?: Record<string, Record<string, Record<string, unknown>>>
 ): OpenApiBuildResult {
   const bodyless = bodylessRoutes(path.join(srcDir, "routes"));
   const routes = collectRoutes(app);

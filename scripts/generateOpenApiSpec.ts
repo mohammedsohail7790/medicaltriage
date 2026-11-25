@@ -11,7 +11,7 @@ import { loadSchemaRegistry } from "../src/services/schemaRegistry.js";
 process.env.MOCK_MODE ??= "true";
 const srcDir = path.resolve(process.cwd(), "src");
 const observedPath = path.resolve(process.cwd(), "docs", "observed-responses.json");
-const observed = existsSync(observedPath) ? (JSON.parse(readFileSync(observedPath, "utf8")) as Record<string, Record<string, unknown>>) : undefined;
+const observed = existsSync(observedPath) ? (JSON.parse(readFileSync(observedPath, "utf8")) as Record<string, Record<string, Record<string, unknown>>>) : undefined;
 const { spec, stats } = generateOpenApiFromApp(createApp(), srcDir, await loadSchemaRegistry(srcDir), {
   title: "IST Health Tele-Triage API",
   version: "1.0.0",

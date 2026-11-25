@@ -73,6 +73,7 @@
     "growth:test": "node scripts/dataGrowthTest.mjs",
     "evidence:generate": "tsx scripts/generateEvidenceDocs.ts",
     "observe:responses": "tsx scripts/observeResponses.ts",
+    "observe:merge": "tsx scripts/mergeObservedResponses.ts",
     "validation:pack": "tsx scripts/generateValidationPack.ts",
     "compare:builds": "node scripts/compareBuilds.mjs"
   },

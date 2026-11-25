@@ -9,6 +9,7 @@ import { loadSchemaRegistry } from "../src/services/schemaRegistry.js";
 const root = process.cwd();
 type Op = { requestBody?: unknown; description?: string; responses: Record<string, { content?: Record<string, { schema?: unknown }> }> };
 const spec = JSON.parse(readFileSync(path.join(root, "docs/openapi.json"), "utf8")) as { paths: Record<string, Record<string, Op>>; info: { description: string } };
+const hasResponseSchema = (o: { op: Op }) => Object.entries(o.op.responses).some(([code, r]) => code.startsWith("2") && r.content?.["application/json"]?.schema);
 const ops = Object.entries(spec.paths).flatMap(([p, v]) => Object.entries(v).map(([method, op]) => ({ method, path: p, op })));
 
 describe("NFR-164 the API specification describes what every operation takes and answers", () => {
@@ -25,19 +26,20 @@ describe("NFR-164 the API specification describes what every operation takes and
   });
 
   it("describes the answer of every read-only endpoint that was observed, and says which these are", () => {
-    const withResponse = ops.filter((o) => o.op.responses["200"]?.content?.["application/json"]?.schema);
-    expect(withResponse.length).toBeGreaterThanOrEqual(75);
+    const withResponse = ops.filter(hasResponseSchema);
+    expect(withResponse.length).toBeGreaterThanOrEqual(170);
     expect(spec.info.description).toContain("where the response was observed");
-    const observed = JSON.parse(readFileSync(path.join(root, "docs/observed-responses.json"), "utf8")) as Record<string, unknown>;
-    expect(withResponse.length).toBe(Object.keys(observed).length);
+    const observed = JSON.parse(readFileSync(path.join(root, "docs/observed-responses.json"), "utf8")) as Record<string, Record<string, unknown>>;
+    for (const o of withResponse) expect(observed[`${o.method.toUpperCase()} ${o.path.replace(/\{(\w+)\}/g, ":$1")}`]).toBeDefined();
   });
 
   it("states honestly, in the document, what it does not yet cover", () => {
     const doc = readFileSync(path.join(root, "docs/api-specification-coverage.md"), "utf8");
     const total = ops.length;
-    const withResponse = ops.filter((o) => o.op.responses["200"]?.content?.["application/json"]?.schema).length;
+    const withResponse = ops.filter(hasResponseSchema).length;
     expect(doc).toContain(`${total} operations`);
     expect(doc).toContain(`${withResponse} of them have a response schema`);
+    expect(doc).toContain(`${total - withResponse} operations are not described by schema`);
     expect(doc).toMatch(/not described by schema/);
   });
 });
@@ -102,5 +104,49 @@ describe("the deployment documents name only things that exist", () => {
     expect(docs).toMatch(/Nothing here has been done/);
     expect(docs).toMatch(/Never run so far/);
     expect(docs).toMatch(/built but not proven at peak/);
+  });
+});
+
+describe("the response recorder", () => {
+  const { mkdtempSync, rmSync } = require("node:fs") as typeof import("node:fs");
+  const { tmpdir } = require("node:os") as typeof import("node:os");
+  const request = require("supertest") as typeof import("supertest");
+  it("records the shape of a JSON answer, with the route's own path, and nothing else", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "rec-"));
+    const file = path.join(dir, "r.jsonl");
+    process.env.RECORD_RESPONSES_FILE = file;
+    try {
+      await request(createApp()).get("/api/v1/runtime/environment").expect(200);
+      const lines = readFileSync(file, "utf8").trim().split("\n").map((l) => JSON.parse(l) as { key: string; status: number; schema: { type: string } });
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatchObject({ key: "GET /api/v1/runtime/environment", status: 200, schema: { type: "object" } });
+      expect(JSON.stringify(lines[0])).not.toMatch(/localhost|password/i);
+    } finally {
+      delete process.env.RECORD_RESPONSES_FILE;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+  it("does nothing when no file is named, or in production", async () => {
+    const express = require("express") as typeof import("express");
+    const { responseRecorder } = await import("../src/middleware/responseRecorder.js");
+    const { existsSync } = require("node:fs") as typeof import("node:fs");
+    const dir = mkdtempSync(path.join(tmpdir(), "rec-"));
+    const file = path.join(dir, "r.jsonl");
+    const saved = process.env.NODE_ENV;
+    const small = () => { const a = express(); a.use(responseRecorder()); a.get("/api/x", (_q, r) => r.json({ ok: true })); return a; };
+    try {
+      process.env.RECORD_RESPONSES_FILE = file;
+      process.env.NODE_ENV = "production";
+      await request(small()).get("/api/x").expect(200);
+      expect(existsSync(file)).toBe(false);
+      process.env.NODE_ENV = "test";
+      delete process.env.RECORD_RESPONSES_FILE;
+      await request(small()).get("/api/x").expect(200);
+      expect(existsSync(file)).toBe(false);
+    } finally {
+      process.env.NODE_ENV = saved;
+      delete process.env.RECORD_RESPONSES_FILE;
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
